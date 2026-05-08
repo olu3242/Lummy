@@ -42,16 +42,20 @@ export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
         <h1 className="font-display text-base font-bold lg:hidden">{title}</h1>
       )}
 
-      {/* Search — desktop */}
-      <div className="hidden lg:flex flex-1 max-w-xs items-center">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            placeholder="Search products, orders…"
-            className="w-full h-9 pl-9 pr-4 rounded-xl border border-border bg-muted/50 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring transition-colors"
-          />
-        </div>
-      </div>
+      {/* Search / Cmd+K trigger — desktop */}
+      <button
+        onClick={() => {
+          const event = new KeyboardEvent("keydown", { key: "k", metaKey: true, bubbles: true })
+          document.dispatchEvent(event)
+        }}
+        className="hidden lg:flex flex-1 max-w-xs items-center gap-2 h-9 px-3 rounded-xl border border-border bg-muted/50 text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+      >
+        <Search className="h-4 w-4 flex-shrink-0" />
+        <span className="flex-1 text-left">Search…</span>
+        <kbd className="flex items-center gap-0.5 text-[10px] border border-border rounded px-1.5 py-0.5 bg-background">
+          ⌘K
+        </kbd>
+      </button>
 
       <div className="ml-auto flex items-center gap-2">
         {/* Theme toggle */}
