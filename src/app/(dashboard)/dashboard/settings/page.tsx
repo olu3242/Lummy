@@ -60,9 +60,34 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   )
 }
 
+const PROFILE_KEY = "lummy_settings_profile"
+const STORE_KEY = "lummy_settings_store"
+const NOTIF_KEY = "lummy_settings_notifications"
+
+function loadLS<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback
+  try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback } catch { return fallback }
+}
+
+function saveLS(key: string, value: unknown) {
+  try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+}
+
 function ProfileSection() {
+  const defaults = { firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }
+  const [form, setForm] = React.useState(() => loadLS(PROFILE_KEY, defaults))
   const [saved, setSaved] = React.useState(false)
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  const save = () => {
+    saveLS(PROFILE_KEY, form)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const field = (key: keyof typeof defaults) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
+  })
 
   return (
     <div className="space-y-5">
@@ -74,7 +99,7 @@ function ProfileSection() {
       {/* Avatar upload */}
       <div className="flex items-center gap-4">
         <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0">
-          S
+          {form.firstName.charAt(0)}
           <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
             <Upload className="h-4 w-4 text-white" />
           </div>
@@ -89,17 +114,17 @@ function ProfileSection() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold mb-1.5">First name</label>
-          <input defaultValue="Sade" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("firstName")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
         <div>
           <label className="block text-xs font-semibold mb-1.5">Last name</label>
-          <input defaultValue="Adeyemi" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("lastName")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
       </div>
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Email</label>
-        <input defaultValue="sade@sadeboutique.com" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        <input {...field("email")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <div>
@@ -109,22 +134,19 @@ function ProfileSection() {
             <Smartphone className="h-3.5 w-3.5" />
             +234
           </div>
-          <input defaultValue="803 456 7890" className="flex-1 h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("phone")} className="flex-1 h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
       </div>
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Bio</label>
-        <textarea
-          defaultValue="Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜"
-          rows={3}
-          className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
-        />
+        <textarea {...field("bio")} rows={3}
+          className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Location</label>
-        <input defaultValue="Lagos, Nigeria" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        <input {...field("location")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <SaveBar onSave={save} saved={saved} />
@@ -133,8 +155,20 @@ function ProfileSection() {
 }
 
 function StoreSection() {
+  const defaults = { storeName: "Sade's Boutique", handle: "sade", instagram: "sadeboutique", twitter: "sadeboutique", tiktok: "" }
+  const [form, setForm] = React.useState(() => loadLS(STORE_KEY, defaults))
   const [saved, setSaved] = React.useState(false)
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  const save = () => {
+    saveLS(STORE_KEY, form)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  const field = (key: keyof typeof defaults) => ({
+    value: form[key],
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
+  })
 
   return (
     <div className="space-y-5">
@@ -145,7 +179,7 @@ function StoreSection() {
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Store name</label>
-        <input defaultValue="Sade's Boutique" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        <input {...field("storeName")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <div>
@@ -154,7 +188,7 @@ function StoreSection() {
           <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground flex-shrink-0">
             lummy.co/
           </div>
-          <input defaultValue="sade" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("handle")} className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
         <p className="text-[10px] text-muted-foreground mt-1">Your public store URL. Changing this will break existing links.</p>
       </div>
@@ -163,7 +197,7 @@ function StoreSection() {
         <label className="block text-xs font-semibold mb-1.5">Instagram</label>
         <div className="flex items-center gap-0">
           <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
-          <input defaultValue="sadeboutique" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("instagram")} className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
       </div>
 
@@ -171,7 +205,7 @@ function StoreSection() {
         <label className="block text-xs font-semibold mb-1.5">Twitter / X</label>
         <div className="flex items-center gap-0">
           <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
-          <input defaultValue="sadeboutique" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          <input {...field("twitter")} className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
         </div>
       </div>
 
@@ -179,7 +213,7 @@ function StoreSection() {
         <label className="block text-xs font-semibold mb-1.5">TikTok</label>
         <div className="flex items-center gap-0">
           <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
-          <input placeholder="your_handle" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30 placeholder:text-muted-foreground" />
+          <input {...field("tiktok")} placeholder="your_handle" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30 placeholder:text-muted-foreground" />
         </div>
       </div>
 
@@ -189,21 +223,15 @@ function StoreSection() {
 }
 
 function NotificationsSection() {
-  const [prefs, setPrefs] = React.useState({
-    newOrder: true,
-    orderStatus: true,
-    newReview: true,
-    lowStock: true,
-    weeklySummary: true,
-    aiInsights: false,
-    marketing: false,
-    whatsappAlerts: true,
-    emailDigest: true,
-  })
+  const defaultPrefs = {
+    newOrder: true, orderStatus: true, newReview: true, lowStock: true,
+    weeklySummary: true, aiInsights: false, marketing: false, whatsappAlerts: true, emailDigest: true,
+  }
+  const [prefs, setPrefs] = React.useState(() => loadLS(NOTIF_KEY, defaultPrefs))
   const [saved, setSaved] = React.useState(false)
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const save = () => { saveLS(NOTIF_KEY, prefs); setSaved(true); setTimeout(() => setSaved(false), 2500) }
 
-  const toggle = (key: keyof typeof prefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }))
+  const toggle = (key: keyof typeof defaultPrefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }))
 
   const groups = [
     {
