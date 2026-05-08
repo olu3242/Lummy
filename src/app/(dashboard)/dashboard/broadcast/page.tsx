@@ -19,10 +19,13 @@ import {
   AlertTriangle,
   Eye,
   RotateCcw,
-  Plus,
+  CalendarClock,
+  Bookmark,
+  X,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { toast } from "@/hooks/use-toast"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -122,6 +125,7 @@ const HISTORY: BroadcastRecord[] = [
 
 const STORE_NAME = "Sade's Store"
 const STORE_URL = "lummy.co/sade.styles"
+const DRAFT_KEY = "lummy_broadcast_draft"
 
 function previewMessage(body: string, firstName = "Kemi") {
   return body
@@ -129,6 +133,11 @@ function previewMessage(body: string, firstName = "Kemi") {
     .replace(/{storeName}/g, STORE_NAME)
     .replace(/{storeUrl}/g, STORE_URL)
     .replace(/{productName}/g, "Ankara Print Dress")
+}
+
+function loadDraft(): string {
+  if (typeof window === "undefined") return ""
+  try { return localStorage.getItem(DRAFT_KEY) ?? "" } catch { return "" }
 }
 
 export default function BroadcastPage() {
@@ -140,6 +149,27 @@ export default function BroadcastPage() {
   const [sending, setSending] = React.useState(false)
   const [sent, setSent] = React.useState(false)
   const [showHistory, setShowHistory] = React.useState(false)
+  const [scheduled, setScheduled] = React.useState(false)
+  const [scheduledAt, setScheduledAt] = React.useState("")
+  const [showDraftBanner, setShowDraftBanner] = React.useState(false)
+  const [pendingDraft, setPendingDraft] = React.useState("")
+
+  React.useEffect(() => {
+    const draft = loadDraft()
+    if (draft) { setPendingDraft(draft); setShowDraftBanner(true) }
+  }, [])
+
+  React.useEffect(() => {
+    if (!message) return
+    const t = setTimeout(() => {
+      try { localStorage.setItem(DRAFT_KEY, message) } catch {}
+    }, 800)
+    return () => clearTimeout(t)
+  }, [message])
+
+  const clearDraft = () => {
+    try { localStorage.removeItem(DRAFT_KEY) } catch {}
+  }
 
   const segment = SEGMENTS.find(s => s.id === selectedSegment)!
   const charCount = message.length
@@ -156,11 +186,20 @@ export default function BroadcastPage() {
     setTimeout(() => {
       setSending(false)
       setSent(true)
+      clearDraft()
+      if (scheduled && scheduledAt) {
+        toast({ title: "Broadcast scheduled!", description: `Will send to ${segment.count.toLocaleString()} customers at ${scheduledAt}.`, variant: "success" })
+      }
       setTimeout(() => setSent(false), 4000)
     }, 2000)
   }
 
-  const canSend = message.trim().length > 10 && !sending && !sent
+  const saveAsTemplate = () => {
+    if (!message.trim()) return
+    toast({ title: "Template saved", description: "Added to your custom templates.", variant: "success" })
+  }
+
+  const canSend = message.trim().length > 10 && !sending && !sent && (!scheduled || !!scheduledAt)
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -178,6 +217,30 @@ export default function BroadcastPage() {
           History
         </button>
       </div>
+
+      {/* Draft restore banner */}
+      <AnimatePresence>
+        {showDraftBanner && (
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="flex items-center gap-3 p-4 rounded-2xl bg-brand-purple/10 border border-brand-purple/20">
+            <Bookmark className="h-4 w-4 text-brand-purple flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-brand-purple">Unsaved draft found</p>
+              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pendingDraft.slice(0, 80)}…</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => { setMessage(pendingDraft); setShowDraftBanner(false) }}
+                className="h-7 px-3 rounded-lg bg-brand-purple text-white text-xs font-semibold hover:bg-brand-purple/90 transition-colors">
+                Restore
+              </button>
+              <button onClick={() => { clearDraft(); setShowDraftBanner(false) }}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-border hover:bg-accent transition-colors">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sent confirmation */}
       <AnimatePresence>
@@ -321,6 +384,45 @@ Use {storeName} and {storeUrl} as shortcuts."
             </div>
           </div>
 
+          {/* Scheduler toggle */}
+          <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-semibold">Send time</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <button onClick={() => setScheduled(false)}
+                  className={cn("px-3 py-1 rounded-lg font-semibold transition-all", !scheduled ? "bg-brand-purple text-white" : "text-muted-foreground hover:bg-accent")}>
+                  Send now
+                </button>
+                <button onClick={() => setScheduled(true)}
+                  className={cn("px-3 py-1 rounded-lg font-semibold transition-all", scheduled ? "bg-brand-purple text-white" : "text-muted-foreground hover:bg-accent")}>
+                  Schedule
+                </button>
+              </div>
+            </div>
+            <AnimatePresence>
+              {scheduled && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <input
+                    type="datetime-local"
+                    value={scheduledAt}
+                    onChange={e => setScheduledAt(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                    className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+                  />
+                  {scheduledAt && (
+                    <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                      <CalendarClock className="h-3 w-3" />
+                      Scheduled for {new Date(scheduledAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
+                    </p>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           {/* Send button */}
           <div className="flex items-center gap-3">
             <Button
@@ -335,25 +437,33 @@ Use {storeName} and {storeUrl} as shortcuts."
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full"
                   />
-                  Sending to {segment.count.toLocaleString()} contacts…
+                  {scheduled ? "Scheduling…" : `Sending to ${segment.count.toLocaleString()} contacts…`}
                 </>
               ) : sent ? (
-                <><CheckCheck className="h-4 w-4" />Sent!</>
+                <><CheckCheck className="h-4 w-4" />{scheduled ? "Scheduled!" : "Sent!"}</>
               ) : (
                 <>
-                  <MessageCircle className="h-4 w-4 fill-white/50" />
-                  Send to {segment.count.toLocaleString()} {segment.label.toLowerCase()}
+                  {scheduled ? <CalendarClock className="h-4 w-4" /> : <MessageCircle className="h-4 w-4 fill-white/50" />}
+                  {scheduled ? `Schedule for ${segment.count.toLocaleString()} contacts` : `Send to ${segment.count.toLocaleString()} ${segment.label.toLowerCase()}`}
                 </>
               )}
             </Button>
-            {message && (
-              <button
-                onClick={() => { setMessage(""); setSelectedTemplate(null) }}
-                className="flex h-11 w-11 items-center justify-center rounded-xl border border-border hover:bg-accent transition-colors"
-              >
-                <RotateCcw className="h-4 w-4 text-muted-foreground" />
-              </button>
-            )}
+            <div className="flex gap-2">
+              {message && (
+                <button onClick={saveAsTemplate} title="Save as template"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border hover:bg-accent transition-colors">
+                  <Bookmark className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
+              {message && (
+                <button
+                  onClick={() => { setMessage(""); setSelectedTemplate(null); clearDraft() }}
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border hover:bg-accent transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4 text-muted-foreground" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -394,7 +504,7 @@ Use {storeName} and {storeUrl} as shortcuts."
                 { label: "Recipients",   value: segment.count.toLocaleString() },
                 { label: "Segment",      value: segment.label },
                 { label: "Channel",      value: "WhatsApp" },
-                { label: "Est. delivery", value: "~2 minutes" },
+                { label: scheduled && scheduledAt ? "Scheduled for" : "Est. delivery", value: scheduled && scheduledAt ? new Date(scheduledAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "~2 minutes" },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{row.label}</span>

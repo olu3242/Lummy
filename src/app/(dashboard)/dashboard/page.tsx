@@ -5,6 +5,7 @@ import { RevenueChart } from "@/components/dashboard/revenue-chart"
 import { OrderSourcesChart } from "@/components/dashboard/order-sources-chart"
 import { RecentOrders } from "@/components/dashboard/recent-orders"
 import { TopProducts } from "@/components/dashboard/top-products"
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { Button } from "@/components/ui/button"
 import { mockDashboardStats, mockCreatorProfile } from "@/data/mock/dashboard"
 
@@ -43,6 +44,9 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+
+      {/* Onboarding checklist */}
+      <OnboardingChecklist />
 
       {/* AI banner */}
       <div className="rounded-2xl border border-brand-purple/20 bg-brand-purple/5 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">

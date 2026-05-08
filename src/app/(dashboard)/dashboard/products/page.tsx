@@ -7,6 +7,7 @@ import {
   Plus, Search, Filter, MoreHorizontal, MessageCircle,
   Eye, ShoppingBag, TrendingUp, Edit, Trash2, ImagePlus,
   CheckCheck, ToggleLeft, ToggleRight, X, CheckSquare, Square,
+  Sparkles, Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -28,14 +29,30 @@ const statusConfig = {
 const filters = ["All", "Active", "Draft", "Sold Out"]
 const CATEGORIES = ["Clothing", "Jewellery", "Accessories", "Beauty", "Footwear", "Food", "Art", "Digital", "Services", "Other"]
 
+const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "One Size"]
+const COLOR_OPTIONS = [
+  { name: "Black",  hex: "#111111" },
+  { name: "White",  hex: "#F5F5F5" },
+  { name: "Red",    hex: "#EF4444" },
+  { name: "Blue",   hex: "#3B82F6" },
+  { name: "Green",  hex: "#22C55E" },
+  { name: "Yellow", hex: "#EAB308" },
+  { name: "Pink",   hex: "#EC4899" },
+  { name: "Purple", hex: "#6C4EF3" },
+  { name: "Brown",  hex: "#92400E" },
+  { name: "Orange", hex: "#F97316" },
+]
+
 interface ProductFormState {
   name: string; description: string; price: string; stock: string
   category: string; status: "active" | "draft" | "sold_out"; imageUrl: string; whatsappEnabled: boolean
+  sizes: string[]; colors: string[]
 }
 
 const emptyForm: ProductFormState = {
   name: "", description: "", price: "", stock: "", category: "Clothing",
   status: "active", imageUrl: "", whatsappEnabled: true,
+  sizes: [], colors: [],
 }
 
 function productToForm(p: DashboardProduct): ProductFormState {
@@ -43,7 +60,16 @@ function productToForm(p: DashboardProduct): ProductFormState {
     name: p.name, description: p.description, price: String(p.price),
     stock: p.stock !== null ? String(p.stock) : "", category: p.category,
     status: p.status, imageUrl: p.image, whatsappEnabled: p.whatsappEnabled,
+    sizes: [], colors: [],
   }
+}
+
+const AI_DESCRIPTIONS: Record<string, string> = {
+  default: "A beautifully crafted piece made with premium materials. Designed for comfort and style, this item is perfect for any occasion. Each piece is carefully quality-checked before shipping.",
+  clothing: "Elevate your wardrobe with this stunning piece. Crafted from high-quality fabric, it offers a flattering fit and timeless style. Available in multiple sizes — perfect for everyday wear or special occasions.",
+  jewellery: "Handcrafted with care, this exquisite jewellery piece adds elegance to any outfit. Made from premium materials with intricate detailing. A perfect gift or a luxurious treat for yourself.",
+  accessories: "A must-have accessory that completes any look. Crafted with attention to detail and built to last. Stylish, functional, and versatile — the perfect finishing touch.",
+  beauty: "Transform your beauty routine with this premium product. Formulated with the finest ingredients to deliver visible results. Gentle on skin and packed with nourishing benefits.",
 }
 
 function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
@@ -61,14 +87,37 @@ function ProductDrawer({
 }) {
   const [form, setForm] = React.useState<ProductFormState>(emptyForm)
   const [saving, setSaving] = React.useState(false)
+  const [aiGenerating, setAiGenerating] = React.useState(false)
 
   React.useEffect(() => {
     setForm(editing ? productToForm(editing) : emptyForm)
     setSaving(false)
+    setAiGenerating(false)
   }, [editing, open])
 
   const set = (key: keyof ProductFormState, val: ProductFormState[keyof ProductFormState]) =>
     setForm((f) => ({ ...f, [key]: val }))
+
+  const toggleSize = (s: string) =>
+    setForm(f => ({ ...f, sizes: f.sizes.includes(s) ? f.sizes.filter(x => x !== s) : [...f.sizes, s] }))
+
+  const toggleColor = (c: string) =>
+    setForm(f => ({ ...f, colors: f.colors.includes(c) ? f.colors.filter(x => x !== c) : [...f.colors, c] }))
+
+  const generateDescription = () => {
+    if (!form.name) { toast({ title: "Enter a product name first", variant: "default" }); return }
+    setAiGenerating(true)
+    const cat = form.category.toLowerCase()
+    const base = AI_DESCRIPTIONS[cat] ?? AI_DESCRIPTIONS.default
+    const full = `✨ ${form.name}\n\n${base}`
+    let i = 0
+    setForm(f => ({ ...f, description: "" }))
+    const interval = setInterval(() => {
+      i++
+      setForm(f => ({ ...f, description: full.slice(0, i) }))
+      if (i >= full.length) { clearInterval(interval); setAiGenerating(false) }
+    }, 18)
+  }
 
   const inputCls = "w-full h-10 px-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
 
@@ -99,6 +148,7 @@ function ProductDrawer({
         </SheetHeader>
 
         <SheetBody>
+          {/* Image */}
           <div>
             <FieldLabel>Product image</FieldLabel>
             <div className="relative rounded-2xl overflow-hidden bg-muted border border-border h-44 mb-2.5 flex items-center justify-center">
@@ -115,19 +165,31 @@ function ProductDrawer({
               placeholder="Paste image URL…" className={inputCls} />
           </div>
 
+          {/* Name */}
           <div>
             <FieldLabel required>Product name</FieldLabel>
             <input value={form.name} onChange={(e) => set("name", e.target.value)}
               placeholder="e.g. Ankara Print Dress" className={inputCls} />
           </div>
 
+          {/* Description with AI */}
           <div>
-            <FieldLabel>Description</FieldLabel>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-semibold">Description</label>
+              <button onClick={generateDescription} disabled={aiGenerating}
+                className="flex items-center gap-1 text-[11px] font-semibold text-brand-purple hover:text-brand-purple/80 transition-colors disabled:opacity-60">
+                {aiGenerating
+                  ? <><Loader2 className="h-3 w-3 animate-spin" />Generating…</>
+                  : <><Sparkles className="h-3 w-3" />Generate with AI</>}
+              </button>
+            </div>
             <textarea value={form.description} onChange={(e) => set("description", e.target.value)}
-              placeholder="Describe your product…" rows={3}
-              className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+              placeholder="Describe your product… or click Generate with AI ✨"
+              rows={4}
+              className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm resize-none placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30 leading-relaxed" />
           </div>
 
+          {/* Price + Stock */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <FieldLabel required>Price (₦)</FieldLabel>
@@ -138,12 +200,13 @@ function ProductDrawer({
               </div>
             </div>
             <div>
-              <FieldLabel>Stock</FieldLabel>
+              <FieldLabel>Stock qty</FieldLabel>
               <input value={form.stock} onChange={(e) => set("stock", e.target.value.replace(/\D/g, ""))}
                 placeholder="∞ unlimited" className={inputCls} />
             </div>
           </div>
 
+          {/* Category */}
           <div>
             <FieldLabel>Category</FieldLabel>
             <select value={form.category} onChange={(e) => set("category", e.target.value)}
@@ -152,6 +215,43 @@ function ProductDrawer({
             </select>
           </div>
 
+          {/* Size variants */}
+          <div>
+            <FieldLabel>Sizes <span className="text-muted-foreground font-normal">(optional)</span></FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {SIZE_OPTIONS.map(s => (
+                <button key={s} onClick={() => toggleSize(s)}
+                  className={cn(
+                    "h-8 px-3 rounded-xl border text-xs font-semibold transition-all",
+                    form.sizes.includes(s)
+                      ? "bg-brand-purple text-white border-brand-purple"
+                      : "border-border text-muted-foreground hover:border-brand-purple/30"
+                  )}>
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Color variants */}
+          <div>
+            <FieldLabel>Colours <span className="text-muted-foreground font-normal">(optional)</span></FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_OPTIONS.map(c => (
+                <button key={c.name} onClick={() => toggleColor(c.name)} title={c.name}
+                  className={cn(
+                    "w-7 h-7 rounded-full border-2 transition-all",
+                    form.colors.includes(c.name) ? "border-brand-purple scale-110 ring-2 ring-brand-purple/30" : "border-border hover:border-brand-purple/30"
+                  )}
+                  style={{ backgroundColor: c.hex }} />
+              ))}
+            </div>
+            {form.colors.length > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-1.5">{form.colors.join(", ")}</p>
+            )}
+          </div>
+
+          {/* Status */}
           <div>
             <FieldLabel>Status</FieldLabel>
             <div className="grid grid-cols-3 gap-2">
@@ -171,6 +271,7 @@ function ProductDrawer({
             </div>
           </div>
 
+          {/* WhatsApp toggle */}
           <div className="flex items-center justify-between p-3.5 rounded-xl border border-border bg-muted/30">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-[#25D366]/10 flex items-center justify-center">
