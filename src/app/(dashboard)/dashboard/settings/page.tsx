@@ -1,0 +1,508 @@
+"use client"
+
+import * as React from "react"
+import { motion } from "framer-motion"
+import {
+  User,
+  Bell,
+  CreditCard,
+  Shield,
+  Store,
+  ChevronRight,
+  CheckCheck,
+  Eye,
+  EyeOff,
+  Upload,
+  Smartphone,
+  Globe,
+  MessageCircle,
+  Zap,
+  Trash2,
+  AlertTriangle,
+} from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+type SettingsSection = "profile" | "store" | "notifications" | "payments" | "security"
+
+const navItems: { id: SettingsSection; label: string; icon: React.ElementType; description: string }[] = [
+  { id: "profile", label: "Profile", icon: User, description: "Personal info, avatar" },
+  { id: "store", label: "Store", icon: Store, description: "Store details, handle" },
+  { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
+  { id: "payments", label: "Payments", icon: CreditCard, description: "Bank account, payouts" },
+  { id: "security", label: "Security", icon: Shield, description: "Password, 2FA" },
+]
+
+function SaveBar({ onSave, saved }: { onSave: () => void; saved: boolean }) {
+  return (
+    <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
+      <Button variant="outline" size="sm" className="h-9 text-xs">Discard</Button>
+      <Button size="sm" className="h-9 text-xs gap-1.5" onClick={onSave}>
+        {saved ? <><CheckCheck className="h-3.5 w-3.5" />Saved!</> : "Save changes"}
+      </Button>
+    </div>
+  )
+}
+
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none",
+        checked ? "bg-brand-purple" : "bg-muted-foreground/30"
+      )}
+    >
+      <span className={cn("inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform shadow-sm", checked ? "translate-x-4" : "translate-x-0.5")} />
+    </button>
+  )
+}
+
+function ProfileSection() {
+  const [saved, setSaved] = React.useState(false)
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-display font-bold text-lg">Profile</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Your personal information visible to customers</p>
+      </div>
+
+      {/* Avatar upload */}
+      <div className="flex items-center gap-4">
+        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0">
+          S
+          <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
+            <Upload className="h-4 w-4 text-white" />
+          </div>
+        </div>
+        <div>
+          <p className="text-sm font-semibold">Profile photo</p>
+          <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG · Max 2MB</p>
+          <button className="mt-1.5 text-xs text-brand-purple font-semibold hover:underline">Upload photo</button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-xs font-semibold mb-1.5">First name</label>
+          <input defaultValue="Sade" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold mb-1.5">Last name</label>
+          <input defaultValue="Adeyemi" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Email</label>
+        <input defaultValue="sade@sadeboutique.com" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Phone / WhatsApp</label>
+        <div className="flex gap-2">
+          <div className="flex items-center px-3 h-10 rounded-xl border border-border bg-muted text-sm text-muted-foreground flex-shrink-0 gap-1.5">
+            <Smartphone className="h-3.5 w-3.5" />
+            +234
+          </div>
+          <input defaultValue="803 456 7890" className="flex-1 h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Bio</label>
+        <textarea
+          defaultValue="Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜"
+          rows={3}
+          className="w-full px-3 py-2.5 rounded-xl border border-border bg-background text-sm resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Location</label>
+        <input defaultValue="Lagos, Nigeria" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+      </div>
+
+      <SaveBar onSave={save} saved={saved} />
+    </div>
+  )
+}
+
+function StoreSection() {
+  const [saved, setSaved] = React.useState(false)
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-display font-bold text-lg">Store settings</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Customise how your public store appears</p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Store name</label>
+        <input defaultValue="Sade's Boutique" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Store handle</label>
+        <div className="flex items-center gap-0">
+          <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground flex-shrink-0">
+            lummy.co/
+          </div>
+          <input defaultValue="sade" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1">Your public store URL. Changing this will break existing links.</p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Instagram</label>
+        <div className="flex items-center gap-0">
+          <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
+          <input defaultValue="sadeboutique" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Twitter / X</label>
+        <div className="flex items-center gap-0">
+          <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
+          <input defaultValue="sadeboutique" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">TikTok</label>
+        <div className="flex items-center gap-0">
+          <div className="flex items-center px-3 h-10 rounded-l-xl border border-r-0 border-border bg-muted text-xs text-muted-foreground">@</div>
+          <input placeholder="your_handle" className="flex-1 h-10 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30 placeholder:text-muted-foreground" />
+        </div>
+      </div>
+
+      <SaveBar onSave={save} saved={saved} />
+    </div>
+  )
+}
+
+function NotificationsSection() {
+  const [prefs, setPrefs] = React.useState({
+    newOrder: true,
+    orderStatus: true,
+    newReview: true,
+    lowStock: true,
+    weeklySummary: true,
+    aiInsights: false,
+    marketing: false,
+    whatsappAlerts: true,
+    emailDigest: true,
+  })
+  const [saved, setSaved] = React.useState(false)
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  const toggle = (key: keyof typeof prefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }))
+
+  const groups = [
+    {
+      title: "Order alerts",
+      items: [
+        { key: "newOrder" as const, label: "New order received", desc: "Get notified immediately for every new order" },
+        { key: "orderStatus" as const, label: "Order status updates", desc: "When orders are confirmed, shipped or delivered" },
+        { key: "lowStock" as const, label: "Low stock warnings", desc: "When a product has 5 or fewer units left" },
+      ],
+    },
+    {
+      title: "Customer activity",
+      items: [
+        { key: "newReview" as const, label: "New review posted", desc: "When a customer leaves a review" },
+      ],
+    },
+    {
+      title: "Insights",
+      items: [
+        { key: "weeklySummary" as const, label: "Weekly performance summary", desc: "Every Monday: revenue, orders, top products" },
+        { key: "aiInsights" as const, label: "AI-powered growth tips", desc: "Personalised recommendations from Lummy AI" },
+      ],
+    },
+    {
+      title: "Channels",
+      items: [
+        { key: "whatsappAlerts" as const, label: "WhatsApp notifications", desc: "Send alerts to your WhatsApp number" },
+        { key: "emailDigest" as const, label: "Email digest", desc: "Daily email summary of store activity" },
+        { key: "marketing" as const, label: "Product updates & tips", desc: "New Lummy features and creator tips" },
+      ],
+    },
+  ]
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display font-bold text-lg">Notifications</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Control how and when you hear from Lummy</p>
+      </div>
+
+      {groups.map((group) => (
+        <div key={group.title}>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">{group.title}</p>
+          <div className="space-y-1">
+            {group.items.map((item) => (
+              <div key={item.key} className="flex items-center justify-between gap-4 py-3 border-b border-border last:border-0">
+                <div>
+                  <p className="text-sm font-semibold">{item.label}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
+                </div>
+                <ToggleSwitch checked={prefs[item.key]} onChange={() => toggle(item.key)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <SaveBar onSave={save} saved={saved} />
+    </div>
+  )
+}
+
+function PaymentsSection() {
+  const [saved, setSaved] = React.useState(false)
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-display font-bold text-lg">Payments</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Bank details for payouts and payment preferences</p>
+      </div>
+
+      {/* Current plan */}
+      <div className="rounded-2xl border border-brand-purple/30 bg-brand-purple/5 p-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
+            <Zap className="h-4 w-4 text-brand-purple" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Growth Plan</p>
+            <p className="text-xs text-muted-foreground">₦4,000 / month · Renews Dec 1</p>
+          </div>
+        </div>
+        <Button size="sm" variant="outline" className="h-8 text-xs">Manage plan</Button>
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bank details</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">Bank name</label>
+            <select className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30">
+              <option>Access Bank</option>
+              <option>GTBank</option>
+              <option>First Bank</option>
+              <option>Zenith Bank</option>
+              <option>UBA</option>
+              <option>Opay</option>
+              <option>Palmpay</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">Account number</label>
+            <input defaultValue="0123456789" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">Account name</label>
+            <input defaultValue="ADEYEMI OLUWASADE" disabled className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground cursor-not-allowed" />
+            <p className="text-[10px] text-muted-foreground mt-1">Auto-filled after account number verification</p>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Payout schedule</p>
+        <div className="grid grid-cols-3 gap-2">
+          {["Daily", "Weekly", "Monthly"].map((opt) => (
+            <button
+              key={opt}
+              className={cn(
+                "h-10 rounded-xl border text-xs font-semibold transition-all",
+                opt === "Weekly"
+                  ? "bg-brand-purple text-white border-brand-purple"
+                  : "border-border text-muted-foreground hover:border-foreground/20"
+              )}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-2">Minimum payout: ₦5,000</p>
+      </div>
+
+      <SaveBar onSave={save} saved={saved} />
+    </div>
+  )
+}
+
+function SecuritySection() {
+  const [showCurrent, setShowCurrent] = React.useState(false)
+  const [showNew, setShowNew] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display font-bold text-lg">Security</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Keep your account safe</p>
+      </div>
+
+      {/* Change password */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Change password</p>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">Current password</label>
+            <div className="relative">
+              <input type={showCurrent ? "text" : "password"} placeholder="••••••••" className="w-full h-10 px-3 pr-10 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+              <button onClick={() => setShowCurrent(!showCurrent)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                {showCurrent ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">New password</label>
+            <div className="relative">
+              <input type={showNew ? "text" : "password"} placeholder="••••••••" className="w-full h-10 px-3 pr-10 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+              <button onClick={() => setShowNew(!showNew)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                {showNew ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground mt-1">At least 8 characters with a number and symbol</p>
+          </div>
+        </div>
+        <div className="mt-4">
+          <Button size="sm" className="h-9 text-xs gap-1.5" onClick={save}>
+            {saved ? <><CheckCheck className="h-3.5 w-3.5" />Password updated!</> : "Update password"}
+          </Button>
+        </div>
+      </div>
+
+      {/* 2FA */}
+      <div className="pt-4 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Two-factor authentication</p>
+        <div className="rounded-2xl border border-border p-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-green/10 flex items-center justify-center">
+              <MessageCircle className="h-4 w-4 text-brand-green" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold">WhatsApp 2FA</p>
+              <p className="text-xs text-muted-foreground">Verify logins via WhatsApp OTP</p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="h-8 text-xs flex-shrink-0">Enable</Button>
+        </div>
+      </div>
+
+      {/* Active sessions */}
+      <div className="pt-4 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Active sessions</p>
+        <div className="space-y-2">
+          {[
+            { device: "Chrome · MacBook Pro", location: "Lagos, NG", time: "Now", current: true },
+            { device: "Safari · iPhone 15", location: "Lagos, NG", time: "2 hours ago", current: false },
+          ].map((session) => (
+            <div key={session.device} className="flex items-center justify-between gap-3 py-2.5 border-b border-border last:border-0">
+              <div>
+                <p className="text-sm font-semibold flex items-center gap-1.5">
+                  {session.device}
+                  {session.current && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-green/10 text-brand-green">Current</span>}
+                </p>
+                <p className="text-xs text-muted-foreground">{session.location} · {session.time}</p>
+              </div>
+              {!session.current && (
+                <button className="text-xs text-brand-coral font-semibold hover:underline flex-shrink-0">Revoke</button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Danger zone */}
+      <div className="pt-4 border-t border-border">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Danger zone</p>
+        <div className="rounded-2xl border border-brand-coral/20 bg-brand-coral/5 p-4 flex items-center justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="h-4 w-4 text-brand-coral flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold">Delete account</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your store and all data. This cannot be undone.</p>
+            </div>
+          </div>
+          <Button size="sm" variant="outline" className="h-8 text-xs border-brand-coral/30 text-brand-coral hover:bg-brand-coral/10 flex-shrink-0 gap-1.5">
+            <Trash2 className="h-3 w-3" />
+            Delete
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const sectionComponents: Record<SettingsSection, React.FC> = {
+  profile: ProfileSection,
+  store: StoreSection,
+  notifications: NotificationsSection,
+  payments: PaymentsSection,
+  security: SecuritySection,
+}
+
+export default function SettingsPage() {
+  const [active, setActive] = React.useState<SettingsSection>("profile")
+  const ActiveSection = sectionComponents[active]
+
+  return (
+    <div className="p-4 sm:p-6">
+      <div className="mb-5">
+        <h1 className="font-display text-2xl font-extrabold">Settings</h1>
+        <p className="text-sm text-muted-foreground mt-0.5">Manage your account and store preferences</p>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-5">
+        {/* Sidebar nav */}
+        <nav className="flex lg:flex-col gap-1 overflow-x-auto scrollbar-hide lg:w-52 flex-shrink-0">
+          {navItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => setActive(item.id)}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all whitespace-nowrap lg:whitespace-normal",
+                active === item.id
+                  ? "bg-brand-purple/10 text-brand-purple"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent"
+              )}
+            >
+              <item.icon className={cn("h-4 w-4 flex-shrink-0", active === item.id ? "text-brand-purple" : "text-muted-foreground")} />
+              <div className="hidden lg:block text-left">
+                <p className={cn("text-xs font-semibold", active === item.id ? "text-brand-purple" : "text-foreground")}>{item.label}</p>
+                <p className="text-[10px] text-muted-foreground">{item.description}</p>
+              </div>
+              <span className="text-xs font-semibold lg:hidden">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        {/* Content */}
+        <motion.div
+          key={active}
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.2 }}
+          className="flex-1 rounded-2xl border border-border bg-card p-5 min-w-0"
+        >
+          <ActiveSection />
+        </motion.div>
+      </div>
+    </div>
+  )
+}
