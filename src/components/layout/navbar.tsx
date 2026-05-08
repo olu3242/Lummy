@@ -64,11 +64,11 @@ export function Navbar() {
           {/* Actions */}
           <div className="hidden lg:flex items-center gap-3">
             <ThemeToggle className="text-white/60 hover:text-white hover:bg-white/5" />
-            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5">
-              Log in
+            <Button variant="ghost" size="sm" className="text-white/70 hover:text-white hover:bg-white/5" asChild>
+              <Link href="/login">Log in</Link>
             </Button>
-            <Button size="sm" className="shadow-brand-sm">
-              Get Started Free
+            <Button size="sm" className="shadow-brand-sm" asChild>
+              <Link href="/signup">Get Started Free</Link>
             </Button>
           </div>
 
@@ -112,11 +112,11 @@ export function Navbar() {
               </motion.div>
             ))}
             <div className="mt-6 flex flex-col gap-3">
-              <Button variant="outline-white" size="lg" className="w-full">
-                Log in
+              <Button variant="outline-white" size="lg" className="w-full" asChild>
+                <Link href="/login" onClick={() => setMobileOpen(false)}>Log in</Link>
               </Button>
-              <Button size="lg" className="w-full">
-                Get Started Free
+              <Button size="lg" className="w-full" asChild>
+                <Link href="/signup" onClick={() => setMobileOpen(false)}>Get Started Free</Link>
               </Button>
             </div>
           </div>
