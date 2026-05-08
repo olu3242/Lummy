@@ -1,0 +1,30 @@
+# deps
+node_modules
+.pnp
+.pnp.js
+
+# Next.js
+.next/
+out/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# Turbo
+.turbo
