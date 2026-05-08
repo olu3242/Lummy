@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
 type SettingsSection = "profile" | "store" | "notifications" | "payments" | "security"
@@ -33,7 +34,7 @@ const navItems: { id: SettingsSection; label: string; icon: React.ElementType; d
   { id: "security", label: "Security", icon: Shield, description: "Password, 2FA" },
 ]
 
-function SaveBar({ onSave, saved }: { onSave: () => void; saved: boolean }) {
+function SaveBar({ onSave, saved, section = "Changes" }: { onSave: () => void; saved: boolean; section?: string }) {
   return (
     <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
       <Button variant="outline" size="sm" className="h-9 text-xs">Discard</Button>
@@ -43,6 +44,7 @@ function SaveBar({ onSave, saved }: { onSave: () => void; saved: boolean }) {
     </div>
   )
 }
+
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
@@ -82,6 +84,7 @@ function ProfileSection() {
     saveLS(PROFILE_KEY, form)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+    toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
   }
 
   const field = (key: keyof typeof defaults) => ({
@@ -163,6 +166,7 @@ function StoreSection() {
     saveLS(STORE_KEY, form)
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
+    toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })
   }
 
   const field = (key: keyof typeof defaults) => ({
@@ -229,7 +233,7 @@ function NotificationsSection() {
   }
   const [prefs, setPrefs] = React.useState(() => loadLS(NOTIF_KEY, defaultPrefs))
   const [saved, setSaved] = React.useState(false)
-  const save = () => { saveLS(NOTIF_KEY, prefs); setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const save = () => { saveLS(NOTIF_KEY, prefs); setSaved(true); setTimeout(() => setSaved(false), 2500); toast({ title: "Notification preferences saved", variant: "success" }) }
 
   const toggle = (key: keyof typeof defaultPrefs) => setPrefs((p) => ({ ...p, [key]: !p[key] }))
 

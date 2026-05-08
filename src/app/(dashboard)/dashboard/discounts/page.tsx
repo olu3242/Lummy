@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
 interface Discount {
@@ -120,14 +121,22 @@ export default function DiscountsPage() {
     navigator.clipboard.writeText(code)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+    toast({ title: "Code copied!", description: `${code} copied to clipboard.`, variant: "success" })
   }
 
   const toggleActive = (id: string) => {
-    setDiscounts(prev => prev.map(d => d.id === id ? { ...d, active: !d.active } : d))
+    setDiscounts(prev => prev.map(d => {
+      if (d.id !== id) return d
+      const next = { ...d, active: !d.active }
+      toast({ title: next.active ? "Code activated" : "Code deactivated", variant: next.active ? "success" : "default" })
+      return next
+    }))
   }
 
   const deleteDiscount = (id: string) => {
+    const code = discounts.find(d => d.id === id)?.code
     setDiscounts(prev => prev.filter(d => d.id !== id))
+    toast({ title: `${code ?? "Code"} deleted`, variant: "default" })
   }
 
   return (
