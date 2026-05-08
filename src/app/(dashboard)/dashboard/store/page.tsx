@@ -16,13 +16,120 @@ import {
   MapPin,
   Link2,
   BadgeCheck,
+  Palette,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { toast } from "@/hooks/use-toast"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
+import { cn } from "@/lib/utils"
+
+const THEME_KEY = "lummy_store_theme"
+
+const ACCENT_COLORS = [
+  { name: "Purple",  value: "#6C4EF3", label: "Lummy Purple" },
+  { name: "Green",   value: "#10B981", label: "Emerald"      },
+  { name: "Coral",   value: "#F97316", label: "Coral"        },
+  { name: "Rose",    value: "#F43F5E", label: "Rose"         },
+  { name: "Sky",     value: "#0EA5E9", label: "Sky Blue"     },
+  { name: "Amber",   value: "#F59E0B", label: "Amber"        },
+  { name: "Indigo",  value: "#4F46E5", label: "Indigo"       },
+  { name: "Fuchsia", value: "#D946EF", label: "Fuchsia"      },
+]
+
+const LAYOUTS = [
+  { value: "grid-2", label: "2 columns", desc: "Larger cards" },
+  { value: "grid-3", label: "3 columns", desc: "Default" },
+  { value: "list",   label: "List view",  desc: "Compact rows" },
+] as const
+
+type LayoutValue = typeof LAYOUTS[number]["value"]
+
+interface StoreTheme { accent: string; layout: LayoutValue }
+
+function loadTheme(): StoreTheme {
+  if (typeof window === "undefined") return { accent: "#6C4EF3", layout: "grid-3" }
+  try { const v = localStorage.getItem(THEME_KEY); return v ? JSON.parse(v) : { accent: "#6C4EF3", layout: "grid-3" } } catch { return { accent: "#6C4EF3", layout: "grid-3" } }
+}
+
+function ThemeCustomizer() {
+  const [theme, setTheme] = React.useState<StoreTheme>(loadTheme)
+  const [saved, setSaved] = React.useState(false)
+
+  const save = () => {
+    try { localStorage.setItem(THEME_KEY, JSON.stringify(theme)) } catch {}
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+    toast({ title: "Store theme saved", description: "Your store appearance has been updated.", variant: "success" })
+  }
+
+  return (
+    <div className="rounded-2xl border border-border bg-card p-5 space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-display font-bold text-base">Store Theme</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">Personalise your store accent colour and layout</p>
+        </div>
+        <Button size="sm" onClick={save} className="h-8 text-xs gap-1.5">
+          {saved ? <><CheckCheck className="h-3.5 w-3.5" />Saved!</> : "Apply theme"}
+        </Button>
+      </div>
+      <Separator />
+
+      {/* Accent colour picker */}
+      <div>
+        <p className="text-xs font-semibold mb-3">Accent colour</p>
+        <div className="flex flex-wrap gap-2.5">
+          {ACCENT_COLORS.map((c) => (
+            <button key={c.value} onClick={() => setTheme((t) => ({ ...t, accent: c.value }))}
+              title={c.label}
+              className="group relative flex flex-col items-center gap-1.5">
+              <div
+                className="w-8 h-8 rounded-xl ring-2 transition-all"
+                style={{
+                  backgroundColor: c.value,
+                  outline: theme.accent === c.value ? `3px solid ${c.value}` : "3px solid transparent",
+                  outlineOffset: "2px",
+                }}
+              />
+              <span className="text-[9px] text-muted-foreground group-hover:text-foreground transition-colors">{c.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Layout picker */}
+      <div>
+        <p className="text-xs font-semibold mb-3">Product grid layout</p>
+        <div className="grid grid-cols-3 gap-2">
+          {LAYOUTS.map((l) => (
+            <button key={l.value} onClick={() => setTheme((t) => ({ ...t, layout: l.value }))}
+              className={cn(
+                "p-3 rounded-xl border text-left transition-all",
+                theme.layout === l.value ? "border-brand-purple bg-brand-purple/5" : "border-border hover:border-foreground/20"
+              )}>
+              <p className={cn("text-xs font-semibold", theme.layout === l.value ? "text-brand-purple" : "text-foreground")}>{l.label}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{l.desc}</p>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Preview swatch */}
+      <div className="rounded-xl border border-border p-3 flex items-center gap-3 bg-muted/30">
+        <div className="w-8 h-8 rounded-xl flex-shrink-0 flex items-center justify-center text-white text-xs font-bold"
+          style={{ backgroundColor: theme.accent }}>S</div>
+        <div className="flex-1">
+          <p className="text-xs font-semibold">Preview: Sade&apos;s Boutique</p>
+          <p className="text-[10px] text-muted-foreground">Accent <span className="font-mono">{theme.accent}</span> · Layout: {theme.layout}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = React.useState(false)
@@ -200,6 +307,9 @@ export default function StorePage() {
           ))}
         </div>
       </div>
+
+      {/* Theme customizer */}
+      <ThemeCustomizer />
 
       {/* Store stats summary */}
       <div className="rounded-2xl border border-border bg-card p-5">

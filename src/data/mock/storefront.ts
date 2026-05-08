@@ -1,5 +1,7 @@
 import { images } from "@/config/images"
-import { mockProducts, mockCreatorProfile } from "@/data/mock/dashboard"
+import { mockProducts, mockCreatorProfile, type DashboardProduct } from "@/data/mock/dashboard"
+
+export type StorefrontProduct = DashboardProduct
 
 export interface StorefrontReview {
   id: string

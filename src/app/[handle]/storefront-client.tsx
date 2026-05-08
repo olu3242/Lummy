@@ -4,17 +4,103 @@ import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { AnimatePresence } from "framer-motion"
 import {
   MessageCircle, Share2, Instagram, Twitter, MapPin, Star,
   ShoppingBag, BadgeCheck, CheckCheck, ExternalLink, Search,
+  Eye, X, ArrowRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   storefrontCreator, mockStorefrontReviews,
   buildWhatsAppUrl, buildStoreWhatsAppUrl,
+  type StorefrontProduct,
 } from "@/data/mock/storefront"
 import { cn } from "@/lib/utils"
+
+function QuickViewModal({
+  product, handle, onClose,
+}: {
+  product: StorefrontProduct; handle: string; onClose: () => void
+}) {
+  const creator = storefrontCreator
+  const creatorFirstName = creator.name.split(" ")[0]
+  const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, creatorFirstName)
+  const isOutOfStock = product.stock === 0
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [onClose])
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}>
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }}
+        transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border border-border bg-card overflow-hidden">
+        {/* Image */}
+        <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+          <Image src={product.image} alt={product.name} fill className="object-cover" unoptimized />
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+              <span className="font-display text-lg font-extrabold px-4 py-2 rounded-2xl bg-background border border-border shadow">Sold Out</span>
+            </div>
+          )}
+          {!isOutOfStock && product.stock !== null && product.stock <= 5 && product.stock > 0 && (
+            <div className="absolute top-3 left-3">
+              <Badge variant="coral" className="shadow-sm">Only {product.stock} left</Badge>
+            </div>
+          )}
+          <button onClick={onClose}
+            className="absolute top-3 right-3 flex h-8 w-8 items-center justify-center rounded-xl bg-background/80 backdrop-blur-sm border border-border hover:bg-background transition-colors">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-5 space-y-3">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <Badge variant="brand" size="sm" className="mb-1.5">{product.category}</Badge>
+              <h2 className="font-display text-xl font-extrabold leading-snug">{product.name}</h2>
+            </div>
+            <p className="font-display text-xl font-extrabold text-brand-purple flex-shrink-0">₦{product.price.toLocaleString()}</p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{product.description}</p>
+
+          <div className="flex items-center gap-4 text-xs text-muted-foreground py-2 border-y border-border">
+            <div className="flex items-center gap-1"><ShoppingBag className="h-3.5 w-3.5 text-brand-purple" /><strong className="text-foreground">{product.sales}</strong> sold</div>
+            <div className="flex items-center gap-1"><Eye className="h-3.5 w-3.5 text-brand-coral" /><strong className="text-foreground">{product.views.toLocaleString()}</strong> views</div>
+            <div className="flex items-center gap-1"><Star className="h-3.5 w-3.5 text-amber-400 fill-amber-400" /><strong className="text-foreground">4.9</strong> rating</div>
+          </div>
+
+          <div className="flex gap-2">
+            {isOutOfStock ? (
+              <div className="flex-1 flex items-center justify-center h-11 rounded-2xl border-2 border-border text-sm font-semibold text-muted-foreground">
+                Currently sold out
+              </div>
+            ) : (
+              <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
+                <Button variant="whatsapp" size="lg" className="w-full gap-2 h-11">
+                  <MessageCircle className="h-4 w-4 fill-white" /> Order via WhatsApp
+                </Button>
+              </a>
+            )}
+            <Link href={`/${handle}/${product.id}`} onClick={onClose}
+              className="flex h-11 items-center gap-1.5 px-4 rounded-2xl border border-border text-xs font-semibold hover:bg-accent transition-colors flex-shrink-0">
+              Full details <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
 
 function ShareButton({ url, storeName }: { url: string; storeName: string }) {
   const [copied, setCopied] = React.useState(false)
@@ -48,6 +134,7 @@ export function StorefrontClient({ handle }: { handle: string }) {
   const [activeCategory, setActiveCategory] = React.useState("All")
   const [search, setSearch] = React.useState("")
   const [page, setPage] = React.useState(1)
+  const [quickView, setQuickView] = React.useState<StorefrontProduct | null>(null)
   const PAGE_SIZE = 6
 
   const storeUrl = `https://lummy.co/${creator.handle}`
@@ -212,23 +299,32 @@ export function StorefrontClient({ handle }: { handle: string }) {
                     transition={{ duration: 0.3, delay: i * 0.04 }}
                     className={cn("group rounded-2xl border border-border bg-card overflow-hidden", isOutOfStock && "opacity-60")}
                   >
-                    <Link href={`/${handle}/${product.id}`} className="block relative">
-                      <div className="relative aspect-square overflow-hidden bg-muted">
-                        <Image src={product.image} alt={product.name} fill className={cn("object-cover transition-transform duration-300", !isOutOfStock && "group-hover:scale-105")} unoptimized />
-                        {isOutOfStock && (
-                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-background border border-border">Sold out</span>
-                          </div>
-                        )}
-                        {!isOutOfStock && product.stock !== null && product.stock <= 5 && (
-                          <div className="absolute bottom-2 left-2">
-                            <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-white">
-                              Only {product.stock} left
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </Link>
+                    <div className="block relative">
+                      <Link href={`/${handle}/${product.id}`}>
+                        <div className="relative aspect-square overflow-hidden bg-muted">
+                          <Image src={product.image} alt={product.name} fill className={cn("object-cover transition-transform duration-300", !isOutOfStock && "group-hover:scale-105")} unoptimized />
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-background border border-border">Sold out</span>
+                            </div>
+                          )}
+                          {!isOutOfStock && product.stock !== null && product.stock <= 5 && (
+                            <div className="absolute bottom-2 left-2">
+                              <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-white">
+                                Only {product.stock} left
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                      {/* Quick view button */}
+                      {!isOutOfStock && (
+                        <button onClick={() => setQuickView(product)}
+                          className="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 h-7 rounded-lg bg-background/90 backdrop-blur-sm border border-border text-[10px] font-semibold hover:bg-background transition-all">
+                          <Eye className="h-3 w-3" /> Quick view
+                        </button>
+                      )}
+                    </div>
                     <div className="p-3">
                       <p className="text-xs font-semibold leading-snug line-clamp-2 mb-1">{product.name}</p>
                       <p className="font-display font-bold text-sm text-brand-purple">₦{product.price.toLocaleString()}</p>
@@ -305,6 +401,17 @@ export function StorefrontClient({ handle }: { handle: string }) {
           </Button>
         </a>
       </div>
+
+      {/* Quick view modal */}
+      <AnimatePresence>
+        {quickView && (
+          <QuickViewModal
+            product={quickView}
+            handle={handle}
+            onClose={() => setQuickView(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   )
 }

@@ -30,8 +30,102 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Package,
+  Target,
+  Edit2,
+  CheckCheck,
+  Trophy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const GOAL_KEY = "lummy_revenue_goal"
+const CURRENT_MONTH_REVENUE = 623000
+
+function RevenueGoalCard() {
+  const [goal, setGoal] = React.useState<number>(() => {
+    if (typeof window === "undefined") return 800000
+    try { const v = localStorage.getItem(GOAL_KEY); return v ? Number(v) : 800000 } catch { return 800000 }
+  })
+  const [editing, setEditing] = React.useState(false)
+  const [inputVal, setInputVal] = React.useState("")
+
+  const pct = Math.min(100, Math.round((CURRENT_MONTH_REVENUE / goal) * 100))
+  const remaining = Math.max(0, goal - CURRENT_MONTH_REVENUE)
+  const achieved = pct >= 100
+
+  const saveGoal = () => {
+    const n = Number(inputVal.replace(/\D/g, ""))
+    if (n > 0) {
+      setGoal(n)
+      try { localStorage.setItem(GOAL_KEY, String(n)) } catch {}
+    }
+    setEditing(false)
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+      className={cn("rounded-2xl border bg-card p-5", achieved ? "border-brand-green/30 bg-brand-green/5" : "border-border")}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", achieved ? "bg-brand-green/15" : "bg-brand-purple/10")}>
+            {achieved ? <Trophy className="h-4 w-4 text-brand-green" /> : <Target className="h-4 w-4 text-brand-purple" />}
+          </div>
+          <div>
+            <p className="text-sm font-semibold">{achieved ? "Goal achieved! 🎉" : "Monthly Revenue Goal"}</p>
+            <p className="text-[10px] text-muted-foreground">May 2026</p>
+          </div>
+        </div>
+        {!editing ? (
+          <button onClick={() => { setInputVal(String(goal)); setEditing(true) }}
+            className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground">
+            <Edit2 className="h-3.5 w-3.5" />
+          </button>
+        ) : (
+          <button onClick={saveGoal} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-brand-green">
+            <CheckCheck className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
+      {editing ? (
+        <div className="mb-4">
+          <div className="flex items-center gap-0">
+            <div className="flex items-center px-3 h-9 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">₦</div>
+            <input autoFocus value={inputVal} onChange={(e) => setInputVal(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && saveGoal()}
+              placeholder="e.g. 1000000"
+              className="flex-1 h-9 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+          </div>
+          <p className="text-[10px] text-muted-foreground mt-1">Press Enter or ✓ to save</p>
+        </div>
+      ) : (
+        <div className="flex items-end justify-between mb-3">
+          <div>
+            <p className="font-display text-2xl font-extrabold">₦{CURRENT_MONTH_REVENUE.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">of ₦{goal.toLocaleString()} goal</p>
+          </div>
+          <p className={cn("font-display text-3xl font-extrabold", achieved ? "text-brand-green" : "text-brand-purple")}>{pct}%</p>
+        </div>
+      )}
+
+      {!editing && (
+        <>
+          <div className="h-2.5 rounded-full bg-muted overflow-hidden mb-3">
+            <motion.div initial={{ width: 0 }} animate={{ width: `${pct}%` }} transition={{ duration: 1, ease: "easeOut" }}
+              className={cn("h-full rounded-full", achieved ? "bg-brand-green" : "bg-brand-purple")} />
+          </div>
+          {!achieved && (
+            <p className="text-xs text-muted-foreground">
+              <strong className="text-foreground">₦{remaining.toLocaleString()}</strong> to go — you&apos;re on track! Keep pushing 🚀
+            </p>
+          )}
+          {achieved && (
+            <p className="text-xs text-brand-green font-semibold">You&apos;ve crushed your May goal. Set a new one! 🏆</p>
+          )}
+        </>
+      )}
+    </motion.div>
+  )
+}
 
 const revenueData = [
   { month: "Jan", revenue: 285000, orders: 42, views: 1820 },
@@ -110,6 +204,9 @@ export default function AnalyticsPage() {
         <h1 className="font-display text-2xl font-extrabold">Analytics</h1>
         <p className="text-sm text-muted-foreground mt-0.5">Track your store performance and growth</p>
       </div>
+
+      {/* Goal tracker */}
+      <RevenueGoalCard />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
