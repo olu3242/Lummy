@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { motion } from "framer-motion"
+import { motion, useInView, useMotionValue, useSpring, animate } from "framer-motion"
 import {
   MessageCircle,
   TrendingUp,
@@ -16,6 +16,70 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { mockHeroAvatars, mockStats } from "@/data/mock"
 import { images } from "@/config/images"
+
+// Animated number counter
+function AnimatedStat({ value, label }: { value: string; label: string }) {
+  const ref = React.useRef<HTMLDivElement>(null)
+  const isInView = useInView(ref, { once: true, margin: "-50px" })
+  const [display, setDisplay] = React.useState("0")
+
+  React.useEffect(() => {
+    if (!isInView) return
+    // Extract numeric part and suffix
+    const match = value.match(/^([₦]?)(\d[\d,.]*)([\w+%★\s]*)$/)
+    if (!match) { setDisplay(value); return }
+    const [, prefix, numStr, suffix] = match
+    const target = parseFloat(numStr.replace(/,/g, ""))
+    const isDecimal = numStr.includes(".")
+    let start = 0
+    const duration = 1800
+    const startTime = performance.now()
+    const step = (now: number) => {
+      const elapsed = now - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      const eased = 1 - Math.pow(1 - progress, 3)
+      const current = start + (target - start) * eased
+      setDisplay(`${prefix}${isDecimal ? current.toFixed(1) : Math.round(current).toLocaleString()}${suffix}`)
+      if (progress < 1) requestAnimationFrame(step)
+    }
+    requestAnimationFrame(step)
+  }, [isInView, value])
+
+  return (
+    <div ref={ref} className="text-center">
+      <p className="font-display text-2xl sm:text-3xl font-bold text-white">{display}</p>
+      <p className="mt-1 text-sm text-white/40">{label}</p>
+    </div>
+  )
+}
+
+// Scrolling creator marquee
+const MARQUEE_CREATORS = [
+  "Sade's Boutique 🛍️", "Chioma Beauty 💄", "Amaka Crafts ✂️",
+  "Kemi Kitchen 🍲", "Zara Styles 👗", "Nkem Jewels 💎",
+  "Ada's Prints 🎨", "Funmi Skincare 🌿", "Blessing Wigs 👑",
+  "Temi Home Décor 🏠", "Grace Footwear 👠", "Yemi Organics 🌱",
+]
+
+function CreatorMarquee() {
+  const doubled = [...MARQUEE_CREATORS, ...MARQUEE_CREATORS]
+  return (
+    <div className="overflow-hidden py-3 border-t border-white/10 mt-6">
+      <motion.div
+        className="flex gap-6 whitespace-nowrap"
+        animate={{ x: ["0%", "-50%"] }}
+        transition={{ duration: 28, ease: "linear", repeat: Infinity }}
+      >
+        {doubled.map((name, i) => (
+          <span key={i} className="inline-flex items-center gap-2 text-xs text-white/50 font-medium flex-shrink-0">
+            <span className="w-1.5 h-1.5 rounded-full bg-brand-purple/60 flex-shrink-0" />
+            {name}
+          </span>
+        ))}
+      </motion.div>
+    </div>
+  )
+}
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 32 },
@@ -321,12 +385,10 @@ export function HeroSection() {
         >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
             {mockStats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="font-display text-2xl sm:text-3xl font-bold text-white">{stat.value}</p>
-                <p className="mt-1 text-sm text-white/40">{stat.label}</p>
-              </div>
+              <AnimatedStat key={stat.label} value={stat.value} label={stat.label} />
             ))}
           </div>
+          <CreatorMarquee />
         </motion.div>
       </div>
     </section>

@@ -4,7 +4,7 @@ import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Tag, Plus, Copy, CheckCheck, ToggleLeft, ToggleRight,
-  Trash2, Percent, Calendar, Users, TrendingUp, X,
+  Trash2, Percent, Calendar, Users, TrendingUp, X, Share2, MessageCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -110,10 +110,18 @@ function CreateDiscountModal({ onClose, onCreate }: { onClose: () => void; onCre
   )
 }
 
+function buildPromoMessage(d: Discount): string {
+  const discount = d.type === "percentage" ? `${d.value}% off` : `₦${d.value.toLocaleString()} off`
+  const min = d.minOrder ? ` on orders above ₦${d.minOrder.toLocaleString()}` : ""
+  const expiry = d.expires ? ` (expires ${d.expires})` : ""
+  return `🎉 Special offer from Sade's Boutique!\n\nUse code *${d.code}* to get ${discount}${min}${expiry}.\n\nShop now 👉 lummy.co/sade.styles\n\nDM me to order! 💜`
+}
+
 export default function DiscountsPage() {
   const [discounts, setDiscounts] = React.useState<Discount[]>(mockDiscounts)
   const [creating, setCreating] = React.useState(false)
   const [copiedId, setCopiedId] = React.useState<string | null>(null)
+  const [sharingId, setSharingId] = React.useState<string | null>(null)
 
   const totalSavings = discounts.reduce((s, d) => s + d.uses * (d.type === "fixed" ? d.value : 1000 * d.value / 100), 0)
 
@@ -202,10 +210,59 @@ export default function DiscountsPage() {
                     {d.minOrder && <span>Min ₦{d.minOrder.toLocaleString()}</span>}
                     {d.expires && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Expires {d.expires}</span>}
                   </div>
+
+                  {/* Usage progress bar */}
+                  {d.maxUses && (
+                    <div className="mt-2.5">
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                        <span>{d.uses} used</span>
+                        <span>{d.maxUses - d.uses} remaining</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${Math.min((d.uses / d.maxUses) * 100, 100)}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut" }}
+                          className={cn(
+                            "h-full rounded-full",
+                            d.uses / d.maxUses > 0.8 ? "bg-brand-coral" :
+                            d.uses / d.maxUses > 0.5 ? "bg-amber-500" : "bg-brand-green"
+                          )}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Share panel */}
+                  <AnimatePresence>
+                    {sharingId === d.id && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+                        className="mt-3 overflow-hidden">
+                        <div className="rounded-xl border border-border bg-muted/40 p-3 space-y-2">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">WhatsApp promo message</p>
+                          <p className="text-xs text-foreground whitespace-pre-line leading-relaxed">{buildPromoMessage(d)}</p>
+                          <div className="flex gap-2 pt-1">
+                            <button onClick={() => { navigator.clipboard.writeText(buildPromoMessage(d)); toast({ title: "Promo message copied!", variant: "success" }) }}
+                              className="flex items-center gap-1 text-[11px] font-semibold text-brand-purple hover:underline">
+                              <Copy className="h-3 w-3" /> Copy message
+                            </button>
+                            <a href={`https://wa.me/?text=${encodeURIComponent(buildPromoMessage(d))}`} target="_blank" rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[11px] font-semibold text-[#25D366] hover:underline">
+                              <MessageCircle className="h-3 w-3" /> Open in WhatsApp
+                            </a>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-1">
+                  <button onClick={() => setSharingId(sharingId === d.id ? null : d.id)} title="Share promo"
+                    className={cn("p-1.5 rounded-lg hover:bg-muted transition-colors", sharingId === d.id && "bg-muted")}>
+                    <Share2 className={cn("h-4 w-4", sharingId === d.id ? "text-brand-purple" : "text-muted-foreground")} />
+                  </button>
                   <button onClick={() => toggleActive(d.id)} className="p-1.5 rounded-lg hover:bg-muted transition-colors">
                     {d.active
                       ? <ToggleRight className="h-5 w-5 text-brand-purple" />

@@ -126,9 +126,11 @@ function OrderDetailDrawer({
 }) {
   const [localStatus, setLocalStatus] = React.useState<OrderStatus | null>(null)
   const [updateSaved, setUpdateSaved] = React.useState(false)
+  const [trackingNumber, setTrackingNumber] = React.useState("")
+  const [trackingSaved, setTrackingSaved] = React.useState(false)
 
   React.useEffect(() => {
-    if (order) { setLocalStatus(order.status); setUpdateSaved(false) }
+    if (order) { setLocalStatus(order.status); setUpdateSaved(false); setTrackingNumber(""); setTrackingSaved(false) }
   }, [order])
 
   if (!order) return null
@@ -217,6 +219,37 @@ function OrderDetailDrawer({
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Order progress</p>
             <StatusTimeline current={currentStatus} />
           </div>
+
+          {/* Tracking number (shown when shipped or delivered) */}
+          {(currentStatus === "shipped" || currentStatus === "delivered") && (
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Tracking number</p>
+              <div className="flex gap-2">
+                <input
+                  value={trackingNumber}
+                  onChange={e => setTrackingNumber(e.target.value)}
+                  placeholder="e.g. GIG-8812993"
+                  className="flex-1 h-9 px-3 rounded-xl border border-border bg-background text-sm font-mono placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+                />
+                <button
+                  onClick={() => { if (trackingNumber.trim()) { setTrackingSaved(true); setTimeout(() => setTrackingSaved(false), 2500) } }}
+                  className="h-9 px-3 rounded-xl border border-border text-xs font-semibold hover:bg-accent transition-colors flex-shrink-0"
+                >
+                  {trackingSaved ? <CheckCheck className="h-3.5 w-3.5 text-brand-green" /> : "Save"}
+                </button>
+              </div>
+              {trackingNumber && (
+                <a
+                  href={`https://wa.me/${order?.customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hi ${order?.customer.name.split(" ")[0]}! 🚚 Your order (${order?.orderNumber}) has been shipped!\n\nTracking number: *${trackingNumber}*\n\nYou can track your package via GIG Logistics or contact us for updates. Estimated delivery: 1–3 business days 💜`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="mt-2 flex items-center gap-1.5 text-xs text-[#25D366] font-semibold hover:underline"
+                >
+                  <MessageCircle className="h-3 w-3 fill-[#25D366]" />
+                  Send tracking to customer via WhatsApp
+                </a>
+              )}
+            </div>
+          )}
 
           {/* Status update saved flash */}
           {updateSaved && (
@@ -314,6 +347,22 @@ function OrderRow({ order, onClick }: { order: DashboardOrder; onClick: () => vo
   )
 }
 
+function exportCSV(orders: DashboardOrder[]) {
+  const headers = ["Order #", "Date", "Customer", "Phone", "Product", "Amount (₦)", "Status", "Source", "Delivery Address"]
+  const rows = orders.map(o => [
+    o.orderNumber, o.createdAt, o.customer.name, o.customer.phone,
+    o.product.name, o.amount, o.status, o.source, `"${o.deliveryAddress}"`,
+  ])
+  const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `lummy-orders-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function OrdersPage() {
   const [tab, setTab] = React.useState<typeof tabValues[number]>("all")
   const [search, setSearch] = React.useState("")
@@ -339,7 +388,7 @@ export default function OrdersPage() {
             {mockOrders.filter((o) => o.status === "pending").length} pending · {mockOrders.length} total
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 w-fit">
+        <Button variant="outline" size="sm" className="gap-2 w-fit" onClick={() => exportCSV(mockOrders)}>
           <Download className="h-4 w-4" />
           Export CSV
         </Button>
