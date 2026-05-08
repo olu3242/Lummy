@@ -23,6 +23,8 @@ import {
   User,
   Tag,
   X,
+  Building2,
+  ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,6 +32,13 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+const NIGERIAN_BANKS = [
+  "Access Bank", "First Bank", "GTBank", "Zenith Bank", "UBA",
+  "Stanbic IBTC", "Fidelity Bank", "Union Bank", "Polaris Bank",
+  "Sterling Bank", "Wema Bank", "FCMB", "Ecobank", "Heritage Bank",
+  "Kuda Bank", "Opay", "PalmPay", "Moniepoint",
+]
 
 interface WizardData {
   creatorType: string
@@ -43,11 +52,14 @@ interface WizardData {
   productDesc: string
   productCategory: string
   addProduct: boolean
+  bankName: string
+  accountNumber: string
+  accountName: string
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const TOTAL_STEPS = 4
+const TOTAL_STEPS = 5
 
 const creatorTypes = [
   {
@@ -370,6 +382,101 @@ function StepFirstProduct({
   )
 }
 
+function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Partial<WizardData>) => void }) {
+  const [verifying, setVerifying] = React.useState(false)
+  const [verified, setVerified] = React.useState(false)
+
+  const inputCls = "w-full h-11 px-4 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-brand-purple/60"
+
+  const handleVerify = () => {
+    if (data.accountNumber.length < 10) return
+    setVerifying(true)
+    setTimeout(() => {
+      setVerifying(false)
+      setVerified(true)
+      onChange({ accountName: data.storeName ? `${data.storeName.toUpperCase()}` : "ADUNOLA FASHIONISTA" })
+    }, 1800)
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display text-2xl font-extrabold text-white mb-1">Link your bank account</h2>
+        <p className="text-sm text-white/50">So we know where to send your earnings. You can change this anytime.</p>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/5 p-5 space-y-4">
+        {/* Bank selector */}
+        <div>
+          <label className="block text-xs font-semibold text-white/50 mb-2">Bank name</label>
+          <select value={data.bankName} onChange={e => { onChange({ bankName: e.target.value }); setVerified(false) }}
+            className={cn(inputCls, "appearance-none cursor-pointer")}>
+            <option value="" disabled>Select your bank…</option>
+            {NIGERIAN_BANKS.map(b => <option key={b} value={b}>{b}</option>)}
+          </select>
+        </div>
+
+        {/* Account number */}
+        <div>
+          <label className="block text-xs font-semibold text-white/50 mb-2">Account number</label>
+          <div className="flex gap-2">
+            <input
+              value={data.accountNumber}
+              onChange={e => { onChange({ accountNumber: e.target.value.replace(/\D/g, "").slice(0, 10) }); setVerified(false) }}
+              placeholder="10-digit NUBAN"
+              maxLength={10}
+              className={cn(inputCls, "flex-1 font-mono tracking-widest")}
+            />
+            <button
+              onClick={handleVerify}
+              disabled={data.accountNumber.length < 10 || !data.bankName || verifying || verified}
+              className={cn(
+                "h-11 px-4 rounded-xl text-sm font-semibold transition-all flex-shrink-0",
+                verified
+                  ? "bg-brand-green/20 text-brand-green border border-brand-green/30"
+                  : "bg-brand-purple text-white hover:bg-brand-purple/90 disabled:opacity-40"
+              )}
+            >
+              {verifying ? <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Verifying…</span>
+                : verified ? <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" />Verified</span>
+                : "Verify"}
+            </button>
+          </div>
+        </div>
+
+        {/* Account name (shown after verify) */}
+        <AnimatePresence>
+          {verified && data.accountName && (
+            <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-3 p-3.5 rounded-xl bg-brand-green/10 border border-brand-green/20">
+              <ShieldCheck className="h-5 w-5 text-brand-green flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-brand-green">{data.accountName}</p>
+                <p className="text-xs text-white/40">{data.bankName} · {data.accountNumber}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Info */}
+      <div className="flex items-start gap-3 p-4 rounded-xl border border-white/8 bg-white/3">
+        <Building2 className="h-4 w-4 text-white/30 flex-shrink-0 mt-0.5" />
+        <p className="text-xs text-white/40 leading-relaxed">
+          Your earnings are paid out every <strong className="text-white/60">Tuesday & Friday</strong>.
+          A <strong className="text-white/60">1.5% fee</strong> applies per withdrawal (capped at ₦1,500).
+          You&apos;re in full control of when to withdraw.
+        </p>
+      </div>
+
+      <button onClick={() => onChange({ bankName: "", accountNumber: "", accountName: "" })}
+        className="text-xs text-white/30 hover:text-white/60 transition-colors">
+        Skip for now — I&apos;ll add this later
+      </button>
+    </div>
+  )
+}
+
 function StepPreview({ data }: { data: WizardData }) {
   const [copied, setCopied] = React.useState(false)
   const storeUrl = `lummy.co/${data.handle || "your-store"}`
@@ -469,6 +576,9 @@ export default function OnboardingPage() {
     productDesc: "",
     productCategory: "",
     addProduct: false,
+    bankName: "",
+    accountNumber: "",
+    accountName: "",
   })
 
   const update = (partial: Partial<WizardData>) => setData((d) => ({ ...d, ...partial }))
@@ -491,7 +601,7 @@ export default function OnboardingPage() {
     setStep((s) => Math.max(s - 1, 1))
   }
 
-  const stepLabels = ["Creator Type", "Store Setup", "First Product", "Launch 🚀"]
+  const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
 
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">
@@ -555,7 +665,8 @@ export default function OnboardingPage() {
               {step === 1 && <StepCreatorType data={data} onChange={update} />}
               {step === 2 && <StepStoreSetup data={data} onChange={update} />}
               {step === 3 && <StepFirstProduct data={data} onChange={update} />}
-              {step === 4 && <StepPreview data={data} />}
+              {step === 4 && <StepBankSetup data={data} onChange={update} />}
+              {step === 5 && <StepPreview data={data} />}
             </motion.div>
           </AnimatePresence>
         </div>

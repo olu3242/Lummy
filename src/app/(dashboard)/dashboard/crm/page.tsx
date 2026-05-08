@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Search, MessageCircle, ShoppingBag, Users, TrendingUp,
   Star, Download, Phone, MapPin, Clock, X, Plus,
-  CheckCircle2, Package, Truck, Home, ChevronRight,
+  CheckCircle2, Package, Truck, Home, ChevronRight, Edit2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
@@ -62,7 +62,15 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
 }) {
   const [note, setNote] = React.useState(customer.notes ?? "")
   const [editingNote, setEditingNote] = React.useState(false)
+  const [composeOpen, setComposeOpen] = React.useState(false)
+  const [customMsg, setCustomMsg] = React.useState("")
   const seg = segmentConfig[customer.segment]
+
+  React.useEffect(() => {
+    setNote(customer.notes ?? "")
+    setComposeOpen(false)
+    setCustomMsg("")
+  }, [customer.id])
 
   const saveNote = () => {
     setEditingNote(false)
@@ -199,14 +207,34 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
         </div>
       </div>
 
+      {/* Compose message */}
+      <AnimatePresence>
+        {composeOpen && (
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden flex-shrink-0 border-t border-border">
+            <div className="p-4 space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Custom WhatsApp message</p>
+              <textarea value={customMsg} onChange={e => setCustomMsg(e.target.value)} rows={3} placeholder="Type a message to send…"
+                className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs resize-none focus:outline-none focus:ring-2 focus:ring-brand-purple/30 placeholder:text-muted-foreground leading-relaxed" />
+              <a href={`https://wa.me/${customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(customMsg || buildWA(customer).split("?text=")[1])}`}
+                target="_blank" rel="noopener noreferrer">
+                <Button variant="whatsapp" size="sm" className="w-full gap-1.5 h-8 text-xs" disabled={!customMsg.trim()}>
+                  <MessageCircle className="h-3 w-3 fill-white" /> Send via WhatsApp
+                </Button>
+              </a>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Footer actions */}
       <div className="flex-shrink-0 border-t border-border p-4 flex gap-2">
         {customer.isOnWhatsApp && (
-          <a href={buildWA(customer)} target="_blank" rel="noopener noreferrer" className="flex-1">
-            <Button variant="whatsapp" size="sm" className="w-full gap-1.5 h-9 text-xs">
-              <MessageCircle className="h-3.5 w-3.5 fill-white" /> Message
-            </Button>
-          </a>
+          <Button variant="whatsapp" size="sm" className="flex-1 gap-1.5 h-9 text-xs"
+            onClick={() => setComposeOpen(v => !v)}>
+            <MessageCircle className="h-3.5 w-3.5 fill-white" />
+            {composeOpen ? "Close" : "Message"}
+          </Button>
         )}
         <Button variant="outline" size="sm" className="flex-1 h-9 text-xs gap-1.5">
           <ShoppingBag className="h-3.5 w-3.5" /> View orders
@@ -214,6 +242,20 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
       </div>
     </motion.div>
   )
+}
+
+function exportCustomersCSV(customers: Customer[]) {
+  const headers = ["Name", "Phone", "Email", "Location", "Orders", "Total Spend (₦)", "Segment", "Last Order", "Last Product", "On WhatsApp"]
+  const rows = customers.map(c => [
+    c.name, c.phone, c.email ?? "", c.location,
+    c.totalOrders, c.totalSpend, c.segment, c.lastOrderDate, c.lastProduct, c.isOnWhatsApp ? "Yes" : "No",
+  ])
+  const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url; a.download = `lummy-customers-${new Date().toISOString().slice(0, 10)}.csv`; a.click()
+  URL.revokeObjectURL(url)
 }
 
 export default function CRMPage() {
@@ -250,8 +292,9 @@ export default function CRMPage() {
             <h1 className="font-display text-2xl font-extrabold">Customers</h1>
             <p className="text-sm text-muted-foreground mt-0.5">Manage your customer base and nurture relationships</p>
           </div>
-          <Button size="sm" variant="outline" className="gap-1.5 h-9 text-xs flex-shrink-0">
-            <Download className="h-3.5 w-3.5" /> Export
+          <Button size="sm" variant="outline" className="gap-1.5 h-9 text-xs flex-shrink-0"
+            onClick={() => exportCustomersCSV(customers)}>
+            <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
         </div>
 

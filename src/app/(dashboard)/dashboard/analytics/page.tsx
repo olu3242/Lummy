@@ -34,6 +34,7 @@ import {
   Edit2,
   CheckCheck,
   Trophy,
+  Download,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -192,6 +193,20 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
+function exportAnalyticsCSV(period: "3m" | "6m" | "12m") {
+  const slice = period === "3m" ? revenueData.slice(-3) : period === "6m" ? revenueData.slice(-6) : revenueData
+  const header = ["Month", "Revenue (₦)", "Orders", "Store Views"]
+  const rows = slice.map(r => [r.month, r.revenue, r.orders, r.views].join(","))
+  const csv = [header.join(","), ...rows].join("\n")
+  const blob = new Blob([csv], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = `lummy-analytics-${period}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function AnalyticsPage() {
   const [revPeriod, setRevPeriod] = React.useState<"3m" | "6m" | "12m">("12m")
 
@@ -200,9 +215,16 @@ export default function AnalyticsPage() {
   return (
     <div className="p-4 sm:p-6 space-y-6">
       {/* Page header */}
-      <div>
-        <h1 className="font-display text-2xl font-extrabold">Analytics</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Track your store performance and growth</p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="font-display text-2xl font-extrabold">Analytics</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Track your store performance and growth</p>
+        </div>
+        <button onClick={() => exportAnalyticsCSV(revPeriod)}
+          className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-card text-xs font-semibold hover:bg-accent transition-colors flex-shrink-0">
+          <Download className="h-3.5 w-3.5" />
+          Export Report
+        </button>
       </div>
 
       {/* Goal tracker */}
