@@ -1,0 +1,141 @@
+@import url("https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&f[]=satoshi@400,500,700,900&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ─── CSS Custom Properties ────────────────────────────── */
+:root {
+  --font-cabinet: "Cabinet Grotesk", system-ui, sans-serif;
+  --font-satoshi: "Satoshi", system-ui, sans-serif;
+
+  /* Brand */
+  --color-violet: #7c3aed;
+  --color-fuchsia: #d946ef;
+  --color-emerald: #10b981;
+  --color-amber: #f59e0b;
+  --color-coral: #f97316;
+
+  /* Gradients */
+  --grad-brand: linear-gradient(135deg, #7c3aed, #d946ef);
+  --grad-hero: radial-gradient(
+      circle at 65% 30%,
+      rgba(124, 58, 237, 0.45),
+      transparent 35%
+    ),
+    linear-gradient(135deg, #070414 0%, #100827 45%, #090515 100%);
+}
+
+/* ─── Base Layer ────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    font-family: var(--font-satoshi);
+    background-color: #070414;
+    color: #ffffff;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: rgba(124, 58, 237, 0.35);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-violet);
+    outline-offset: 3px;
+    border-radius: 6px;
+  }
+}
+
+/* ─── Component Layer ───────────────────────────────────── */
+@layer components {
+  /* Gradient text */
+  .grad-text {
+    background: linear-gradient(135deg, #a78bfa, #e879f9, #fb7185);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Hero grid overlay */
+  .hero-grid {
+    background-image: linear-gradient(
+        to right,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+      ),
+      linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0.04) 1px,
+        transparent 1px
+      );
+    background-size: 80px 80px;
+    mask-image: radial-gradient(
+      ellipse 80% 80% at 50% 50%,
+      black 40%,
+      transparent 100%
+    );
+  }
+
+  /* Card glass */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* Floating card (light) */
+  .float-card {
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    color: #09090b;
+  }
+
+  /* Agent log item pulse */
+  .log-new {
+    animation: log-fade-in 0.4s ease both;
+  }
+
+  @keyframes log-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+/* ─── Utilities ─────────────────────────────────────────── */
+@layer utilities {
+  /* Staggered animation delays */
+  .delay-75 { animation-delay: 75ms; }
+  .delay-150 { animation-delay: 150ms; }
+  .delay-200 { animation-delay: 200ms; }
+  .delay-300 { animation-delay: 300ms; }
+  .delay-400 { animation-delay: 400ms; }
+  .delay-500 { animation-delay: 500ms; }
+
+  /* Touch targets */
+  .touch-target {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  /* Scrollbar hide */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
