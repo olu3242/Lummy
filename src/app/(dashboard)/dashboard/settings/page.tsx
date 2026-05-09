@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   User,
   Bell,
@@ -375,10 +375,80 @@ function PaymentsSection() {
   )
 }
 
+function DeleteAccountModal({ onClose }: { onClose: () => void }) {
+  const [typed, setTyped] = React.useState("")
+  const [deleting, setDeleting] = React.useState(false)
+  const confirmed = typed === "DELETE"
+
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose() }
+    document.addEventListener("keydown", handler)
+    return () => document.removeEventListener("keydown", handler)
+  }, [onClose])
+
+  const handleDelete = () => {
+    if (!confirmed) return
+    setDeleting(true)
+    setTimeout(() => {
+      toast({ title: "Account deletion requested", description: "You'll receive a confirmation email within 24 hours.", variant: "success" })
+      onClose()
+    }, 1500)
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.95, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.95, opacity: 0, y: 12 }} transition={{ type: "spring", damping: 28, stiffness: 300 }}
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-sm rounded-3xl border border-brand-coral/30 bg-card overflow-hidden shadow-2xl">
+        <div className="p-6 space-y-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-coral/10 mx-auto">
+            <AlertTriangle className="h-6 w-6 text-brand-coral" />
+          </div>
+          <div className="text-center">
+            <h2 className="font-display text-lg font-extrabold">Delete your account?</h2>
+            <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+              This will permanently delete your store, all products, orders, customers, and analytics. <strong>This cannot be undone.</strong>
+            </p>
+          </div>
+          <div className="rounded-xl bg-brand-coral/5 border border-brand-coral/20 p-3 text-xs text-brand-coral font-medium text-center">
+            You will lose access immediately
+          </div>
+          <div>
+            <label className="block text-xs font-semibold mb-1.5">
+              Type <span className="font-mono text-brand-coral">DELETE</span> to confirm
+            </label>
+            <input
+              autoFocus
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              placeholder="DELETE"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-coral/30"
+            />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <Button variant="outline" className="flex-1 h-10 text-xs" onClick={onClose}>Cancel</Button>
+            <Button
+              className="flex-1 h-10 text-xs bg-brand-coral hover:bg-brand-coral/90 text-white gap-1.5"
+              disabled={!confirmed || deleting}
+              onClick={handleDelete}
+            >
+              {deleting ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting…</> : <><Trash2 className="h-3.5 w-3.5" />Delete account</>}
+            </Button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  )
+}
+
 function SecuritySection() {
   const [showCurrent, setShowCurrent] = React.useState(false)
   const [showNew, setShowNew] = React.useState(false)
   const [saved, setSaved] = React.useState(false)
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false)
   const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
 
   return (
@@ -471,12 +541,17 @@ function SecuritySection() {
               <p className="text-xs text-muted-foreground mt-0.5">Permanently delete your store and all data. This cannot be undone.</p>
             </div>
           </div>
-          <Button size="sm" variant="outline" className="h-8 text-xs border-brand-coral/30 text-brand-coral hover:bg-brand-coral/10 flex-shrink-0 gap-1.5">
+          <Button size="sm" variant="outline" onClick={() => setShowDeleteModal(true)}
+            className="h-8 text-xs border-brand-coral/30 text-brand-coral hover:bg-brand-coral/10 flex-shrink-0 gap-1.5">
             <Trash2 className="h-3 w-3" />
             Delete
           </Button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} />}
+      </AnimatePresence>
     </div>
   )
 }

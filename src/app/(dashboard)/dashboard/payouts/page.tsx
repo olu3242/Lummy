@@ -255,6 +255,19 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
   )
 }
 
+function exportPayoutsCSV() {
+  const header = ["ID", "Date", "Amount (₦)", "Method", "Reference", "Status"]
+  const rows = mockPayouts.map(p => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
+  const csv = [header.join(","), ...rows].join("\n")
+  const blob = new Blob([csv], { type: "text/csv" })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement("a")
+  a.href = url
+  a.download = "lummy-payouts.csv"
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export default function PayoutsPage() {
   const [showWithdraw, setShowWithdraw] = React.useState(false)
   const balance = BALANCE
@@ -322,7 +335,7 @@ export default function PayoutsPage() {
         className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border">
           <h2 className="font-semibold text-sm">Payout History</h2>
-          <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={exportPayoutsCSV} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
         </div>
