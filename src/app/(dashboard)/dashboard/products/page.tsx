@@ -4,10 +4,10 @@ import * as React from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import {
-  Plus, Search, Filter, MoreHorizontal, MessageCircle,
+  Plus, Search, Filter, MessageCircle,
   Eye, ShoppingBag, TrendingUp, Edit, Trash2, ImagePlus,
   CheckCheck, ToggleLeft, ToggleRight, X, CheckSquare, Square,
-  Sparkles, Loader2,
+  Sparkles, Loader2, Copy, Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -305,10 +305,10 @@ function ProductDrawer({
 }
 
 function ProductCard({
-  product, index, onEdit, selected, onSelect,
+  product, index, onEdit, onDuplicate, selected, onSelect,
 }: {
   product: DashboardProduct; index: number; onEdit: (p: DashboardProduct) => void
-  selected: boolean; onSelect: (id: string) => void
+  onDuplicate: (p: DashboardProduct) => void; selected: boolean; onSelect: (id: string) => void
 }) {
   const status = statusConfig[product.status]
 
@@ -358,6 +358,10 @@ function ProductCard({
           <button onClick={() => onEdit(product)}
             className="flex-1 flex items-center justify-center gap-1.5 h-8 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold hover:bg-white/20 transition-colors">
             <Edit className="w-3 h-3" /> Edit
+          </button>
+          <button onClick={e => { e.stopPropagation(); onDuplicate(product) }}
+            className="flex items-center justify-center gap-1 h-8 px-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-semibold hover:bg-white/20 transition-colors">
+            <Copy className="w-3 h-3" />
           </button>
         </div>
       </div>
@@ -448,6 +452,34 @@ export default function ProductsPage() {
   const openAdd = () => { setEditingProduct(null); setDrawerOpen(true) }
   const openEdit = (p: DashboardProduct) => { setEditingProduct(p); setDrawerOpen(true) }
 
+  const duplicateProduct = (p: DashboardProduct) => {
+    const copy: DashboardProduct = {
+      ...p,
+      id: `${p.id}-copy-${Date.now()}`,
+      name: `Copy of ${p.name}`,
+      status: "draft",
+      sales: 0,
+      views: 0,
+      revenue: 0,
+    }
+    setProducts(prev => [copy, ...prev])
+    toast({ title: "Product duplicated", description: `"${copy.name}" added as a draft.`, variant: "success" })
+  }
+
+  const exportCSV = () => {
+    const header = ["Name", "Category", "Price (₦)", "Stock", "Status", "Sales", "Revenue (₦)"]
+    const rows = products.map(p => [
+      `"${p.name}"`, p.category, p.price,
+      p.stock ?? "unlimited", p.status, p.sales, p.revenue,
+    ].join(","))
+    const csv = [header.join(","), ...rows].join("\n")
+    const blob = new Blob([csv], { type: "text/csv" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url; a.download = "lummy-products.csv"; a.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-[1400px] mx-auto">
       {/* Header */}
@@ -458,9 +490,15 @@ export default function ProductsPage() {
             {products.filter((p) => p.status === "active").length} active · {products.length} total
           </p>
         </div>
-        <Button size="sm" className="gap-2 w-fit" onClick={openAdd}>
-          <Plus className="h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background text-xs font-semibold hover:bg-accent transition-colors">
+            <Download className="h-3.5 w-3.5" /> Export CSV
+          </button>
+          <Button size="sm" className="gap-2" onClick={openAdd}>
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
 
       {/* Filters + search */}
@@ -523,7 +561,7 @@ export default function ProductsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((product, i) => (
             <ProductCard key={product.id} product={product} index={i} onEdit={openEdit}
-              selected={selected.has(product.id)} onSelect={toggleSelect} />
+              onDuplicate={duplicateProduct} selected={selected.has(product.id)} onSelect={toggleSelect} />
           ))}
         </div>
       )}

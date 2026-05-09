@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   Check,
   Zap,
@@ -59,23 +59,29 @@ function CellValue({ value }: { value: Cell }) {
 function FAQItem({ item }: { item: { q: string; a: string } }) {
   const [open, setOpen] = React.useState(false)
   return (
-    <div className={cn("border-b border-border last:border-0", open && "pb-3")}>
+    <div className="border-b border-border last:border-0">
       <button
         onClick={() => setOpen(v => !v)}
         className="flex w-full items-center justify-between gap-4 py-4 text-left"
       >
         <p className="text-sm font-semibold">{item.q}</p>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
-      </button>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="pb-1"
-        >
-          <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
+        <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }} className="flex-shrink-0">
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
         </motion.div>
-      )}
+      </button>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.22, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <p className="text-sm text-muted-foreground leading-relaxed pb-4">{item.a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -181,17 +187,35 @@ export default function PricingPage() {
                   <p className="text-xs text-muted-foreground leading-relaxed">{plan.description}</p>
                 </div>
 
-                {/* Price */}
+                {/* Price — animated on billing toggle */}
                 <div className="mb-6">
-                  <div className="flex items-end gap-1.5">
-                    <span className="font-display text-3xl font-extrabold">{price.main}</span>
+                  <div className="flex items-end gap-1.5 h-10 overflow-hidden">
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={`${plan.id}-${annual}`}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -12 }}
+                        transition={{ duration: 0.2 }}
+                        className="font-display text-3xl font-extrabold"
+                      >
+                        {price.main}
+                      </motion.span>
+                    </AnimatePresence>
                     <span className="text-xs text-muted-foreground mb-1.5">{price.sub}</span>
                   </div>
-                  {annual && plan.price !== "Free" && (
-                    <p className="text-[10px] text-brand-green mt-1">
-                      Save ₦{(parseInt(plan.price.replace(/[^0-9]/g, "")) * 2).toLocaleString()} vs monthly
-                    </p>
-                  )}
+                  <AnimatePresence>
+                    {annual && plan.price !== "Free" && (
+                      <motion.p
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-[10px] text-brand-green mt-1 overflow-hidden"
+                      >
+                        Save ₦{(parseInt(plan.price.replace(/[^0-9]/g, "")) * 2).toLocaleString()} vs monthly
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* CTA */}
