@@ -97,6 +97,36 @@ function getMockOrder(orderId: string): TrackingOrder {
   }
 }
 
+const CONFETTI_EMOJIS = ["🎉", "🎊", "✨", "💜", "🛍️", "⭐"]
+
+function DeliveredCelebration() {
+  const [particles] = React.useState(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      emoji: CONFETTI_EMOJIS[i % CONFETTI_EMOJIS.length],
+      x: Math.random() * 100,
+      delay: Math.random() * 0.4,
+      duration: 1.2 + Math.random() * 0.8,
+    }))
+  )
+
+  return (
+    <div className="absolute inset-x-0 top-0 h-32 overflow-hidden pointer-events-none">
+      {particles.map(p => (
+        <motion.div
+          key={p.id}
+          initial={{ y: -20, x: `${p.x}vw`, opacity: 1, scale: 0.5 }}
+          animate={{ y: 120, opacity: 0, scale: 1.2 }}
+          transition={{ duration: p.duration, delay: p.delay, ease: "easeIn" }}
+          className="absolute text-xl"
+        >
+          {p.emoji}
+        </motion.div>
+      ))}
+    </div>
+  )
+}
+
 export function TrackingClient({ orderId }: { orderId: string }) {
   const order = getMockOrder(orderId.toUpperCase())
   const [copied, setCopied] = React.useState(false)
@@ -118,7 +148,9 @@ export function TrackingClient({ orderId }: { orderId: string }) {
   )}`
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
+      {order.status === "delivered" && <DeliveredCelebration />}
+
       {/* Header */}
       <header className="sticky top-0 z-30 flex h-12 items-center justify-between px-4 bg-background/90 backdrop-blur-sm border-b border-border">
         <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -269,6 +301,22 @@ export function TrackingClient({ orderId }: { orderId: string }) {
           </Link>
         </motion.div>
       </div>
+
+      {/* Leave a review CTA (delivered only) */}
+      {order.status === "delivered" && (
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.48 }}
+          className="mx-4 mb-2 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold">Enjoying your order?</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Help other shoppers — leave a quick review ⭐</p>
+          </div>
+          <a href={`https://wa.me/${order.seller.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hi! I just received my order (${order.id}) and I'd like to leave a review 🌟`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-1.5 h-9 px-3 rounded-xl bg-amber-500 text-white text-xs font-semibold hover:bg-amber-500/90 transition-colors flex-shrink-0">
+            Rate it
+          </a>
+        </motion.div>
+      )}
 
       {/* Sticky WhatsApp CTA */}
       <div className="fixed bottom-0 inset-x-0 z-20 p-4 bg-background/90 backdrop-blur-sm border-t border-border">

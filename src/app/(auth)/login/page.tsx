@@ -3,8 +3,8 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { motion } from "framer-motion"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, MessageCircle, TrendingUp, ShoppingBag } from "lucide-react"
+import { motion, AnimatePresence } from "framer-motion"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, MessageCircle, TrendingUp, ShoppingBag, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,15 +16,26 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.5, ease: "easeOut", delay },
 })
 
+const MOCK_EMAIL = "sade@sadeboutique.com"
+
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [shakeKey, setShakeKey] = React.useState(0)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setError("")
     setIsLoading(true)
-    // Simulate — will wire to Supabase in Phase 5
     setTimeout(() => {
+      setIsLoading(false)
+      if (email.toLowerCase() !== MOCK_EMAIL) {
+        setError("Incorrect email or password. Please try again.")
+        setShakeKey(k => k + 1)
+        return
+      }
       window.location.href = "/dashboard"
     }, 1200)
   }
@@ -106,13 +117,33 @@ export default function LoginPage() {
             </p>
           </motion.div>
 
-          <motion.form {...fadeUp(0.1)} onSubmit={handleSubmit} className="space-y-4">
+          <motion.form
+            key={shakeKey}
+            {...fadeUp(0.1)}
+            animate={shakeKey > 0
+              ? { x: [0, -10, 10, -8, 8, -4, 4, 0], opacity: 1, y: 0 }
+              : { opacity: 1, y: 0 }}
+            transition={shakeKey > 0 ? { duration: 0.45 } : { duration: 0.5, ease: "easeOut", delay: 0.1 }}
+            onSubmit={handleSubmit} className="space-y-4">
+
+            <AnimatePresence>
+              {error && (
+                <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+                  className="flex items-center gap-2.5 p-3 rounded-xl bg-brand-coral/10 border border-brand-coral/20 text-xs text-brand-coral font-medium">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                  {error}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-white/70">Email address</Label>
               <Input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError("") }}
                 icon={<Mail className="h-4 w-4" />}
                 className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple focus-visible:border-brand-purple/50"
                 required
