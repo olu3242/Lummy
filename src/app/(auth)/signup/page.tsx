@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { Eye, EyeOff, Mail, Lock, User, AtSign, ArrowRight, CheckCircle2, Loader2, Check, X } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle2, Loader2, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

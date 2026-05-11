@@ -1,10 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Bot, Sparkles, Zap, ArrowRight, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 
 const aiExamples = [
   {
@@ -27,8 +28,62 @@ const aiExamples = [
   },
 ]
 
+const CHARS_PER_TICK = 3
+const TICK_MS = 14
+const DOTS_DELAY = 650
+const IDLE_DURATION = 4200
+
 export function AIAssistantSection() {
   const [activeIndex, setActiveIndex] = React.useState(0)
+  const [displayedText, setDisplayedText] = React.useState("")
+  const [phase, setPhase] = React.useState<"dots" | "typing" | "idle">("dots")
+  const [hovered, setHovered] = React.useState(false)
+
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const clearAll = () => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    if (intervalRef.current) clearInterval(intervalRef.current)
+  }
+
+  React.useEffect(() => {
+    clearAll()
+    setDisplayedText("")
+    setPhase("dots")
+
+    timerRef.current = setTimeout(() => {
+      setPhase("typing")
+      const full = aiExamples[activeIndex].response
+      let i = 0
+      intervalRef.current = setInterval(() => {
+        i = Math.min(i + CHARS_PER_TICK, full.length)
+        setDisplayedText(full.slice(0, i))
+        if (i >= full.length) {
+          clearInterval(intervalRef.current!)
+          setPhase("idle")
+        }
+      }, TICK_MS)
+    }, DOTS_DELAY)
+
+    return clearAll
+  }, [activeIndex])
+
+  // Auto-cycle when idle and not hovered
+  React.useEffect(() => {
+    if (phase !== "idle" || hovered) return
+    timerRef.current = setTimeout(() => {
+      setActiveIndex(i => (i + 1) % aiExamples.length)
+    }, IDLE_DURATION)
+    return () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  }, [phase, hovered])
+
+  const selectTab = (i: number) => {
+    if (i === activeIndex) return
+    clearAll()
+    setActiveIndex(i)
+  }
+
   const active = aiExamples[activeIndex]
 
   return (
@@ -84,10 +139,12 @@ export function AIAssistantSection() {
               })}
             </div>
 
-            <Button size="lg" className="mt-8 group">
-              Try AI Assistant Free
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-            </Button>
+            <Link href="/signup">
+              <Button size="lg" className="mt-8 group">
+                Try AI Assistant Free
+                <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
           </motion.div>
 
           {/* Right: Chat UI */}
@@ -97,13 +154,15 @@ export function AIAssistantSection() {
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.7 }}
             className="flex-1 w-full max-w-[480px]"
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
           >
             {/* Tab selector */}
             <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide pb-1">
               {aiExamples.map((ex, i) => (
                 <button
                   key={i}
-                  onClick={() => setActiveIndex(i)}
+                  onClick={() => selectTab(i)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-200 ${
                     activeIndex === i
                       ? "bg-brand-purple text-white shadow-brand-sm"
@@ -130,7 +189,7 @@ export function AIAssistantSection() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setActiveIndex((activeIndex + 1) % aiExamples.length)}
+                  onClick={() => selectTab((activeIndex + 1) % aiExamples.length)}
                   className="ml-auto p-1.5 rounded-lg hover:bg-accent transition-colors"
                   aria-label="Next example"
                 >
@@ -141,33 +200,57 @@ export function AIAssistantSection() {
               {/* Chat body */}
               <div className="p-4 space-y-4 min-h-[320px]">
                 {/* User message */}
-                <motion.div
-                  key={`user-${activeIndex}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-end"
-                >
-                  <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-brand-purple/10 border border-brand-purple/20 px-3.5 py-2.5">
-                    <p className="text-sm text-foreground">{active.prompt}</p>
-                  </div>
-                </motion.div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`user-${activeIndex}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
+                    transition={{ duration: 0.25 }}
+                    className="flex justify-end"
+                  >
+                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-brand-purple/10 border border-brand-purple/20 px-3.5 py-2.5">
+                      <p className="text-sm text-foreground">{active.prompt}</p>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
 
                 {/* AI response */}
                 <motion.div
                   key={`ai-${activeIndex}`}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.15 }}
+                  transition={{ delay: 0.1, duration: 0.25 }}
                   className="flex justify-start"
                 >
-                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted border border-border px-3.5 py-3">
+                  <div className="max-w-[85%] rounded-2xl rounded-tl-sm bg-muted border border-border px-3.5 py-3 min-h-[60px]">
                     <div className="flex items-center gap-1.5 mb-2">
                       <Sparkles className="w-3 h-3 text-brand-purple" />
                       <span className="text-[10px] font-semibold text-brand-purple">Lummy AI</span>
                     </div>
-                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
-                      {active.response}
-                    </p>
+
+                    {/* Typing dots */}
+                    {phase === "dots" && (
+                      <div className="flex items-center gap-1.5 py-1">
+                        {[0, 1, 2].map(i => (
+                          <div
+                            key={i}
+                            className="w-2 h-2 rounded-full bg-brand-purple/50 animate-bounce"
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Streamed text */}
+                    {(phase === "typing" || phase === "idle") && (
+                      <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">
+                        {displayedText}
+                        {phase === "typing" && (
+                          <span className="inline-block w-0.5 h-4 bg-brand-purple ml-0.5 animate-pulse align-middle" />
+                        )}
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               </div>
@@ -181,6 +264,19 @@ export function AIAssistantSection() {
                   <ArrowRight className="w-3.5 h-3.5 text-white" />
                 </button>
               </div>
+            </div>
+
+            {/* Auto-cycle indicator */}
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              {aiExamples.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => selectTab(i)}
+                  className={`rounded-full transition-all duration-300 ${
+                    activeIndex === i ? "w-5 h-1.5 bg-brand-purple" : "w-1.5 h-1.5 bg-brand-purple/20"
+                  }`}
+                />
+              ))}
             </div>
           </motion.div>
         </div>

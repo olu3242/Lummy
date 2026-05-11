@@ -7,8 +7,6 @@ import {
   Area,
   BarChart,
   Bar,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -17,19 +15,14 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
 } from "recharts"
 import {
   TrendingUp,
-  TrendingDown,
   ShoppingBag,
   Eye,
   MessageCircle,
-  Users,
-  Star,
   ArrowUpRight,
   ArrowDownRight,
-  Package,
   Target,
   Edit2,
   CheckCheck,
@@ -176,12 +169,13 @@ const kpiStats = [
   { label: "Conversion Rate", value: "2.23%", change: "-0.3%", up: false, icon: MessageCircle, color: "text-amber-500" },
 ]
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface TooltipEntry { dataKey: string; color: string; value: number }
+const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: TooltipEntry[]; label?: string }) => {
   if (!active || !payload?.length) return null
   return (
     <div className="rounded-xl border border-border bg-card/95 backdrop-blur-sm px-3 py-2.5 text-xs shadow-lg">
       <p className="font-semibold mb-1.5">{label}</p>
-      {payload.map((p: any) => (
+      {payload.map((p) => (
         <p key={p.dataKey} style={{ color: p.color }} className="flex items-center gap-2">
           <span className="w-20 text-muted-foreground capitalize">{p.dataKey}:</span>
           <span className="font-semibold">

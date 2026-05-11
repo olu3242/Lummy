@@ -3,7 +3,6 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { useRouter } from "next/navigation"
-import { motion, AnimatePresence } from "framer-motion"
 import {
   Search,
   LayoutDashboard,
@@ -208,7 +207,7 @@ export function CommandPalette() {
             {filtered.length === 0 ? (
               <div className="py-12 text-center">
                 <Zap className="h-6 w-6 text-muted-foreground/30 mx-auto mb-2" />
-                <p className="text-sm text-muted-foreground">No results for "{query}"</p>
+                <p className="text-sm text-muted-foreground">No results for &quot;{query}&quot;</p>
               </div>
             ) : (
               Object.entries(groups).map(([group, items]) => (

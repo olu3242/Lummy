@@ -6,8 +6,6 @@ import { Star, MessageSquare, TrendingUp, ThumbsUp, Search, ChevronDown, Message
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
-const STORE_WA = "+234 803 456 7890"
-const STORE_NAME = "Sade's Boutique"
 
 const mockReviews = [
   { id: "R1", customer: "Amaka O.", phone: "+234 803 111 2222", product: "Ankara Peplum Top",  rating: 5, comment: "Absolutely love this! The fabric quality is amazing and it fits perfectly. Will definitely order again.", date: "May 3, 2026",  verified: true, helpful: 12 },

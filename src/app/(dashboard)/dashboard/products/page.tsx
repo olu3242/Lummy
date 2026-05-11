@@ -6,11 +6,10 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus, Search, Filter, MessageCircle,
   Eye, ShoppingBag, TrendingUp, Edit, Trash2, ImagePlus,
-  CheckCheck, ToggleLeft, ToggleRight, X, CheckSquare, Square,
+  ToggleLeft, ToggleRight, X, CheckSquare, Square,
   Sparkles, Loader2, Copy, Download,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -279,7 +278,7 @@ function ProductDrawer({
               </div>
               <div>
                 <p className="text-sm font-semibold">WhatsApp ordering</p>
-                <p className="text-xs text-muted-foreground">Show "Order via WhatsApp" button</p>
+                <p className="text-xs text-muted-foreground">Show &quot;Order via WhatsApp&quot; button</p>
               </div>
             </div>
             <button onClick={() => set("whatsappEnabled", !form.whatsappEnabled)}
@@ -423,7 +422,7 @@ export default function ProductsPage() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next
     })
   }

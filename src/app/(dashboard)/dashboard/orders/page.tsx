@@ -259,7 +259,7 @@ function OrderDetailDrawer({
               className="flex items-center gap-2 p-3 rounded-xl bg-brand-green/10 border border-brand-green/20"
             >
               <CheckCheck className="h-3.5 w-3.5 text-brand-green" />
-              <p className="text-xs font-semibold text-brand-green">Status updated to "{localStatus}"</p>
+              <p className="text-xs font-semibold text-brand-green">Status updated to &quot;{localStatus}&quot;</p>
             </motion.div>
           )}
         </SheetBody>

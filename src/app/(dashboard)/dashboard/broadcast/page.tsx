@@ -6,7 +6,6 @@ import {
   MessageCircle,
   Users,
   Sparkles,
-  Send,
   CheckCheck,
   Clock,
   ChevronDown,
