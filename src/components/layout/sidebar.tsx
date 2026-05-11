@@ -25,6 +25,7 @@ import {
   Star,
   Tag,
   Bell,
+  Target,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -61,6 +62,7 @@ const navGroups: NavGroup[] = [
       { label: "CRM", icon: Users, href: "/dashboard/crm" },
       { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
       { label: "AI Assistant", icon: Bot, href: "/dashboard/ai", isNew: true },
+      { label: "Campaigns", icon: Target, href: "/dashboard/campaigns" },
       { label: "Broadcast", icon: Megaphone, href: "/dashboard/broadcast" },
       { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
     ],

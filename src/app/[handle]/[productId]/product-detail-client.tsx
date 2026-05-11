@@ -6,7 +6,7 @@ import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft, MessageCircle, Share2, CheckCheck, ShoppingBag,
-  Eye, BadgeCheck, Star, ChevronRight, Package,
+  Eye, BadgeCheck, Star, ChevronRight, Package, CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -201,12 +201,19 @@ export function ProductDetailClient({
             This product is currently sold out
           </div>
         ) : (
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="whatsapp" size="xl" className="w-full gap-2">
-              <MessageCircle className="h-5 w-5 fill-white" />
-              Order via WhatsApp — ₦{p.price.toLocaleString()}
-            </Button>
-          </a>
+          <div className="flex gap-2">
+            <Link href={`/${handle}/${productId}/checkout`} className="flex-1">
+              <Button size="xl" className="w-full gap-2">
+                <CreditCard className="h-5 w-5" />
+                Buy Now — ₦{p.price.toLocaleString()}
+              </Button>
+            </Link>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="whatsapp" size="xl" className="gap-2 px-4">
+                <MessageCircle className="h-5 w-5 fill-white" />
+              </Button>
+            </a>
+          </div>
         )}
       </div>
     </>
