@@ -26,6 +26,7 @@ import {
   Tag,
   Bell,
   Target,
+  CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -71,6 +72,7 @@ const navGroups: NavGroup[] = [
     label: "Account",
     items: [
       { label: "Payouts", icon: Wallet, href: "/dashboard/payouts" },
+      { label: "Billing", icon: CreditCard, href: "/dashboard/billing" },
       { label: "Notifications", icon: Bell, href: "/dashboard/notifications", badge: "3", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Settings", icon: Settings, href: "/dashboard/settings" },
       { label: "Help & Docs", icon: HelpCircle, href: "/dashboard/help" },

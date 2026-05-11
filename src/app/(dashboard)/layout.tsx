@@ -3,6 +3,7 @@
 import * as React from "react"
 import { Sidebar } from "@/components/layout/sidebar"
 import { DashboardHeader } from "@/components/layout/dashboard-header"
+import { MobileNav } from "@/components/layout/mobile-nav"
 import { Toaster } from "@/components/ui/toaster"
 import { CommandPalette } from "@/components/dashboard/command-palette"
 
@@ -20,6 +21,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </main>
       </div>
 
+      <MobileNav />
       <CommandPalette />
       <Toaster />
     </div>
