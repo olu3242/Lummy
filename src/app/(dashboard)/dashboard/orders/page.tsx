@@ -7,6 +7,7 @@ import { motion } from "framer-motion"
 import {
   Search,
   Download,
+  Plus,
   MessageCircle,
   Instagram,
   Link2,
@@ -399,10 +400,16 @@ export default function OrdersPage() {
             {mockOrders.filter((o) => o.status === "pending").length} pending · {mockOrders.length} total
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 w-fit" onClick={() => exportCSV(mockOrders)}>
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/dashboard/orders/new">
+            <Button size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" /> New Order
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportCSV(mockOrders)}>
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Tabs + search */}

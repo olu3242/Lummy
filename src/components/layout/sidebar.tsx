@@ -52,6 +52,7 @@ const navGroups: NavGroup[] = [
     label: "Main",
     items: [
       { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
+      { label: "Goals", icon: Target, href: "/dashboard/goals" },
       { label: "Products", icon: ShoppingBag, href: "/dashboard/products", badge: "23" },
       { label: "Orders", icon: ClipboardList, href: "/dashboard/orders", badge: "12", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Reviews", icon: Star, href: "/dashboard/reviews" },
