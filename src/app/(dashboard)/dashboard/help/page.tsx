@@ -12,13 +12,10 @@ import {
   ChevronUp,
   CheckCheck,
   ArrowRight,
-  ExternalLink,
-  Zap,
   ShoppingBag,
   ClipboardList,
   Bot,
   BarChart3,
-  Users,
   Megaphone,
   Store,
   Star,
@@ -258,7 +255,7 @@ export default function HelpPage() {
           {filteredFAQ.length === 0 ? (
             <div className="py-12 text-center text-muted-foreground">
               <Search className="h-6 w-6 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No FAQs match "{search}"</p>
+              <p className="text-sm">No FAQs match &quot;{search}&quot;</p>
             </div>
           ) : (
             filteredFAQ.map((item, i) => <FAQItem key={i} item={item} />)

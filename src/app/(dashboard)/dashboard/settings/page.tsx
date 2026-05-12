@@ -8,13 +8,11 @@ import {
   CreditCard,
   Shield,
   Store,
-  ChevronRight,
   CheckCheck,
   Eye,
   EyeOff,
   Upload,
   Smartphone,
-  Globe,
   MessageCircle,
   Zap,
   Trash2,
@@ -34,7 +32,7 @@ const navItems: { id: SettingsSection; label: string; icon: React.ElementType; d
   { id: "security", label: "Security", icon: Shield, description: "Password, 2FA" },
 ]
 
-function SaveBar({ onSave, saved, section = "Changes" }: { onSave: () => void; saved: boolean; section?: string }) {
+function SaveBar({ onSave, saved }: { onSave: () => void; saved: boolean }) {
   return (
     <div className="flex items-center justify-end gap-3 pt-4 border-t border-border mt-6">
       <Button variant="outline" size="sm" className="h-9 text-xs">Discard</Button>

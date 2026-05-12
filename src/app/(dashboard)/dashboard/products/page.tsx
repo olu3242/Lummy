@@ -6,11 +6,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus, Search, Filter, MessageCircle,
   Eye, ShoppingBag, TrendingUp, Edit, Trash2, ImagePlus,
-  CheckCheck, ToggleLeft, ToggleRight, X, CheckSquare, Square,
+  ToggleLeft, ToggleRight, X, CheckSquare, Square,
   Sparkles, Loader2, Copy, Download,
 } from "lucide-react"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -279,7 +279,7 @@ function ProductDrawer({
               </div>
               <div>
                 <p className="text-sm font-semibold">WhatsApp ordering</p>
-                <p className="text-xs text-muted-foreground">Show "Order via WhatsApp" button</p>
+                <p className="text-xs text-muted-foreground">Show &quot;Order via WhatsApp&quot; button</p>
               </div>
             </div>
             <button onClick={() => set("whatsappEnabled", !form.whatsappEnabled)}
@@ -423,7 +423,7 @@ export default function ProductsPage() {
   const toggleSelect = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
+      if (next.has(id)) { next.delete(id) } else { next.add(id) }
       return next
     })
   }
@@ -495,9 +495,11 @@ export default function ProductsPage() {
             className="flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background text-xs font-semibold hover:bg-accent transition-colors">
             <Download className="h-3.5 w-3.5" /> Export CSV
           </button>
-          <Button size="sm" className="gap-2" onClick={openAdd}>
-            <Plus className="h-4 w-4" /> Add Product
-          </Button>
+          <Link href="/dashboard/products/new">
+            <Button size="sm" className="gap-2">
+              <Plus className="h-4 w-4" /> Add Product
+            </Button>
+          </Link>
         </div>
       </div>
 

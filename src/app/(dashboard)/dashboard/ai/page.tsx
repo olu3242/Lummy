@@ -88,7 +88,6 @@ const TOOLS = [
   },
 ] as const
 
-type ToolId = typeof TOOLS[number]["id"]
 
 // ─── Chat mock responses ──────────────────────────────────────────────────────
 

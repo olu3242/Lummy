@@ -4,7 +4,6 @@ import * as React from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowLeft, Zap, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 const links = [
   { label: "Go home",          href: "/",              icon: Home,            desc: "Back to the landing page" },
@@ -54,10 +53,10 @@ export default function NotFound() {
         className="space-y-3 mb-8"
       >
         <h1 className="font-display text-2xl sm:text-3xl font-extrabold">
-          This page doesn't exist
+          This page doesn&apos;t exist
         </h1>
         <p className="text-muted-foreground text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
-          The link you followed may be broken, or the store you're looking for may have moved.
+          The link you followed may be broken, or the store you&apos;re looking for may have moved.
         </p>
       </motion.div>
 

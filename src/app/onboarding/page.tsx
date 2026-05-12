@@ -20,7 +20,6 @@ import {
   MapPin,
   Phone,
   AtSign,
-  User,
   Tag,
   X,
   Building2,

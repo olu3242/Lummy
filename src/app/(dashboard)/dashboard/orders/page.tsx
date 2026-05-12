@@ -2,10 +2,12 @@
 
 import * as React from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import {
   Search,
   Download,
+  Plus,
   MessageCircle,
   Instagram,
   Link2,
@@ -259,12 +261,19 @@ function OrderDetailDrawer({
               className="flex items-center gap-2 p-3 rounded-xl bg-brand-green/10 border border-brand-green/20"
             >
               <CheckCheck className="h-3.5 w-3.5 text-brand-green" />
-              <p className="text-xs font-semibold text-brand-green">Status updated to "{localStatus}"</p>
+              <p className="text-xs font-semibold text-brand-green">Status updated to &quot;{localStatus}&quot;</p>
             </motion.div>
           )}
         </SheetBody>
 
         <SheetFooter className="flex-col gap-2">
+          {/* Full detail link */}
+          <Link href={`/dashboard/orders/${order?.id}`} className="w-full">
+            <Button variant="outline" size="sm" className="w-full h-9 text-xs gap-1.5">
+              <ChevronRight className="h-3.5 w-3.5" />
+              View full order details
+            </Button>
+          </Link>
           {/* Advance status */}
           {nextStatus && currentStatus !== "cancelled" && (
             <Button
@@ -340,8 +349,11 @@ function OrderRow({ order, onClick }: { order: DashboardOrder; onClick: () => vo
           <span className="text-xs capitalize">{order.source}</span>
         </div>
       </TableCell>
-      <TableCell>
-        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+      <TableCell onClick={e => e.stopPropagation()}>
+        <Link href={`/dashboard/orders/${order.id}`}
+          className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors">
+          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+        </Link>
       </TableCell>
     </TableRow>
   )
@@ -388,10 +400,16 @@ export default function OrdersPage() {
             {mockOrders.filter((o) => o.status === "pending").length} pending · {mockOrders.length} total
           </p>
         </div>
-        <Button variant="outline" size="sm" className="gap-2 w-fit" onClick={() => exportCSV(mockOrders)}>
-          <Download className="h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex gap-2">
+          <Link href="/dashboard/orders/new">
+            <Button size="sm" className="gap-1.5">
+              <Plus className="h-4 w-4" /> New Order
+            </Button>
+          </Link>
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => exportCSV(mockOrders)}>
+            <Download className="h-4 w-4" /> Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Tabs + search */}

@@ -8,7 +8,6 @@ import {
   MessageCircle,
   Instagram,
   Twitter,
-  ExternalLink,
   BadgeCheck,
   Share2,
   CheckCheck,

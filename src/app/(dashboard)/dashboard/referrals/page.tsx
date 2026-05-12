@@ -8,12 +8,9 @@ import {
   CheckCheck,
   Gift,
   TrendingUp,
-  Star,
   Share2,
   MessageCircle,
   Twitter,
-  Instagram,
-  ArrowUpRight,
   Zap,
   BadgeCheck,
 } from "lucide-react"

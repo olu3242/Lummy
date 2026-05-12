@@ -1,6 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
+import * as React from "react"
+import { motion, AnimatePresence } from "framer-motion"
 import { CheckCheck, MessageCircle, ShoppingCart, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -28,7 +29,34 @@ const messages = [
   },
 ]
 
+// Delays (ms) at which each message becomes visible
+const REVEAL_DELAYS = [400, 2600, 3700, 5200]
+// Typing indicator shows between message 0→1 and 2→3
+const TYPING_ON = [900, 4100]
+const TYPING_OFF = [2500, 5100]
+const LOOP_RESET = 8000
+
 export function WhatsAppSection() {
+  const [visibleCount, setVisibleCount] = React.useState(0)
+  const [showTyping, setShowTyping] = React.useState(false)
+  const [loopKey, setLoopKey] = React.useState(0)
+
+  React.useEffect(() => {
+    const timers: ReturnType<typeof setTimeout>[] = []
+    const t = (fn: () => void, delay: number) => { timers.push(setTimeout(fn, delay)) }
+
+    REVEAL_DELAYS.forEach((delay, i) => t(() => setVisibleCount(i + 1), delay))
+    TYPING_ON.forEach(delay => t(() => setShowTyping(true), delay))
+    TYPING_OFF.forEach(delay => t(() => setShowTyping(false), delay))
+    t(() => {
+      setVisibleCount(0)
+      setShowTyping(false)
+      setLoopKey(k => k + 1)
+    }, LOOP_RESET)
+
+    return () => timers.forEach(clearTimeout)
+  }, [loopKey])
+
   return (
     <section id="whatsapp" className="section-padding bg-background overflow-hidden">
       <div className="container">
@@ -61,55 +89,82 @@ export function WhatsAppSection() {
 
                 {/* Messages */}
                 <div className="p-4 space-y-3 min-h-[360px]">
-                  {messages.map((msg, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 12 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ delay: i * 0.15, duration: 0.4 }}
-                    >
-                      {msg.from === "system" ? (
-                        <div className="flex justify-center">
-                          <span className="px-3 py-1 rounded-full bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-[10px] font-semibold flex items-center gap-1.5">
-                            <CheckCheck className="w-3 h-3" />
-                            {msg.text}
-                          </span>
-                        </div>
-                      ) : msg.from === "customer" ? (
-                        <div className="flex justify-end">
-                          <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-[#005c4b] px-3 py-2">
-                            <p className="text-white text-[11px] leading-relaxed">{msg.text}</p>
-                            <p className="text-white/30 text-[9px] mt-1 text-right">{msg.time}</p>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="flex justify-start">
-                          <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-[#1f2c34] px-3 py-2 space-y-2">
-                            {msg.isBot && (
-                              <div className="flex items-center gap-1 mb-1">
-                                <div className="w-3 h-3 rounded-full bg-brand-purple/30 flex items-center justify-center">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
-                                </div>
-                                <span className="text-brand-purple/70 text-[9px] font-medium">Lummy Auto-reply</span>
+                  <AnimatePresence>
+                    {messages.map((msg, i) => {
+                      if (i >= visibleCount) return null
+                      return (
+                        <motion.div
+                          key={`${loopKey}-${i}`}
+                          initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
+                        >
+                          {msg.from === "system" ? (
+                            <div className="flex justify-center">
+                              <span className="px-3 py-1 rounded-full bg-[#25D366]/10 border border-[#25D366]/20 text-[#25D366] text-[10px] font-semibold flex items-center gap-1.5">
+                                <CheckCheck className="w-3 h-3" />
+                                {msg.text}
+                              </span>
+                            </div>
+                          ) : msg.from === "customer" ? (
+                            <div className="flex justify-end">
+                              <div className="max-w-[75%] rounded-2xl rounded-tr-sm bg-[#005c4b] px-3 py-2">
+                                <p className="text-white text-[11px] leading-relaxed">{msg.text}</p>
+                                <p className="text-white/30 text-[9px] mt-1 text-right">{msg.time}</p>
                               </div>
-                            )}
-                            <p className="text-white text-[11px] leading-relaxed whitespace-pre-line">{msg.text}</p>
-                            {msg.isBot && (
-                              <div className="mt-2 w-full rounded-xl bg-[#25D366] flex items-center justify-center gap-1.5 py-2">
-                                <ShoppingCart className="w-3 h-3 text-white" />
-                                <span className="text-white text-[10px] font-semibold">Confirm Order & Pay</span>
+                            </div>
+                          ) : (
+                            <div className="flex justify-start">
+                              <div className="max-w-[80%] rounded-2xl rounded-tl-sm bg-[#1f2c34] px-3 py-2 space-y-2">
+                                {msg.isBot && (
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <div className="w-3 h-3 rounded-full bg-brand-purple/30 flex items-center justify-center">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-brand-purple" />
+                                    </div>
+                                    <span className="text-brand-purple/70 text-[9px] font-medium">Lummy Auto-reply</span>
+                                  </div>
+                                )}
+                                <p className="text-white text-[11px] leading-relaxed whitespace-pre-line">{msg.text}</p>
+                                {msg.isBot && (
+                                  <div className="mt-2 w-full rounded-xl bg-[#25D366] flex items-center justify-center gap-1.5 py-2">
+                                    <ShoppingCart className="w-3 h-3 text-white" />
+                                    <span className="text-white text-[10px] font-semibold">Confirm Order & Pay</span>
+                                  </div>
+                                )}
+                                <p className="text-white/30 text-[9px] mt-1 flex items-center gap-1">
+                                  {msg.time}
+                                  {msg.isBot && <CheckCheck className="w-2.5 h-2.5 text-[#25D366]" />}
+                                </p>
                               </div>
-                            )}
-                            <p className="text-white/30 text-[9px] mt-1 flex items-center gap-1">
-                              {msg.time}
-                              {msg.isBot && <CheckCheck className="w-2.5 h-2.5 text-[#25D366]" />}
-                            </p>
-                          </div>
+                            </div>
+                          )}
+                        </motion.div>
+                      )
+                    })}
+
+                    {/* Typing indicator */}
+                    {showTyping && (
+                      <motion.div
+                        key={`typing-${loopKey}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 4 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex justify-start"
+                      >
+                        <div className="rounded-2xl rounded-tl-sm bg-[#1f2c34] px-4 py-3 flex items-center gap-1.5">
+                          {[0, 1, 2].map(i => (
+                            <div
+                              key={i}
+                              className="w-1.5 h-1.5 rounded-full bg-white/40 animate-bounce"
+                              style={{ animationDelay: `${i * 0.15}s` }}
+                            />
+                          ))}
                         </div>
-                      )}
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Input bar */}

@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Search, MessageCircle, ShoppingBag, Users, TrendingUp,
-  Star, Download, Phone, MapPin, Clock, X, Plus,
-  CheckCircle2, Package, Truck, Home, ChevronRight, Edit2,
+  Star, Download, Phone, MapPin, Clock, X,
+  CheckCircle2, Package, Truck, Home, ChevronRight,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
@@ -386,10 +387,11 @@ export default function CRMPage() {
                         <MessageCircle className="h-3.5 w-3.5 fill-[#25D366]" />
                       </a>
                     )}
-                    <button onClick={() => setSelectedCustomer(customer)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors">
+                    <Link href={`/dashboard/customers/${customer.id}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+                      onClick={(e) => e.stopPropagation()}>
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
+                    </Link>
                   </div>
                 </motion.div>
               )
@@ -414,7 +416,7 @@ export default function CRMPage() {
             </div>
             <div>
               <p className="text-sm font-semibold">Re-engage at-risk customers</p>
-              <p className="text-xs text-muted-foreground mt-0.5">2 customers haven't ordered in 6+ weeks. A quick WhatsApp message could win them back.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">2 customers haven&apos;t ordered in 6+ weeks. A quick WhatsApp message could win them back.</p>
             </div>
           </div>
           <Button size="sm" variant="whatsapp" className="gap-1.5 flex-shrink-0 text-xs h-8">

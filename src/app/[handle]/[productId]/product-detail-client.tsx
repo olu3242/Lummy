@@ -3,10 +3,10 @@
 import * as React from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft, MessageCircle, Share2, CheckCheck, ShoppingBag,
-  Eye, BadgeCheck, Star, ChevronRight, Package,
+  Eye, BadgeCheck, Star, ChevronRight, Package, CreditCard,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -24,11 +24,20 @@ export function ProductDetailClient({
   const product = creator.publicProducts.find(p => p.id === productId)
   const creatorFirstName = creator.name.split(" ")[0]
   const [copied, setCopied] = React.useState(false)
+  const [selectedImageIndex, setSelectedImageIndex] = React.useState(0)
 
   const p = product ?? creator.publicProducts[0]
   if (!p) return null
 
   const isOutOfStock = p.stock === 0
+
+  // Gallery: main product image + contextual extras sourced from Unsplash
+  const galleryImages = [
+    p.image,
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&q=80",
+  ]
+  const activeImage = galleryImages[selectedImageIndex]
 
   const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, p.name, `₦${p.price.toLocaleString()}`, creatorFirstName)
 
@@ -56,19 +65,50 @@ export function ProductDetailClient({
       </header>
 
       <div className="pb-32 lg:pb-12">
-        {/* Image */}
-        <div className="relative aspect-square max-h-[480px] overflow-hidden bg-muted">
-          <Image src={p.image} alt={p.name} fill className="object-cover" priority unoptimized />
-          {isOutOfStock && (
-            <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-              <span className="font-display text-xl font-extrabold px-5 py-2.5 rounded-2xl bg-background border border-border shadow">Sold Out</span>
-            </div>
-          )}
-          {!isOutOfStock && p.stock !== null && p.stock <= 5 && p.stock > 0 && (
-            <div className="absolute top-3 left-3">
-              <Badge variant="coral" className="shadow-sm">Only {p.stock} left</Badge>
-            </div>
-          )}
+        {/* Image gallery */}
+        <div>
+          <div className="relative aspect-square max-h-[480px] overflow-hidden bg-muted">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedImageIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }}
+                className="absolute inset-0"
+              >
+                <Image src={activeImage} alt={p.name} fill className="object-cover" priority unoptimized />
+              </motion.div>
+            </AnimatePresence>
+            {isOutOfStock && (
+              <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                <span className="font-display text-xl font-extrabold px-5 py-2.5 rounded-2xl bg-background border border-border shadow">Sold Out</span>
+              </div>
+            )}
+            {!isOutOfStock && p.stock !== null && p.stock <= 5 && p.stock > 0 && (
+              <div className="absolute top-3 left-3">
+                <Badge variant="coral" className="shadow-sm">Only {p.stock} left</Badge>
+              </div>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          <div className="flex gap-2 px-4 pt-3">
+            {galleryImages.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedImageIndex(i)}
+                className={cn(
+                  "relative w-16 h-16 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200",
+                  selectedImageIndex === i
+                    ? "border-brand-purple shadow-brand-sm"
+                    : "border-border opacity-60 hover:opacity-100"
+                )}
+              >
+                <Image src={img} alt={`View ${i + 1}`} fill className="object-cover" unoptimized />
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Info */}
@@ -161,12 +201,19 @@ export function ProductDetailClient({
             This product is currently sold out
           </div>
         ) : (
-          <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
-            <Button variant="whatsapp" size="xl" className="w-full gap-2">
-              <MessageCircle className="h-5 w-5 fill-white" />
-              Order via WhatsApp — ₦{p.price.toLocaleString()}
-            </Button>
-          </a>
+          <div className="flex gap-2">
+            <Link href={`/${handle}/${productId}/checkout`} className="flex-1">
+              <Button size="xl" className="w-full gap-2">
+                <CreditCard className="h-5 w-5" />
+                Buy Now — ₦{p.price.toLocaleString()}
+              </Button>
+            </Link>
+            <a href={whatsappUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="whatsapp" size="xl" className="gap-2 px-4">
+                <MessageCircle className="h-5 w-5 fill-white" />
+              </Button>
+            </a>
+          </div>
         )}
       </div>
     </>

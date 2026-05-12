@@ -15,64 +15,56 @@ function StarRow({ count }: { count: number }) {
   )
 }
 
-function TestimonialCard({
-  testimonial,
-  index,
-}: {
-  testimonial: (typeof mockTestimonials)[0]
-  index: number
-}) {
+function TestimonialCard({ testimonial }: { testimonial: (typeof mockTestimonials)[0] }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 32 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="relative rounded-3xl border border-border bg-card p-6 flex flex-col gap-4 hover:shadow-brand-sm transition-all duration-300 hover:-translate-y-1"
-    >
-      {/* Quote icon */}
-      <Quote className="h-6 w-6 text-brand-purple/30 absolute top-5 right-5" />
-
-      {/* Stars */}
+    <div className="relative flex-shrink-0 w-72 rounded-3xl border border-border bg-card p-5 flex flex-col gap-3 mx-2 hover:shadow-brand-sm hover:-translate-y-0.5 transition-all duration-300">
+      <Quote className="h-5 w-5 text-brand-purple/25 absolute top-4 right-4" />
       <StarRow count={testimonial.rating} />
-
-      {/* Content */}
-      <p className="text-sm text-muted-foreground leading-relaxed flex-1">
+      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
         &ldquo;{testimonial.content}&rdquo;
       </p>
-
-      {/* Metric highlight */}
-      <div className="flex items-center gap-3 py-3 px-4 rounded-2xl bg-brand-purple/5 border border-brand-purple/10">
+      <div className="flex items-center gap-2.5 py-2.5 px-3 rounded-2xl bg-brand-purple/5 border border-brand-purple/10">
         <div>
-          <p className="font-display text-xl font-extrabold gradient-text">{testimonial.metric}</p>
-          <p className="text-xs text-muted-foreground">{testimonial.metricLabel}</p>
+          <p className="font-display text-lg font-extrabold gradient-text">{testimonial.metric}</p>
+          <p className="text-[10px] text-muted-foreground">{testimonial.metricLabel}</p>
         </div>
       </div>
-
-      {/* Creator info */}
-      <div className="flex items-center gap-3">
-        <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20">
-          <Image
-            src={testimonial.avatar}
-            alt={testimonial.name}
-            fill
-            className="object-cover"
-            unoptimized
-          />
+      <div className="flex items-center gap-2.5">
+        <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20">
+          <Image src={testimonial.avatar} alt={testimonial.name} fill className="object-cover" unoptimized />
         </div>
         <div>
-          <p className="text-sm font-semibold">{testimonial.name}</p>
-          <p className="text-xs text-muted-foreground">{testimonial.niche}</p>
-          <p className="text-xs text-brand-purple/70">{testimonial.handle}</p>
+          <p className="text-sm font-semibold leading-tight">{testimonial.name}</p>
+          <p className="text-[11px] text-brand-purple/70">{testimonial.handle}</p>
         </div>
       </div>
-    </motion.div>
+    </div>
+  )
+}
+
+function MarqueeRow({ reverse = false }: { reverse?: boolean }) {
+  const doubled = [...mockTestimonials, ...mockTestimonials]
+  return (
+    <div className="overflow-hidden relative">
+      {/* Fade edges */}
+      <div className="absolute left-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-24 z-10 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+      <motion.div
+        animate={{ x: reverse ? ["-50%", "0%"] : ["0%", "-50%"] }}
+        transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+        className="flex"
+      >
+        {doubled.map((t, i) => (
+          <TestimonialCard key={`${t.id}-${i}`} testimonial={t} />
+        ))}
+      </motion.div>
+    </div>
   )
 }
 
 export function TestimonialsSection() {
   return (
-    <section id="testimonials" className="section-padding bg-background">
+    <section id="testimonials" className="section-padding bg-background overflow-hidden">
       <div className="container">
         {/* Header */}
         <motion.div
@@ -82,42 +74,36 @@ export function TestimonialsSection() {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">
-            Creator stories
-          </p>
+          <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Creator stories</p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            Real creators.
-            <br />
+            Real creators.<br />
             <span className="gradient-text">Real results.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-            Thousands of African creators use Lummy to build businesses that earn while they sleep. Here&apos;s what they say.
+            Thousands of African creators use Lummy to build businesses that earn while they sleep.
           </p>
         </motion.div>
+      </div>
 
-        {/* Testimonials grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {mockTestimonials.map((testimonial, i) => (
-            <TestimonialCard key={testimonial.id} testimonial={testimonial} index={i} />
-          ))}
-        </div>
+      {/* Marquee rows — full bleed outside container */}
+      <div className="space-y-4 py-2">
+        <MarqueeRow />
+        <MarqueeRow reverse />
+      </div>
 
-        {/* Trust logos / press */}
+      {/* Trust logos */}
+      <div className="container">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-16 pt-12 border-t border-border"
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-14 pt-10 border-t border-border"
         >
-          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">
-            As seen on
-          </p>
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">As seen on</p>
           <div className="flex flex-wrap items-center justify-center gap-8 opacity-30">
-            {["TechCabal", "Techpoint", "BusinessDay NG", "Nairametrics", "The Guardian"].map((name) => (
-              <span key={name} className="font-display font-bold text-sm text-foreground">
-                {name}
-              </span>
+            {["TechCabal", "Techpoint", "BusinessDay NG", "Nairametrics", "The Guardian"].map(name => (
+              <span key={name} className="font-display font-bold text-sm text-foreground">{name}</span>
             ))}
           </div>
         </motion.div>

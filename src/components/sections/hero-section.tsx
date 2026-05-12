@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Image from "next/image"
-import { motion, useInView, useMotionValue, useSpring, animate } from "framer-motion"
+import { motion, useInView } from "framer-motion"
 import {
   MessageCircle,
   TrendingUp,
@@ -31,7 +31,7 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
     const [, prefix, numStr, suffix] = match
     const target = parseFloat(numStr.replace(/,/g, ""))
     const isDecimal = numStr.includes(".")
-    let start = 0
+    const start = 0
     const duration = 1800
     const startTime = performance.now()
     const step = (now: number) => {

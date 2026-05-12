@@ -1,7 +1,6 @@
 import Image from "next/image"
 import Link from "next/link"
 import { ExternalLink, MessageCircle, Instagram, Link2, Music } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { mockOrders, type OrderStatus } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
