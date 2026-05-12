@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Package,
   Puzzle,
+  Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -75,6 +76,7 @@ const navGroups: NavGroup[] = [
       { label: "Templates", icon: MessageSquare, href: "/dashboard/templates" },
       { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
       { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
+      { label: "Link-in-Bio", icon: Link2, href: "/dashboard/links" },
     ],
   },
   {
