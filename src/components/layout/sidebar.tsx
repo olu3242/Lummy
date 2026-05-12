@@ -29,6 +29,8 @@ import {
   CreditCard,
   CalendarDays,
   MessageSquare,
+  Package,
+  Puzzle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -54,6 +56,7 @@ const navGroups: NavGroup[] = [
       { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
       { label: "Goals", icon: Target, href: "/dashboard/goals" },
       { label: "Products", icon: ShoppingBag, href: "/dashboard/products", badge: "23" },
+      { label: "Inventory", icon: Package, href: "/dashboard/inventory" },
       { label: "Orders", icon: ClipboardList, href: "/dashboard/orders", badge: "12", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Reviews", icon: Star, href: "/dashboard/reviews" },
       { label: "Discounts", icon: Tag, href: "/dashboard/discounts" },
@@ -78,6 +81,7 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "Payouts", icon: Wallet, href: "/dashboard/payouts" },
       { label: "Billing", icon: CreditCard, href: "/dashboard/billing" },
+      { label: "Integrations", icon: Puzzle, href: "/dashboard/integrations" },
       { label: "Notifications", icon: Bell, href: "/dashboard/notifications", badge: "3", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Settings", icon: Settings, href: "/dashboard/settings" },
       { label: "Help & Docs", icon: HelpCircle, href: "/dashboard/help" },
