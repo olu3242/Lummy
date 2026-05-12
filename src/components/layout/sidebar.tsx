@@ -74,6 +74,7 @@ const navGroups: NavGroup[] = [
       { label: "Broadcast", icon: Megaphone, href: "/dashboard/broadcast" },
       { label: "Templates", icon: MessageSquare, href: "/dashboard/templates" },
       { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
+      { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
     ],
   },
   {

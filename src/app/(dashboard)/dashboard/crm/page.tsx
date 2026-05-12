@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Search, MessageCircle, ShoppingBag, Users, TrendingUp,
@@ -386,10 +387,11 @@ export default function CRMPage() {
                         <MessageCircle className="h-3.5 w-3.5 fill-[#25D366]" />
                       </a>
                     )}
-                    <button onClick={() => setSelectedCustomer(customer)}
-                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors">
+                    <Link href={`/dashboard/customers/${customer.id}`}
+                      className="flex h-7 w-7 items-center justify-center rounded-lg hover:bg-accent transition-colors"
+                      onClick={(e) => e.stopPropagation()}>
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-                    </button>
+                    </Link>
                   </div>
                 </motion.div>
               )
