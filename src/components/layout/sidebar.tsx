@@ -27,6 +27,8 @@ import {
   Bell,
   Target,
   CreditCard,
+  CalendarDays,
+  MessageSquare,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -64,7 +66,9 @@ const navGroups: NavGroup[] = [
       { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
       { label: "AI Assistant", icon: Bot, href: "/dashboard/ai", isNew: true },
       { label: "Campaigns", icon: Target, href: "/dashboard/campaigns" },
+      { label: "Calendar", icon: CalendarDays, href: "/dashboard/calendar" },
       { label: "Broadcast", icon: Megaphone, href: "/dashboard/broadcast" },
+      { label: "Templates", icon: MessageSquare, href: "/dashboard/templates" },
       { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
     ],
   },
