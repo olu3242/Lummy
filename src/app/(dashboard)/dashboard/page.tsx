@@ -1,10 +1,12 @@
 import { Sparkles, ArrowRight, Plus, ExternalLink } from "lucide-react"
 import Link from "next/link"
+import { cn } from "@/lib/utils"
 import { StatsCard } from "@/components/dashboard/stats-card"
 import { RevenueChart } from "@/components/dashboard/revenue-chart"
 import { OrderSourcesChart } from "@/components/dashboard/order-sources-chart"
 import { RecentOrders } from "@/components/dashboard/recent-orders"
 import { TopProducts } from "@/components/dashboard/top-products"
+import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
 import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting"
 import { ShareStorePanel } from "@/components/dashboard/share-store-panel"
@@ -90,6 +92,30 @@ export default function DashboardPage() {
           <RecentOrders limit={5} />
         </div>
         <TopProducts />
+      </div>
+
+      {/* Live activity + mini top-products */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ minHeight: 340 }}>
+        <div className="lg:col-span-2 h-[340px]">
+          <ActivityFeed />
+        </div>
+        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
+          <p className="text-sm font-bold">Quick Actions</p>
+          {[
+            { label: "Create new order", href: "/dashboard/orders/new",  color: "bg-brand-purple/10 text-brand-purple" },
+            { label: "Add product",      href: "/dashboard/products/new", color: "bg-brand-green/10 text-brand-green"  },
+            { label: "Send broadcast",   href: "/dashboard/broadcast",    color: "bg-[#25D366]/10 text-[#25D366]"     },
+            { label: "View reports",     href: "/dashboard/reports",      color: "bg-amber-500/10 text-amber-500"     },
+            { label: "Add discount",     href: "/dashboard/discounts",    color: "bg-brand-coral/10 text-brand-coral" },
+            { label: "Check inventory",  href: "/dashboard/inventory",    color: "bg-brand-indigo/10 text-brand-indigo"},
+          ].map((item) => (
+            <Link key={item.label} href={item.href}
+              className={cn("flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80", item.color)}>
+              {item.label}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   )

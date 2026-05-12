@@ -30,7 +30,9 @@ import {
   CalendarDays,
   MessageSquare,
   Package,
+  Layers,
   Puzzle,
+  Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -56,6 +58,7 @@ const navGroups: NavGroup[] = [
       { label: "Overview", icon: LayoutDashboard, href: "/dashboard" },
       { label: "Goals", icon: Target, href: "/dashboard/goals" },
       { label: "Products", icon: ShoppingBag, href: "/dashboard/products", badge: "23" },
+      { label: "Bundles", icon: Layers, href: "/dashboard/products/bundles" },
       { label: "Inventory", icon: Package, href: "/dashboard/inventory" },
       { label: "Orders", icon: ClipboardList, href: "/dashboard/orders", badge: "12", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Reviews", icon: Star, href: "/dashboard/reviews" },
@@ -75,6 +78,7 @@ const navGroups: NavGroup[] = [
       { label: "Templates", icon: MessageSquare, href: "/dashboard/templates" },
       { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
       { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
+      { label: "Link-in-Bio", icon: Link2, href: "/dashboard/links" },
     ],
   },
   {

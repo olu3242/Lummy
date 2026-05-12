@@ -6,6 +6,7 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -25,6 +26,10 @@ const config: Config = {
           emerald: "#10b981",
           amber: "#f59e0b",
           coral: "#f97316",
+          purple: "#6C4EF3",
+          green: "#10B981",
+          indigo: "#4F46E5",
+          midnight: "#080815",
         },
         dark: {
           DEFAULT: "#070414",
@@ -42,6 +47,7 @@ const config: Config = {
       },
       // ── Box shadows ───────────────────────────────────────
       boxShadow: {
+        "brand-sm": "0 4px 14px rgba(108,78,243,0.35)",
         "violet-sm": "0 4px 18px rgba(124,58,237,0.35)",
         violet: "0 10px 40px rgba(124,58,237,0.4)",
         "violet-lg": "0 20px 70px rgba(124,58,237,0.45)",

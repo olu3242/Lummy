@@ -369,7 +369,7 @@ function ProductCard({
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm truncate">{product.name}</p>
+            <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm truncate hover:text-brand-purple transition-colors block">{product.name}</Link>
             <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
           </div>
           <p className="font-display font-bold text-sm text-brand-purple flex-shrink-0">₦{product.price.toLocaleString()}</p>
