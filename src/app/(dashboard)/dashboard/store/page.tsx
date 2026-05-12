@@ -10,11 +10,17 @@ import {
   BadgeCheck, ChevronRight, Globe, Search, Megaphone,
   GripVertical, Eye, EyeOff, Palette, Settings, AlertCircle,
   Clock, ChevronDown, X, Sparkles, LayoutGrid, List, Package,
-  Star, Users, ShoppingBag, Tag, Plus, Trash2,
+  Star, Users, ShoppingBag, Tag, Plus, Trash2, Wand2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
+import { useStoreSchema } from "@/store/hooks/use-store-schema"
+import { StorefrontPreview } from "@/store/preview/storefront-preview"
+import { ThemeEditorPanel } from "@/store/editor/theme-editor-panel"
+import { SectionListEditor } from "@/store/editor/section-list-editor"
+import { SectionSettingsEditor } from "@/store/editor/section-settings-editor"
+import { SectionAddDialog } from "@/store/editor/section-add-dialog"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -156,7 +162,7 @@ function SectionHeader({ icon: Icon, title, subtitle, children }: { icon: React.
   )
 }
 
-type TabKey = "appearance" | "sections" | "announcement" | "seo" | "hours" | "domain" | "details"
+type TabKey = "appearance" | "sections" | "announcement" | "seo" | "hours" | "domain" | "details" | "customizer"
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
@@ -166,6 +172,12 @@ export default function StorePage() {
   const [saving, setSaving] = React.useState(false)
   const [copiedUrl, setCopiedUrl] = React.useState(false)
   const [domainError, setDomainError] = React.useState("")
+
+  // Deep Store Customizer state
+  const storeSchema = useStoreSchema()
+  const [customizerTab, setCustomizerTab] = React.useState<"sections" | "theme">("sections")
+  const [selectedSectionId, setSelectedSectionId] = React.useState<string | null>(null)
+  const [showAddDialog, setShowAddDialog] = React.useState(false)
 
   React.useEffect(() => { setSettings(loadSettings()) }, [])
 
@@ -189,6 +201,7 @@ export default function StorePage() {
 
   const tabs: { key: TabKey; label: string; icon: React.ElementType }[] = [
     { key: "details",      label: "Store Info",   icon: Store },
+    { key: "customizer",   label: "Customizer",   icon: Wand2 },
     { key: "appearance",   label: "Appearance",   icon: Palette },
     { key: "sections",     label: "Sections",     icon: LayoutGrid },
     { key: "announcement", label: "Announcement", icon: Megaphone },
@@ -405,6 +418,92 @@ export default function StorePage() {
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {/* ── Customizer ──────────────────────────────────────────────── */}
+          {activeTab === "customizer" && (
+            <div className="space-y-3">
+              {/* Header bar */}
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
+                  {(["sections", "theme"] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => setCustomizerTab(t)}
+                      className={cn(
+                        "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all capitalize",
+                        customizerTab === t ? "bg-brand-purple text-white" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {t === "sections" ? "Sections" : "Theme"}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={storeSchema.reset}
+                    className="rounded-xl border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    onClick={storeSchema.save}
+                    className="rounded-xl bg-brand-purple px-4 py-2 text-xs font-bold text-white hover:bg-brand-purple/90 transition-colors"
+                  >
+                    Save &amp; Publish
+                  </button>
+                </div>
+              </div>
+
+              {/* Split pane */}
+              <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-4 min-h-[600px]">
+                {/* Left: editor */}
+                <div className="rounded-2xl border border-border bg-card p-4 overflow-y-auto max-h-[80vh] lg:max-h-none">
+                  {customizerTab === "theme" ? (
+                    <ThemeEditorPanel
+                      theme={storeSchema.schema.theme}
+                      onUpdateTheme={storeSchema.updateTheme}
+                      onApplyPreset={storeSchema.applyPreset}
+                    />
+                  ) : (
+                    <div className="space-y-4">
+                      <SectionListEditor
+                        sections={storeSchema.sortedSections}
+                        selectedId={selectedSectionId}
+                        onSelect={setSelectedSectionId}
+                        onToggle={storeSchema.toggleSection}
+                        onRemove={storeSchema.removeSection}
+                        onReorder={storeSchema.reorderSections}
+                        onAdd={() => setShowAddDialog(true)}
+                      />
+                      {selectedSectionId && (() => {
+                        const sec = storeSchema.schema.sections.find(s => s.id === selectedSectionId)
+                        if (!sec) return null
+                        return (
+                          <div className="mt-4 pt-4 border-t border-border">
+                            <SectionSettingsEditor
+                              section={sec}
+                              onUpdate={patch => storeSchema.updateSection(selectedSectionId, patch)}
+                            />
+                          </div>
+                        )
+                      })()}
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: live preview */}
+                <div className="rounded-2xl border border-border bg-muted/30 p-3 min-h-[500px]">
+                  <StorefrontPreview schema={storeSchema.schema} />
+                </div>
+              </div>
+
+              <SectionAddDialog
+                open={showAddDialog}
+                onClose={() => setShowAddDialog(false)}
+                onAdd={type => { storeSchema.addSection(type); setShowAddDialog(false) }}
+              />
             </div>
           )}
 
