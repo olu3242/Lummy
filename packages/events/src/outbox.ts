@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 import type { EventEnvelope } from "@lummy/shared-types"
 import type { DatabaseClient } from "@lummy/db-core"
+=======
+import type { EventEnvelope } from "../../shared-types/src"
+import type { DatabaseClient } from "../../db-core/src"
+>>>>>>> main
 
 export interface OutboxStore {
   append(event: EventEnvelope): Promise<void>

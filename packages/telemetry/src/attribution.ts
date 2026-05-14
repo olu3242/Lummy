@@ -1,4 +1,4 @@
-import type { DatabaseClient } from "@lummy/db-core"
+import type { DatabaseClient } from "../../db-core/src"
 
 export class AttributionService {
   constructor(private readonly db: DatabaseClient) {}

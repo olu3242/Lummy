@@ -1,5 +1,5 @@
-import type { TenantContext } from "@lummy/shared-types"
-import type { TenantDatabaseClient } from "@lummy/db-core"
+import type { TenantContext } from "../../shared-types/src"
+import type { TenantDatabaseClient } from "../../db-core/src"
 
 export abstract class BaseRepository {
   constructor(protected readonly tenantDb: TenantDatabaseClient) {}

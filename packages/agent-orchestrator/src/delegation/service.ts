@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import type { JobEnvelope } from "@lummy/runtime-orchestrator"
+=======
+import type { JobEnvelope } from "../../../runtime-orchestrator/src"
+>>>>>>> main
 
 export interface DelegationInstruction {
   fromAgentId: string
