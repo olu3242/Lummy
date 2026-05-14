@@ -1,0 +1,22 @@
+import type { TenantId, UserId } from "./tenant"
+
+export type DomainEventName =
+  | "order.created"
+  | "order.status_changed"
+  | "campaign.created"
+  | "review.created"
+  | "telemetry.recorded"
+
+export interface EventEnvelope<TPayload = Record<string, unknown>> {
+  eventId: string
+  eventName: DomainEventName
+  tenantId: TenantId
+  actorId: UserId | "system"
+  agentId: string | null
+  correlationId: string
+  causationId: string | null
+  idempotencyKey: string
+  occurredAt: string
+  payload: TPayload
+  version: 1
+}
