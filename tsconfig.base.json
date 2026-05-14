@@ -1,0 +1,178 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "declarationMap": true,
+    "composite": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@lummy/platform-core": [
+        "packages/platform-core/src/index.ts"
+      ],
+      "@lummy/shared-types": [
+        "packages/shared-types/src/index.ts"
+      ],
+      "@lummy/db-core": [
+        "packages/db-core/src/index.ts"
+      ],
+      "@lummy/repositories": [
+        "packages/repositories/src/index.ts"
+      ],
+      "@lummy/events": [
+        "packages/events/src/index.ts"
+      ],
+      "@lummy/telemetry": [
+        "packages/telemetry/src/index.ts"
+      ],
+      "@lummy/runtime-orchestrator": [
+        "packages/runtime-orchestrator/src/index.ts"
+      ],
+      "@lummy/automation-engine": [
+        "packages/automation-engine/src/index.ts"
+      ],
+      "@lummy/agent-orchestrator": [
+        "packages/agent-orchestrator/src/index.ts"
+      ],
+      "@lummy/messaging": [
+        "packages/messaging/src/index.ts"
+      ],
+      "@lummy/payments": [
+        "packages/payments/src/index.ts"
+      ],
+      "@lummy/analytics-engine": [
+        "packages/analytics-engine/src/index.ts"
+      ],
+      "@lummy/ai-engine": [
+        "packages/ai-engine/src/index.ts"
+      ],
+      "@/*": [
+        "src/*"
+      ],
+      "@lummy/trust-engine": [
+        "packages/trust-engine/src/index.ts"
+      ],
+      "@lummy/recommendation-engine": [
+        "packages/recommendation-engine/src/index.ts"
+      ],
+      "@lummy/observability": [
+        "packages/observability/src/index.ts"
+      ],
+      "@lummy/feature-flags": [
+        "packages/feature-flags/src/index.ts"
+      ],
+      "@lummy/mobile-runtime": [
+        "packages/mobile-runtime/src/index.ts"
+      ],
+      "@lummy/deployment-governance": [
+        "packages/deployment-governance/src/index.ts"
+      ],
+      "@lummy/ecosystem-api": [
+        "packages/ecosystem-api/src/index.ts"
+      ],
+      "@lummy/developer-platform": [
+        "packages/developer-platform/src/index.ts"
+      ],
+      "@lummy/growth-engine": [
+        "packages/growth-engine/src/index.ts"
+      ],
+      "@lummy/ads-engine": [
+        "packages/ads-engine/src/index.ts"
+      ],
+      "@lummy/creator-network": [
+        "packages/creator-network/src/index.ts"
+      ],
+      "@lummy/ai-os-runtime": [
+        "packages/ai-os-runtime/src/index.ts"
+      ],
+      "@lummy/enterprise-governance": [
+        "packages/enterprise-governance/src/index.ts"
+      ],
+      "@lummy/policy-engine": [
+        "packages/policy-engine/src/index.ts"
+      ],
+      "@lummy/execution-control-plane": [
+        "packages/execution-control-plane/src/index.ts"
+      ],
+      "@lummy/org-governance": [
+        "packages/org-governance/src/index.ts"
+      ],
+      "@lummy/tenant-policy-runtime": [
+        "packages/tenant-policy-runtime/src/index.ts"
+      ],
+      "@lummy/global-region-runtime": [
+        "packages/global-region-runtime/src/index.ts"
+      ],
+      "@lummy/sovereign-data-engine": [
+        "packages/sovereign-data-engine/src/index.ts"
+      ],
+      "@lummy/compliance-runtime": [
+        "packages/compliance-runtime/src/index.ts"
+      ],
+      "@lummy/geo-routing-control-plane": [
+        "packages/geo-routing-control-plane/src/index.ts"
+      ],
+      "@lummy/agent-marketplace": [
+        "packages/agent-marketplace/src/index.ts"
+      ],
+      "@lummy/ai-skill-runtime": [
+        "packages/ai-skill-runtime/src/index.ts"
+      ],
+      "@lummy/capability-registry": [
+        "packages/capability-registry/src/index.ts"
+      ],
+      "@lummy/skill-governance-engine": [
+        "packages/skill-governance-engine/src/index.ts"
+      ],
+      "@lummy/autonomous-commerce-runtime": [
+        "packages/autonomous-commerce-runtime/src/index.ts"
+      ],
+      "@lummy/economic-coordination-network": [
+        "packages/economic-coordination-network/src/index.ts"
+      ],
+      "@lummy/agent-settlement-engine": [
+        "packages/agent-settlement-engine/src/index.ts"
+      ],
+      "@lummy/incentive-governance-runtime": [
+        "packages/incentive-governance-runtime/src/index.ts"
+      ],
+      "@lummy/predictive-intelligence-engine": [
+        "packages/predictive-intelligence-engine/src/index.ts"
+      ],
+      "@lummy/strategy-simulation-runtime": [
+        "packages/strategy-simulation-runtime/src/index.ts"
+      ],
+      "@lummy/adaptive-optimization-layer": [
+        "packages/adaptive-optimization-layer/src/index.ts"
+      ],
+      "@lummy/autonomous-decision-runtime": [
+        "packages/autonomous-decision-runtime/src/index.ts"
+      ],
+      "@lummy/universal-interface-runtime": [
+        "packages/universal-interface-runtime/src/index.ts"
+      ],
+      "@lummy/ambient-ai-runtime": [
+        "packages/ambient-ai-runtime/src/index.ts"
+      ],
+      "@lummy/multimodal-interaction-engine": [
+        "packages/multimodal-interaction-engine/src/index.ts"
+      ],
+      "@lummy/contextual-presence-layer": [
+        "packages/contextual-presence-layer/src/index.ts"
+      ],
+      "@lummy/workflow-engine": [
+        "packages/workflow-engine/src/index.ts"
+      ]
+    }
+  }
+}

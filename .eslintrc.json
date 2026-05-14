@@ -1,3 +1,77 @@
 {
-  "extends": ["next/core-web-vitals", "next/typescript"]
+  "extends": [
+    "next/core-web-vitals",
+    "next/typescript"
+  ],
+  "plugins": [
+    "boundaries"
+  ],
+  "settings": {
+    "boundaries/elements": [
+      {
+        "type": "ui",
+        "pattern": "src/**"
+      },
+      {
+        "type": "apps",
+        "pattern": "apps/**"
+      },
+      {
+        "type": "packages",
+        "pattern": "packages/*/src/**"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "src/app/**/*.{ts,tsx}",
+        "src/pages/**/*.{ts,tsx}"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@lummy/db-core",
+              "../../packages/db-core/*",
+              "packages/db-core/*"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "packages/events/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@lummy/analytics-engine",
+              "@lummy/ai-engine"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "apps/workers/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@lummy/db-core",
+              "@lummy/repositories"
+            ]
+          }
+        ]
+      }
+    }
+  ]
 }

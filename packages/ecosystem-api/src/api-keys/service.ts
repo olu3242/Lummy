@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class ApiKeyService { constructor(private readonly db: DatabaseClient) {} async issue(tenantId: string, appId: string, keyHash: string) { return this.db.insert("api_keys", { tenant_id: tenantId, app_id: appId, key_hash: keyHash, created_at: new Date().toISOString(), revoked: false }) } async revoke(keyHash: string) { return this.db.update("api_keys", { key_hash: keyHash }, { revoked: true, revoked_at: new Date().toISOString() }) } }

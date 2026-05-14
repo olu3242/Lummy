@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class DisputeService { constructor(private readonly db: DatabaseClient) {} async open(tenantId: string, disputeId: string, creatorId: string, reason: string) { return this.db.insert("trust_signals", { tenant_id: tenantId, signal_type: "dispute", signal_key: disputeId, creator_id: creatorId, payload: { reason }, created_at: new Date().toISOString() }) } }

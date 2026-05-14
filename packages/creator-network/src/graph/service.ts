@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class CreatorGraphService { constructor(private readonly db: DatabaseClient) {} async connect(tenantId: string, fromCreatorId: string, toCreatorId: string, edgeType: string) { return this.db.insert("creator_graph_edges", { tenant_id: tenantId, from_creator_id: fromCreatorId, to_creator_id: toCreatorId, edge_type: edgeType, created_at: new Date().toISOString() }) } }
