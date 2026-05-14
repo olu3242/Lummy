@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+import type { EventEnvelope } from "@lummy/shared-types"
+=======
 import type { EventEnvelope } from "../../shared-types/src"
+>>>>>>> main
 import type { OutboxStore } from "./outbox"
 
 export class EventPublisher {

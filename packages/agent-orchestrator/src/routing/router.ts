@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+import type { DomainEventName } from "@lummy/shared-types"
+=======
 import type { DomainEventName } from "../../../shared-types/src"
+>>>>>>> main
 import type { AgentType } from "../registry/types"
 
 const routes: Partial<Record<DomainEventName, AgentType[]>> = {

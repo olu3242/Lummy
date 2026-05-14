@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class FraudDetectionService { constructor(private readonly db: DatabaseClient) {} async detect(tenantId: string, subjectId: string, indicators: string[]) { const severity = indicators.length > 3 ? "high" : "medium"; return this.db.insert("fraud_cases", { tenant_id: tenantId, subject_id: subjectId, indicators, severity, created_at: new Date().toISOString() }) } }
