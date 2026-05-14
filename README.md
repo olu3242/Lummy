@@ -82,4 +82,7 @@ Set `NEXT_PUBLIC_APP_URL` in your Vercel project settings.
 - Use `pnpm` for dependency and workspace consistency (`pnpm install`, `pnpm dev`).
 - Run `npm run lint` and `npm run typecheck` before opening a PR.
 - Keep environment variables in `.env.local` and never commit secrets.
+## Execution Plan
+
+- See `docs/execution/mvp-convergence-plan.md` for the execution-mode implementation blueprint and sprint roadmap.
 
