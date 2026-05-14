@@ -1,11 +1,12 @@
-import type { DashboardTone, TopAction } from "@/data/mock/dashboard-overview"
+import { TOP_ACTION_HANDLE_PLACEHOLDER, type DashboardTone, type TopAction } from "@/data/mock/dashboard-overview"
 
 export type ResolvedTopAction = Omit<TopAction, "href"> & { href: string }
 
+/** Resolve top actions by replacing handle placeholders with the active creator handle. */
 export function resolveTopActions(actions: TopAction[], handle: string): ResolvedTopAction[] {
   return actions.map((action) => ({
     ...action,
-    href: action.href === "__HANDLE__" ? `/${handle}` : action.href,
+    href: action.href === TOP_ACTION_HANDLE_PLACEHOLDER ? `/${handle}` : action.href,
   }))
 }
 
@@ -21,11 +22,13 @@ function sanitizeNumber(value: number) {
   return Number.isFinite(value) ? value : 0
 }
 
+/** Format numeric metrics with optional prefix/suffix and finite-value guards. */
 export function formatMetric(value: number, prefix = "", suffix = "") {
   const safeValue = sanitizeNumber(value)
   return `${prefix}${safeValue.toLocaleString()}${suffix}`
 }
 
+/** Compute bounded 0-100 progress for a target metric. */
 export function targetProgress(current: number, target: number) {
   const safeCurrent = sanitizeNumber(current)
   const safeTarget = sanitizeNumber(target)

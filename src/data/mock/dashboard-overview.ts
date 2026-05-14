@@ -129,10 +129,12 @@ export type TopAction = {
   external?: boolean
 }
 
+export const TOP_ACTION_HANDLE_PLACEHOLDER = "__HANDLE__" as const
+
 export const topActions: TopAction[] = [
   { label: "Add Product", href: "/dashboard/products", colorClass: "bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20", icon: "plus" },
   { label: "AI Caption", href: "/dashboard/ai", colorClass: "bg-brand-coral/10 text-brand-coral hover:bg-brand-coral/20", icon: "sparkles" },
-  { label: "View Store", href: "__HANDLE__", colorClass: "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20", icon: "external", external: true },
+  { label: "View Store", href: TOP_ACTION_HANDLE_PLACEHOLDER, colorClass: "bg-amber-500/10 text-amber-500 hover:bg-amber-500/20", icon: "external", external: true },
 ]
 
 export const overviewMeta: OverviewMeta = {
