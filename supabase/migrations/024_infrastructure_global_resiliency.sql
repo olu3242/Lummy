@@ -1,0 +1,5 @@
+create table if not exists infra_regions (id uuid primary key, code text not null unique, status text not null, created_at timestamptz not null default now());
+create table if not exists infra_tenant_regions (id uuid primary key, tenant_id uuid not null, primary_region text not null, secondary_regions text[] not null default '{}', mode text not null, created_at timestamptz not null default now());
+create table if not exists infra_failover_events (id uuid primary key, tenant_id uuid, from_region text not null, to_region text not null, reason text not null, created_at timestamptz not null default now());
+create table if not exists infra_replication_status (id uuid primary key, region_code text not null, replication_lag_ms integer not null, healthy boolean not null, created_at timestamptz not null default now());
+create table if not exists infra_backups (id uuid primary key, tenant_id uuid, backup_type text not null, encrypted boolean not null, snapshot_ref text not null, created_at timestamptz not null default now());

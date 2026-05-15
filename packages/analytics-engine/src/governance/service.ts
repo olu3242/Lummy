@@ -1,0 +1,1 @@
+export class AnalyticsGovernanceService { freezeMetricVersion(activeVersion: number, requestedVersion: number) { if (requestedVersion < activeVersion) throw new Error("metric version rollback blocked") } }

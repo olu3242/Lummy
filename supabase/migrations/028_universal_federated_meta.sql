@@ -1,0 +1,5 @@
+create table if not exists economy_intelligence_signals (id uuid primary key, tenant_id uuid not null, signal_type text not null, value numeric not null, captured_at timestamptz not null default now());
+create table if not exists federated_grid_nodes (id uuid primary key, node_key text not null unique, trust_score numeric not null, status text not null, created_at timestamptz not null default now());
+create table if not exists federated_consensus_logs (id uuid primary key, proposal_id text not null, accepted boolean not null, voters integer not null, quorum integer not null, created_at timestamptz not null default now());
+create table if not exists meta_orchestration_plans (id uuid primary key, scope text not null, plan jsonb not null default '{}'::jsonb, explainability jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists interoperability_contracts (id uuid primary key, contract_key text not null unique, version text not null, schema jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());

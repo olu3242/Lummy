@@ -1,0 +1,2 @@
+import { WeightingService } from "../weighting/service"
+export class RankingService { constructor(private readonly weighting = new WeightingService()) {} rank(items: Array<{ id: string; baseScore: number; trustWeight: number; retentionWeight: number; fraudPenalty: number }>) { return items.map((i) => ({ ...i, finalScore: this.weighting.apply(i.baseScore, i.trustWeight, i.retentionWeight, i.fraudPenalty) })).sort((a,b)=>b.finalScore-a.finalScore) } }
