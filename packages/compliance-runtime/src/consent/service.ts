@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class ConsentGovernanceService { constructor(private readonly db: DatabaseClient) {} async record(tenantId: string, subjectId: string, consentType: string, granted: boolean) { return this.db.insert("consent_records", { tenant_id: tenantId, subject_id: subjectId, consent_type: consentType, granted, created_at: new Date().toISOString() }) } }

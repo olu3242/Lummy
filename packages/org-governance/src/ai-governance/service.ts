@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class AiGovernanceService { constructor(private readonly db: DatabaseClient) {} async configure(orgId: string, provider: string, tokenBudget: number, autonomyLevel: string) { return this.db.upsert("organization_ai_policies", { organization_id: orgId, provider, token_budget: tokenBudget, autonomy_level: autonomyLevel, updated_at: new Date().toISOString() }) } }

@@ -1,0 +1,6 @@
+export * from "./learning/adaptive-learning-engine"
+export * from "./coach/creator-coach-ai"
+export * from "./behavior/ai-behavior-optimizer"
+export * from "./multimodal/multimodal-execution-coordinator"
+export * from "./governance/safety-controls"
+export * from "./telemetry/ai-evolution-telemetry"

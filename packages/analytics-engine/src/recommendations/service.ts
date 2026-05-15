@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class RecommendationService { constructor(private readonly db: DatabaseClient) {} async score(tenantId: string, subjectId: string, recommendationType: string, score: number) { return this.db.insert("recommendation_scores", { tenant_id: tenantId, subject_id: subjectId, recommendation_type: recommendationType, score, created_at: new Date().toISOString() }) } }

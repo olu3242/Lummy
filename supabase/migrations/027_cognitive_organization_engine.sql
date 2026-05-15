@@ -1,0 +1,4 @@
+create table if not exists cognitive_memory_entries (id uuid primary key, tenant_id uuid not null, memory_type text not null, content jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists cognitive_executive_decisions (id uuid primary key, tenant_id uuid not null, recommendation text not null, confidence numeric not null, requires_human_approval boolean not null default true, created_at timestamptz not null default now());
+create table if not exists cognitive_reasoning_chains (id uuid primary key, tenant_id uuid not null, chain jsonb not null default '[]'::jsonb, explainability_score numeric, created_at timestamptz not null default now());
+create table if not exists cognitive_alignment_checks (id uuid primary key, tenant_id uuid not null, policy_ref text not null, result text not null, created_at timestamptz not null default now());
