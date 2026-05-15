@@ -14,7 +14,8 @@
     "ci:validate": "pnpm run typecheck && pnpm run lint && pnpm run check:deps && pnpm run validate:migrations",
     "check:graph": "madge --circular --extensions ts packages apps src",
     "reliability:certify": "python3 scripts/reliability/certify.py",
-    "reliability:enterprise": "python3 scripts/reliability/enterprise_certify.py"
+    "reliability:enterprise": "python3 scripts/reliability/enterprise_certify.py",
+    "launch:readiness": "python3 scripts/reliability/launch_readiness.py"
   },
   "dependencies": {
     "next": "14.2.5",
