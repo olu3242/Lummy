@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "composite": true, "declaration": true, "outDir": "dist" },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../payments" }, { "path": "../telemetry" }]
+}

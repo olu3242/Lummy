@@ -1,0 +1,1 @@
+export class AIOrchestrationService { queueFor(kind: "execute" | "evaluation" | "recommendation") { if (kind === "evaluation") return "ai.evaluation"; if (kind === "recommendation") return "ai.recommendations"; return "ai.execute" } }

@@ -1,0 +1,4 @@
+create table if not exists simulation_twins (id uuid primary key, tenant_id uuid not null, twin_type text not null, source_version text not null, replay_safe boolean not null default true, captured_at timestamptz not null default now());
+create table if not exists simulation_scenarios (id uuid primary key, tenant_id uuid not null, scenario_type text not null, assumptions jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists simulation_experiments (id uuid primary key, tenant_id uuid not null, experiment_type text not null, status text not null, outcome jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists simulation_predictions (id uuid primary key, tenant_id uuid not null, prediction_type text not null, confidence numeric not null, predicted_value numeric, created_at timestamptz not null default now());

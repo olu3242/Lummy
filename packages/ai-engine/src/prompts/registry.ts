@@ -1,0 +1,2 @@
+export interface PromptTemplate { key: string; version: number; content: string; maxTokens: number; approved: boolean }
+export class PromptRegistry { private readonly templates = new Map<string, PromptTemplate>(); register(t: PromptTemplate) { this.templates.set(`${t.key}:v${t.version}`, t) } resolve(key: string, version: number) { const x = this.templates.get(`${key}:v${version}`); if (!x) throw new Error("prompt not found"); return x } }

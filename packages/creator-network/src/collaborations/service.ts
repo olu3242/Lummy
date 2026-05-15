@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class CollaborationService { constructor(private readonly db: DatabaseClient) {} async record(tenantId: string, creatorA: string, creatorB: string, eventType: string) { return this.db.insert("collaboration_events", { tenant_id: tenantId, creator_a: creatorA, creator_b: creatorB, event_type: eventType, created_at: new Date().toISOString() }) } }
