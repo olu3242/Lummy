@@ -1,0 +1,2 @@
+import type { AIExecutionInput, AIExecutionResult, AIProviderAdapter } from "./types"
+export class ProviderRouter { constructor(private readonly providers: Record<string, AIProviderAdapter>) {} async execute(primary: string, fallback: string | null, input: AIExecutionInput): Promise<AIExecutionResult> { try { return await this.providers[primary].execute(input) } catch { if (!fallback) throw new Error("provider failed") ; return this.providers[fallback].execute(input) } } }

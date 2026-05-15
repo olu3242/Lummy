@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../shared-types"
+    },
+    {
+      "path": "../db-core"
+    },
+    {
+      "path": "../feature-flags"
+    },
+    {
+      "path": "../observability"
+    }
+  ]
+}

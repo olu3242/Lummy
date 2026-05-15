@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+import type { JobEnvelope, JobResult } from "@lummy/runtime-orchestrator"
+
+export async function eventsOutboxHandler(job: JobEnvelope): Promise<JobResult> {
+  return { ok: true, retryable: false, error: job.payload ? undefined : "missing payload" }
+=======
 import type { JobEnvelope, JobResult, QueueAdapter } from "../../../../packages/runtime-orchestrator/src"
 
 export async function handleEventsOutbox(queue: QueueAdapter, job: JobEnvelope): Promise<JobResult> {
@@ -14,4 +20,5 @@ export async function handleEventsOutbox(queue: QueueAdapter, job: JobEnvelope):
     })
     return { ok: false, retryable: false, error: "dispatch_failed" }
   }
+>>>>>>> main
 }

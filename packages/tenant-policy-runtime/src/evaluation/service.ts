@@ -1,0 +1,1 @@
+export class PolicyEvaluationService { evaluate(conditions: Record<string, boolean>) { const failed = Object.entries(conditions).find(([,ok])=>!ok); return { allowed: !failed, failedRule: failed?.[0] || null } } }

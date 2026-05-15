@@ -1,0 +1,1 @@
+export class ExplainabilityService { explain(weights: Record<string, number>, inputs: Record<string, number>) { const factors = Object.entries(inputs).map(([k,v]) => ({ factor: k, weight: weights[k] || 1, contribution: v * (weights[k] || 1) })); return { factors, generatedAt: new Date().toISOString() } } }

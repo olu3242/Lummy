@@ -1,4 +1,8 @@
+<<<<<<< HEAD
+import type { JobEnvelope, JobResult } from "@lummy/runtime-orchestrator"
+=======
 import type { JobEnvelope, JobResult } from "../../../runtime-orchestrator/src"
+>>>>>>> main
 import { AgentRegistry } from "../registry/service"
 import { routeAgents } from "../routing/router"
 import { AgentGovernanceService } from "../governance/service"

@@ -1,0 +1,1 @@
+export class MarketplaceIntelligenceService { explain(ranked: Array<{ id: string; finalScore: number }>) { return ranked.map((r, index) => ({ rank: index + 1, id: r.id, reason: `score=${r.finalScore}` })) } }
