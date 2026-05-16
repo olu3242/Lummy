@@ -1,0 +1,1 @@
+{ "extends": "../../tsconfig.base.json", "compilerOptions": { "rootDir": "src", "outDir": "dist" }, "include": ["src/**/*.ts"], "references": [{"path":"../enterprise-governance"},{"path":"../security-governance"},{"path":"../telemetry"}] }

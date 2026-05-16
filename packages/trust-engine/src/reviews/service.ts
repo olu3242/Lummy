@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class ReviewIntelligenceService { constructor(private readonly db: DatabaseClient) {} async ingest(tenantId: string, reviewId: string, qualityScore: number, toxicityScore: number) { return this.db.insert("review_insights", { tenant_id: tenantId, review_id: reviewId, quality_score: qualityScore, toxicity_score: toxicityScore, created_at: new Date().toISOString() }) } }

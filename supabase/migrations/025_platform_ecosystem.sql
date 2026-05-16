@@ -1,0 +1,5 @@
+create table if not exists ecosystem_plugins (id uuid primary key, tenant_id uuid not null, plugin_key text not null, version text not null, status text not null, created_at timestamptz not null default now());
+create table if not exists ecosystem_extensions (id uuid primary key, publisher_tenant_id uuid not null, extension_key text not null, version text not null, approved boolean not null default false, created_at timestamptz not null default now());
+create table if not exists ecosystem_webhook_subscriptions (id uuid primary key, tenant_id uuid not null, event_name text not null, target_url text not null, secret_ref text not null, created_at timestamptz not null default now());
+create table if not exists ecosystem_oauth_apps (id uuid primary key, tenant_id uuid not null, client_id text not null, scopes text[] not null default '{}', created_at timestamptz not null default now());
+create table if not exists ecosystem_revenue_shares (id uuid primary key, plugin_id uuid, extension_id uuid, payout_tenant_id uuid not null, share_bps integer not null, created_at timestamptz not null default now());

@@ -1,0 +1,13 @@
+create table if not exists ai_runtime_sessions (id uuid primary key default gen_random_uuid(), session_id text not null unique, tenant_id text not null, status text not null, created_at timestamptz not null default now());
+create table if not exists ai_execution_leases (id uuid primary key default gen_random_uuid(), run_id text not null, owner text not null, ttl_seconds int, acquired_at timestamptz, leased_at timestamptz, unique(run_id, owner));
+create table if not exists ai_runtime_failovers (id uuid primary key default gen_random_uuid(), session_id text not null, reason text not null, occurred_at timestamptz not null);
+create table if not exists ai_runtime_policies (id uuid primary key default gen_random_uuid(), policy_key text not null, policy_value jsonb not null, version int not null, created_at timestamptz not null default now());
+create table if not exists governance_audits (id uuid primary key default gen_random_uuid(), scope text not null, action text not null, payload jsonb not null, created_at timestamptz not null);
+create table if not exists policy_versions (id uuid primary key default gen_random_uuid(), policy_key text not null, version int not null, created_at timestamptz not null default now(), unique(policy_key, version));
+create table if not exists approval_workflows (id uuid primary key default gen_random_uuid(), workflow_key text not null, requester text not null, status text not null, created_at timestamptz not null);
+create table if not exists compliance_exports (id uuid primary key default gen_random_uuid(), case_id text not null, format text not null, created_at timestamptz not null);
+create table if not exists investigation_cases (id uuid primary key default gen_random_uuid(), case_key text not null, severity text not null, status text not null, created_at timestamptz not null);
+create table if not exists runtime_throttles (id uuid primary key default gen_random_uuid(), scope text not null unique, per_minute int not null, updated_at timestamptz not null);
+create table if not exists execution_circuit_breakers (id uuid primary key default gen_random_uuid(), circuit_key text not null unique, status text not null, reason text, updated_at timestamptz not null);
+create table if not exists runtime_failover_events (id uuid primary key default gen_random_uuid(), region text not null, reason text not null, occurred_at timestamptz not null);
+create table if not exists orchestration_controls (id uuid primary key default gen_random_uuid(), control_key text not null unique, control_value text not null, updated_at timestamptz not null);

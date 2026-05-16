@@ -1,0 +1,1 @@
+export const ecosystemRoutes = ['Super App Dashboard','Community Hub','Messaging Center','App Marketplace','Installed Extensions','Mobile Analytics','Push Campaigns','Ecosystem Insights','Engagement Intelligence'];
