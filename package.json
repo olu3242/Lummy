@@ -19,7 +19,8 @@
     "reliability:certify": "python3 scripts/reliability/certify.py",
     "reliability:enterprise": "python3 scripts/reliability/enterprise_certify.py",
     "launch:readiness": "python3 scripts/reliability/launch_readiness.py",
-    "reliability:controlled-beta": "python3 scripts/reliability/controlled_beta_certify.py"
+    "reliability:controlled-beta": "python3 scripts/reliability/controlled_beta_certify.py",
+    "reliability:final-certify": "python3 scripts/reliability/final_enterprise_certify.py"
   },
   "dependencies": {
     "next": "14.2.5",
