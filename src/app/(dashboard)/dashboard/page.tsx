@@ -1,16 +1,40 @@
-import { Sparkles, ArrowRight, Plus, ExternalLink } from "lucide-react"
-import Link from "next/link"
-import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
-import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting"
-import { ShareStorePanel } from "@/components/dashboard/share-store-panel"
-import { Button } from "@/components/ui/button"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
-import { overviewMeta, topActions } from "@/data/mock/dashboard-overview"
-import { DashboardOverview } from "@/components/dashboard"
-import { resolveTopActions } from "@/lib/dashboard-overview"
+import { redirect } from 'next/navigation'
+import { Sparkles, ArrowRight, Plus, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
+import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting'
+import { ShareStorePanel } from '@/components/dashboard/share-store-panel'
+import { Button } from '@/components/ui/button'
+import { overviewMeta, topActions } from '@/data/mock/dashboard-overview'
+import { DashboardOverview } from '@/components/dashboard'
+import { resolveTopActions } from '@/lib/dashboard-overview'
+import { createClient } from '@/lib/supabase/server'
 
-export default function DashboardPage() {
-  const firstName = mockCreatorProfile.name.split(" ")[0]
+export default async function DashboardPage() {
+  const supabase = await createClient()
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('full_name,onboarding_completed,organization_id')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+
+  if (!profile?.onboarding_completed || !profile.organization_id) {
+    redirect('/onboarding')
+  }
+
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('organization_id', profile.organization_id)
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+
+  if (!membership.data) redirect('/onboarding')
+
+  const firstName = (profile.full_name || auth.user.email || 'Creator').split(' ')[0]
   const resolvedTopActions = resolveTopActions(topActions, overviewMeta.handle)
 
   return (
@@ -22,9 +46,9 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2 flex-wrap">
           {resolvedTopActions.map((action) => {
-            const Icon = action.icon === "plus" ? Plus : action.icon === "sparkles" ? Sparkles : ExternalLink
+            const Icon = action.icon === 'plus' ? Plus : action.icon === 'sparkles' ? Sparkles : ExternalLink
             return (
-              <Link key={action.label} href={action.href} target={action.external ? "_blank" : undefined}
+              <Link key={action.label} href={action.href} target={action.external ? '_blank' : undefined}
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${action.colorClass}`}>
                 <Icon className="h-3.5 w-3.5" /> {action.label}
               </Link>
