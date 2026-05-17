@@ -5,21 +5,28 @@ import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist
 import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting'
 import { ShareStorePanel } from '@/components/dashboard/share-store-panel'
 import { Button } from '@/components/ui/button'
-import { overviewMeta, topActions } from '@/data/mock/dashboard-overview'
+import { topActions } from '@/data/mock/dashboard-overview'
 import { DashboardOverview } from '@/components/dashboard'
 import { resolveTopActions } from '@/lib/dashboard-overview'
 import { createClient } from '@/lib/supabase/server'
+import { logApiEvent } from '@/lib/ops-observability'
 
 export default async function DashboardPage() {
+  const correlationId = crypto.randomUUID()
   const supabase = await createClient()
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) redirect('/login')
 
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .select('full_name,onboarding_completed,organization_id')
     .eq('id', auth.user.id)
     .maybeSingle()
+
+  if (profileError) {
+    logApiEvent('error', 'dashboard.profile_query_failed', { correlationId, message: profileError.message, userId: auth.user.id })
+    redirect('/onboarding?error=profile-load')
+  }
 
   if (!profile?.onboarding_completed || !profile.organization_id) {
     redirect('/onboarding')
@@ -32,10 +39,19 @@ export default async function DashboardPage() {
     .eq('user_id', auth.user.id)
     .maybeSingle()
 
+  if (membership.error) {
+    logApiEvent('error', 'dashboard.membership_query_failed', { correlationId, message: membership.error.message, userId: auth.user.id })
+    redirect('/onboarding?error=membership-load')
+  }
   if (!membership.data) redirect('/onboarding')
 
   const firstName = (profile.full_name || auth.user.email || 'Creator').split(' ')[0]
-  const resolvedTopActions = resolveTopActions(topActions, overviewMeta.handle)
+  const storefront = await supabase
+    .from('storefronts')
+    .select('handle')
+    .eq('organization_id', profile.organization_id)
+    .maybeSingle()
+  const resolvedTopActions = resolveTopActions(topActions, storefront.data?.handle ?? 'dashboard')
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-[1400px] mx-auto">
