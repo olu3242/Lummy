@@ -1,28 +1,34 @@
 {
-  "extends": [
-    "next/core-web-vitals",
-    "next/typescript"
-  ],
-  "plugins": [
-    "boundaries"
-  ],
-  "settings": {
-    "boundaries/elements": [
-      {
-        "type": "ui",
-        "pattern": "src/**"
-      },
-      {
-        "type": "apps",
-        "pattern": "apps/**"
-      },
-      {
-        "type": "packages",
-        "pattern": "packages/*/src/**"
-      }
-    ]
-  },
+  "extends": "./.eslintrc.base.cjs",
   "overrides": [
+    {
+      "files": [
+        "src/**/*.{ts,tsx}",
+        "middleware.ts"
+      ],
+      "extends": [
+        "./.eslintrc.next.cjs"
+      ]
+    },
+    {
+      "files": [
+        "apps/**/*.{ts,tsx}"
+      ],
+      "excludedFiles": [
+        "apps/**/src/**/*.{tsx,jsx}"
+      ],
+      "extends": [
+        "./.eslintrc.node.cjs"
+      ]
+    },
+    {
+      "files": [
+        "packages/**/*.ts"
+      ],
+      "extends": [
+        "./.eslintrc.library.cjs"
+      ]
+    },
     {
       "files": [
         "src/app/**/*.{ts,tsx}",
@@ -68,6 +74,63 @@
             "patterns": [
               "@lummy/db-core",
               "@lummy/repositories"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "packages/repositories/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "src/*",
+              "src/**",
+              "@/components/*",
+              "@/app/*",
+              "../../*/src",
+              "../*/src"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "packages/telemetry/src/**/*.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@lummy/ai-engine",
+              "@lummy/automation-engine",
+              "@lummy/recommendation-engine"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "files": [
+        "packages/**/*.ts",
+        "apps/**/*.ts",
+        "apps/**/*.tsx"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              "@lummy/*/src",
+              "@lummy/*/src/*",
+              "../../*/src/*",
+              "../*/src/*"
             ]
           }
         ]

@@ -43,6 +43,8 @@ export interface JobEnvelope<TPayload = Record<string, unknown>> {
   maxAttempts: number
   runAt: string
   createdAt: string
+  replayCount?: number
+  lastReplayAt?: string
 }
 
 export interface JobResult { ok: boolean; retryable?: boolean; error?: string }

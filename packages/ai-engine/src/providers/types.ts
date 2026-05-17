@@ -1,6 +1,7 @@
 export type AIProvider = "openai" | "anthropic" | "custom"
 
 export interface AIExecutionInput {
+  version: 1
   tenantId: string
   prompt: string
   model: string
@@ -10,6 +11,7 @@ export interface AIExecutionInput {
 }
 
 export interface AIExecutionResult {
+  version: 1
   output: string
   promptTokens: number
   completionTokens: number
