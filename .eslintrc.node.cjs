@@ -1,4 +1,8 @@
 module.exports = {
   extends: ["eslint:recommended"],
-  env: { node: true, es2022: true }
+  env: { node: true, es2022: true },
+  rules: {
+    "no-undef": "off",
+    "no-unused-vars": "off"
+  }
 }

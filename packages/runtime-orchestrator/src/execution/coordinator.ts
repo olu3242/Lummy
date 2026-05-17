@@ -9,7 +9,7 @@ import { ReplayIntegrityValidator } from "../chaos/simulators"
 import { logRuntime } from "../observability/logger"
 import { assertJobEnvelope } from "../contracts/schema"
 
-export type QueueHandler = (job: JobEnvelope) => Promise<JobResult>
+export type QueueHandler = (job: JobEnvelope<any>) => Promise<JobResult>
 
 const RETRY_QUEUE: Partial<Record<QueueName, QueueName>> = {
   "events.outbox": "events.retry",
@@ -102,7 +102,7 @@ export class ExecutionCoordinator {
       const queueDepth = await this.queue.size(queueName)
       this.monitor.emitQueueSnapshot(queueName, queueDepth, "post-dequeue")
 
-      const job = await this.queue.dequeue(queueName)
+      const job = await this.queue.dequeue<Record<string, unknown>>(queueName)
       if (!job || !this.scheduler.isReady(job)) return
       assertJobEnvelope(job)
 
