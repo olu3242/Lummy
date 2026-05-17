@@ -74,6 +74,9 @@
       "path": "packages/commerce-engine"
     },
     {
+      "path": "packages/commerce-orchestrator"
+    },
+    {
       "path": "packages/community-system"
     },
     {
@@ -144,6 +147,9 @@
     },
     {
       "path": "packages/events"
+    },
+    {
+      "path": "packages/events-core"
     },
     {
       "path": "packages/execution-control-plane"

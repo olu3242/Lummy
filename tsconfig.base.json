@@ -92,6 +92,9 @@
       "@lummy/commerce-engine": [
         "packages/commerce-engine/src/index.ts"
       ],
+      "@lummy/commerce-orchestrator": [
+        "packages/commerce-orchestrator/src/index.ts"
+      ],
       "@lummy/community-system": [
         "packages/community-system/src/index.ts"
       ],
@@ -163,6 +166,9 @@
       ],
       "@lummy/events": [
         "packages/events/src/index.ts"
+      ],
+      "@lummy/events-core": [
+        "packages/events-core/src/index.ts"
       ],
       "@lummy/execution-control-plane": [
         "packages/execution-control-plane/src/index.ts"

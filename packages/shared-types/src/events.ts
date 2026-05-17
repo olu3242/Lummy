@@ -2,6 +2,12 @@ import type { TenantId, UserId } from "./tenant"
 
 export type DomainEventName =
   | "order.created"
+  | "order.payment_confirmed"
+  | "order.fulfillment_started"
+  | "order.shipped"
+  | "order.completed"
+  | "order.cancelled"
+  | "order.failed"
   | "order.status_changed"
   | "campaign.created"
   | "review.created"

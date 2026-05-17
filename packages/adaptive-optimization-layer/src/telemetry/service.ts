@@ -1,1 +1,6 @@
-export class TelemetryService { status() { return { area: "telemetry" } } }
+export class TelemetryService {
+	status() {
+		console.debug('TelemetryService.status called')
+		return { area: 'telemetry' }
+	}
+}
