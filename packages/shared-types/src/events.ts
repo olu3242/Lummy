@@ -1,6 +1,15 @@
 import type { TenantId, UserId } from "./tenant"
 
 export type DomainEventName =
+  | "lead.created"
+  | "conversation.started"
+  | "product.selected"
+  | "checkout.initiated"
+  | "payment.pending"
+  | "payment.confirmed"
+  | "creator.notified"
+  | "fulfillment.started"
+  | "delivery.completed"
   | "order.created"
   | "order.payment_confirmed"
   | "order.fulfillment_started"

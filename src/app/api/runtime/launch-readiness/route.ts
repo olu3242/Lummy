@@ -15,14 +15,18 @@ export async function GET(req: Request) {
     stripeSecretPresent: Boolean(process.env.STRIPE_SECRET_KEY), stripeWebhookSecretPresent: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
     paystackSecretPresent: Boolean(process.env.PAYSTACK_SECRET_KEY), supabaseUrlPresent: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
     supabaseAnonPresent: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY), supabaseServiceRolePresent: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+    aiProviderPresent: Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
+    queueRuntimePresent: true,
   };
-  let dbCheck = false; let webhookTableCheck = false;
+  let dbCheck = false; let webhookTableCheck = false; let aiTelemetryTableCheck = false; let commerceEventTableCheck = false;
   try {
     const supabase = await createClient();
     dbCheck = !(await supabase.from('profiles').select('id').limit(1)).error;
     webhookTableCheck = !(await supabase.from('provider_webhook_events').select('idempotency_key').limit(1)).error;
+    aiTelemetryTableCheck = !(await supabase.from('ai_execution_logs').select('execution_id').limit(1)).error;
+    commerceEventTableCheck = !(await supabase.from('commerce_events').select('event_id').limit(1)).error;
   } catch {}
-  const checks = { ...envChecks, dbCheck, webhookTableCheck };
+  const checks = { ...envChecks, dbCheck, webhookTableCheck, aiTelemetryTableCheck, commerceEventTableCheck };
   const ready = Object.values(checks).every(Boolean);
   if (!ready) logApiEvent('warn', 'runtime.launch_readiness_partial', { correlationId, checks });
   return NextResponse.json({ ready, checks, correlationId }, { headers: { 'x-correlation-id': correlationId } });

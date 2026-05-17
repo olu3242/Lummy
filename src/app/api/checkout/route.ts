@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
 import { createPaymentSession } from '../../../../packages/payments-core/src/orchestrator';
-import type { DatabaseClient } from '@lummy/db-core';
-import { validatePaymentRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
+import { resolveProvider } from '../../../../packages/payments-core/src/provider-router';
+import { validateProviderRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
+import { createPaymentDatabaseAdapter } from '@/lib/payments/payment-db-adapter';
 
 function buildRedirectUrl(path: string) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL;
@@ -18,7 +19,6 @@ export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
     validatePublicRuntimeEnv();
-    validatePaymentRuntimeEnv();
     const body = await req.json();
     const supabase = await createClient();
 
@@ -28,7 +28,8 @@ export async function POST(req: Request) {
       return errorResponse(404, 'STOREFRONT_UNAVAILABLE', 'Storefront unavailable', correlationId);
     }
 
-    const provider = body.method === 'stripe' ? 'stripe' : 'paystack';
+    const provider = resolveProvider(String(body.method || '')).name;
+    validateProviderRuntimeEnv(provider);
     const created = await createPendingOrder({
       organizationId: storefront.data.organization_id,
       productId: body.productId,
@@ -48,7 +49,7 @@ export async function POST(req: Request) {
       quantity: String(created.quantity),
     };
 
-    const session = await createPaymentSession(supabase as unknown as DatabaseClient, provider, { amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl }, correlationId)
+    const session = await createPaymentSession(createPaymentDatabaseAdapter(supabase as never), provider, { amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl }, correlationId)
 
     // ensure order/payment record references provider reference
     if (session.providerReference) {

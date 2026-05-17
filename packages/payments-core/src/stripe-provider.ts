@@ -1,6 +1,5 @@
 import crypto from 'crypto'
 import { PaymentProviderInterface, InitializePaymentInput, ProviderInitializeResult, NormalizedTransaction } from './provider-types'
-import { stripeProvider } from '../../../src/lib/payments/stripe/provider'
 
 function verifyStripeSignature(secret: string, rawBody: string, header?: string) {
   if (!secret || !header) return false
@@ -24,9 +23,35 @@ function verifyStripeSignature(secret: string, rawBody: string, header?: string)
 }
 
 export class StripeProvider implements PaymentProviderInterface {
+  name = 'stripe' as const
+
   async initializePayment(input: InitializePaymentInput): Promise<ProviderInitializeResult> {
-    const res = await stripeProvider.createCheckoutSession({ organizationId: String(input.metadata?.organizationId) })
-    return { providerReference: res.checkoutUrl?.split('/').pop() || undefined, checkoutUrl: res.checkoutUrl, status: 'initiated', raw: { provider: 'stripe' } }
+    const secret = process.env.STRIPE_SECRET_KEY
+    if (!secret) throw new Error('Stripe provider not configured: STRIPE_SECRET_KEY is required')
+
+    const body = new URLSearchParams()
+    body.set('mode', 'payment')
+    body.set('success_url', input.successUrl || '')
+    body.set('cancel_url', input.cancelUrl || '')
+    body.set('line_items[0][quantity]', '1')
+    body.set('line_items[0][price_data][currency]', input.currency.toLowerCase())
+    body.set('line_items[0][price_data][unit_amount]', String(Math.round(input.amount)))
+    body.set('line_items[0][price_data][product_data][name]', String(input.metadata?.productName || 'Lummy order'))
+    if (input.customerEmail) body.set('customer_email', input.customerEmail)
+    for (const [key, value] of Object.entries(input.metadata || {})) body.set(`metadata[${key}]`, String(value))
+
+    const response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+      method: 'POST',
+      headers: {
+        authorization: `Bearer ${secret}`,
+        'content-type': 'application/x-www-form-urlencoded',
+        'stripe-version': '2026-02-25.clover',
+      },
+      body,
+    })
+    const raw = await response.json() as Record<string, unknown>
+    if (!response.ok) throw new Error(`Stripe checkout initialization failed: ${String(raw.error && typeof raw.error === 'object' ? (raw.error as Record<string, unknown>).message : response.status)}`)
+    return { providerReference: String(raw.id || ''), checkoutUrl: String(raw.url || ''), status: 'initiated', raw }
   }
 
   async verifyPayment(headers: Record<string, string>, rawBody: string): Promise<NormalizedTransaction | null> {
@@ -50,18 +75,37 @@ export class StripeProvider implements PaymentProviderInterface {
   }
 
   async refundPayment(providerReference: string, amount?: number): Promise<boolean> {
-    return false
+    const secret = process.env.STRIPE_SECRET_KEY
+    if (!secret) throw new Error('Stripe provider not configured: STRIPE_SECRET_KEY is required')
+    const body = new URLSearchParams()
+    body.set('payment_intent', providerReference)
+    if (amount) body.set('amount', String(Math.round(amount)))
+    const response = await fetch('https://api.stripe.com/v1/refunds', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'stripe-version': '2026-02-25.clover' },
+      body,
+    })
+    return response.ok
   }
 
   normalizeTransaction(raw: any): NormalizedTransaction {
+    const status = normalizeStripeStatus(String(raw.payment_status || raw.status || 'initiated'))
     return {
       id: String(raw.id || raw.payment_intent || raw.idempotency_key || `stripe_${Date.now()}`),
       provider: 'stripe',
-      status: (raw.status as NormalizedTransaction['status']) || 'initiated',
-      amount: Number(raw.amount || 0),
-      currency: String(raw.currency || 'USD'),
-      providerReference: String(raw.provider_reference || raw.id || ''),
+      status,
+      amount: Number(raw.amount_total || raw.amount_received || raw.amount || 0),
+      currency: String(raw.currency || 'USD').toUpperCase(),
+      providerReference: String(raw.payment_intent || raw.provider_reference || raw.id || ''),
       metadata: raw.metadata || {},
     }
   }
+}
+
+function normalizeStripeStatus(status: string): NormalizedTransaction['status'] {
+  if (status === 'paid' || status === 'succeeded' || status === 'complete') return 'captured'
+  if (status === 'processing' || status === 'open') return 'authorized'
+  if (status === 'refunded') return 'refunded'
+  if (status === 'failed' || status === 'canceled' || status === 'expired') return 'failed'
+  return 'initiated'
 }

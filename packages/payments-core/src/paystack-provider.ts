@@ -1,6 +1,5 @@
 import crypto from 'crypto'
 import { PaymentProviderInterface, InitializePaymentInput, ProviderInitializeResult, NormalizedTransaction } from './provider-types'
-import { paystackProvider } from '../../../src/lib/payments/paystack/provider'
 
 function verifyHmac(secret: string, rawBody: string, signature?: string) {
   if (!secret || !signature) return false
@@ -17,9 +16,25 @@ function verifyHmac(secret: string, rawBody: string, signature?: string) {
 }
 
 export class PaystackProvider implements PaymentProviderInterface {
+  name = 'paystack' as const
+
   async initializePayment(input: InitializePaymentInput): Promise<ProviderInitializeResult> {
-    const res = await paystackProvider.createCheckoutSession({ organizationId: String(input.metadata?.organizationId) })
-    return { providerReference: res.checkoutUrl?.split('/').pop() || undefined, checkoutUrl: res.checkoutUrl, status: 'initiated', raw: { provider: 'paystack' } }
+    const secret = process.env.PAYSTACK_SECRET_KEY
+    if (!secret) throw new Error('Paystack provider not configured: PAYSTACK_SECRET_KEY is required')
+    const response = await fetch('https://api.paystack.co/transaction/initialize', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        amount: Math.round(input.amount),
+        currency: input.currency,
+        email: input.customerEmail,
+        callback_url: input.successUrl,
+        metadata: input.metadata || {},
+      }),
+    })
+    const raw = await response.json() as Record<string, any>
+    if (!response.ok || raw.status === false) throw new Error(`Paystack checkout initialization failed: ${String(raw.message || response.status)}`)
+    return { providerReference: String(raw.data?.reference || ''), checkoutUrl: String(raw.data?.authorization_url || ''), status: 'initiated', raw }
   }
 
   async verifyPayment(headers: Record<string, string>, rawBody: string): Promise<NormalizedTransaction | null> {
@@ -46,18 +61,33 @@ export class PaystackProvider implements PaymentProviderInterface {
   }
 
   async refundPayment(providerReference: string, amount?: number): Promise<boolean> {
-    return false
+    const secret = process.env.PAYSTACK_SECRET_KEY
+    if (!secret) throw new Error('Paystack provider not configured: PAYSTACK_SECRET_KEY is required')
+    const response = await fetch('https://api.paystack.co/refund', {
+      method: 'POST',
+      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ transaction: providerReference, amount: amount ? Math.round(amount) : undefined }),
+    })
+    return response.ok
   }
 
   normalizeTransaction(raw: any): NormalizedTransaction {
+    const status = normalizePaystackStatus(String(raw.status || 'initiated'))
     return {
       id: String(raw.id || raw.transaction || raw.reference || `paystack_${Date.now()}`),
       provider: 'paystack',
-      status: (raw.status as NormalizedTransaction['status']) || 'initiated',
+      status,
       amount: Number(raw.amount || 0),
-      currency: String(raw.currency || 'NGN'),
+      currency: String(raw.currency || 'NGN').toUpperCase(),
       providerReference: String(raw.reference || raw.provider_reference || ''),
       metadata: raw.metadata || {},
     }
   }
+}
+
+function normalizePaystackStatus(status: string): NormalizedTransaction['status'] {
+  if (status === 'success') return 'captured'
+  if (status === 'abandoned' || status === 'failed' || status === 'reversed') return 'failed'
+  if (status === 'pending' || status === 'ongoing') return 'authorized'
+  return status as NormalizedTransaction['status']
 }

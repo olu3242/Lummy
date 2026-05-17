@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@lummy/ai-runtime':
+        specifier: workspace:*
+        version: link:packages/ai-runtime
       '@supabase/ssr':
         specifier: ^0.7.0
         version: 0.7.0(@supabase/supabase-js@2.105.4)
@@ -86,6 +89,9 @@ importers:
       '@lummy/automation-engine':
         specifier: workspace:*
         version: link:../../packages/automation-engine
+      '@lummy/events-core':
+        specifier: workspace:*
+        version: link:../../packages/events-core
       '@lummy/runtime-orchestrator':
         specifier: workspace:*
         version: link:../../packages/runtime-orchestrator
@@ -133,6 +139,12 @@ importers:
         specifier: workspace:*
         version: link:../db-core
 
+  packages/ai-runtime:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
+
   packages/ai-skill-runtime: {}
 
   packages/ambient-ai-runtime: {}
@@ -152,6 +164,8 @@ importers:
       '@lummy/runtime-orchestrator':
         specifier: workspace:*
         version: link:../runtime-orchestrator
+
+  packages/automation-runtime: {}
 
   packages/autonomous-commerce-runtime: {}
 

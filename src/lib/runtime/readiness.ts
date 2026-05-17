@@ -12,9 +12,14 @@ export function ensurePaymentProvidersConfigured() {
 }
 
 export function ensureRuntimeReadiness() {
-  // Add other runtime readiness checks as needed
   try {
     ensurePaymentProvidersConfigured()
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      throw new Error('Supabase runtime is not configured')
+    }
+    if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      throw new Error('No AI provider configured: set OPENAI_API_KEY or ANTHROPIC_API_KEY')
+    }
   } catch (e) {
     throw e
   }
