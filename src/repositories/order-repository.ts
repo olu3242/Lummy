@@ -44,12 +44,51 @@ export async function createPendingOrder(input: CreateOrderInput) {
 
 export async function markPaymentCompleted(params: { orderId: string; paymentId: string; providerReference: string; providerEventId: string; }) {
   const supabase = createClient();
-  const paymentUpdate = await supabase.from('payments').update({ status: 'succeeded', provider_reference: params.providerReference, provider_event_id: params.providerEventId, paid_at: new Date().toISOString() }).eq('id', params.paymentId).eq('order_id', params.orderId).neq('status', 'succeeded').select('*').maybeSingle();
-  if (paymentUpdate.error) throw paymentUpdate.error;
 
-  const orderUpdate = await supabase.from('orders').update({ status: 'paid' }).eq('id', params.orderId).neq('status', 'paid').select('*').maybeSingle();
-  if (orderUpdate.error) throw orderUpdate.error;
+  // Attempt to atomically (best-effort) update payment status only if not already succeeded
+  const paymentUpdate = await supabase
+    .from('payments')
+    .update({ status: 'succeeded', provider_reference: params.providerReference, provider_event_id: params.providerEventId, paid_at: new Date().toISOString() })
+    .eq('id', params.paymentId)
+    .eq('order_id', params.orderId)
+    .neq('status', 'succeeded')
+    .select('*')
+    .maybeSingle();
+  if (paymentUpdate.error) throw paymentUpdate.error;
+  if (!paymentUpdate.data) {
+    // nothing updated — either already succeeded or not found
+    throw new Error('Payment could not be updated (already succeeded or not found)');
+  }
+
+  // Only transition order to `paid` from non-paid states
+  const orderUpdate = await supabase
+    .from('orders')
+    .update({ status: 'paid' })
+    .eq('id', params.orderId)
+    .neq('status', 'paid')
+    .select('*')
+    .maybeSingle();
+  if (orderUpdate.error) {
+    // Attempt to surface a clear error — payment was updated but order transition failed
+    throw orderUpdate.error;
+  }
+
   return { payment: paymentUpdate.data, order: orderUpdate.data };
+}
+
+export async function updatePaymentStatusConditionally(paymentId: string, allowedFrom: string[], toStatus: string, extras: Record<string, any> = {}) {
+  const supabase = await createClient();
+  const q = supabase.from('payments').update({ status: toStatus, ...extras }).eq('id', paymentId).in('status', allowedFrom).select('*').maybeSingle();
+  const res = await q;
+  if (res.error) throw res.error;
+  return res.data || null;
+}
+
+export async function updateOrderStatusConditionally(orderId: string, allowedFrom: string[], toStatus: string) {
+  const supabase = await createClient();
+  const res = await supabase.from('orders').update({ status: toStatus }).eq('id', orderId).in('status', allowedFrom).select('*').maybeSingle();
+  if (res.error) throw res.error;
+  return res.data || null;
 }
 
 async function getCurrentOrgId() {

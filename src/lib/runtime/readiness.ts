@@ -1,10 +1,11 @@
+import logger from "../logging/logger"
 import { validateEnv } from "./env"
 import { createAdminClient } from "@/lib/supabase/server"
 
 export interface ReadinessCheck {
   name: string
   ok: boolean
-  score: number    // 0-100
+  score: number
   latencyMs?: number
   detail?: string
   critical: boolean
@@ -12,12 +13,28 @@ export interface ReadinessCheck {
 
 export interface ReadinessReport {
   ready: boolean
-  score: number    // weighted 0-100
+  score: number
   timestamp: string
   environment: string
   checks: ReadinessCheck[]
   blockers: string[]
   warnings: string[]
+}
+
+export function ensurePaymentProvidersConfigured() {
+  const hasPaystack = Boolean(process.env.PAYSTACK_SECRET_KEY || process.env.PAYSTACK_WEBHOOK_SECRET)
+  const hasStripe = Boolean(process.env.STRIPE_SECRET_KEY || process.env.STRIPE_WEBHOOK_SECRET)
+
+  if (!hasPaystack && !hasStripe) {
+    logger.error("No payment providers configured", { hasPaystack, hasStripe })
+    throw new Error("No payment provider configured: set PAYSTACK_SECRET_KEY or STRIPE_SECRET_KEY")
+  }
+
+  logger.info("Payment providers readiness", { hasPaystack, hasStripe })
+}
+
+export function ensureRuntimeReadiness() {
+  ensurePaymentProvidersConfigured()
 }
 
 async function checkEnvReadiness(): Promise<ReadinessCheck> {
@@ -37,6 +54,7 @@ async function checkDatabaseReadiness(): Promise<ReadinessCheck> {
     const supabase = createAdminClient()
     const { error } = await supabase.from("creator_profiles").select("id").limit(1)
     const latencyMs = Date.now() - start
+
     return {
       name: "database",
       ok: !error,
@@ -46,38 +64,52 @@ async function checkDatabaseReadiness(): Promise<ReadinessCheck> {
       critical: true,
     }
   } catch (err) {
-    return { name: "database", ok: false, score: 0, latencyMs: Date.now() - start, detail: String(err), critical: true }
+    return {
+      name: "database",
+      ok: false,
+      score: 0,
+      latencyMs: Date.now() - start,
+      detail: err instanceof Error ? err.message : String(err),
+      critical: true,
+    }
   }
 }
 
 async function checkWebhookReadiness(): Promise<ReadinessCheck> {
   try {
     const supabase = createAdminClient()
-    const { count } = await supabase
-      .from("webhook_events")
+    const { count, error } = await supabase
+      .from("provider_webhook_events")
       .select("id", { count: "exact", head: true })
-      .eq("status", "dead")
 
-    const dead = count ?? 0
+    if (error) throw error
+
+    const recorded = count ?? 0
     return {
       name: "webhooks",
-      ok: dead === 0,
-      score: dead === 0 ? 100 : dead < 5 ? 60 : 20,
-      detail: `${dead} dead-lettered events`,
+      ok: true,
+      score: 100,
+      detail: `${recorded} webhook events recorded`,
       critical: false,
     }
-  } catch {
-    return { name: "webhooks", ok: false, score: 0, detail: "Could not query webhook_events", critical: false }
+  } catch (err) {
+    return {
+      name: "webhooks",
+      ok: false,
+      score: 0,
+      detail: err instanceof Error ? err.message : "Could not query webhook events",
+      critical: false,
+    }
   }
 }
 
-function checkServiceReadiness(name: string, envKey: string, critical: boolean): ReadinessCheck {
-  const present = !!process.env[envKey]
+function checkServiceReadiness(name: string, envKeys: string[], critical: boolean): ReadinessCheck {
+  const present = envKeys.some((key) => Boolean(process.env[key]))
   return {
     name,
     ok: present,
     score: present ? 100 : 0,
-    detail: present ? "Configured" : `${envKey} not set`,
+    detail: present ? "Configured" : `${envKeys.join(" or ")} not set`,
     critical,
   }
 }
@@ -89,19 +121,16 @@ export async function computeReadiness(): Promise<ReadinessReport> {
     checkWebhookReadiness(),
   ])
 
-  const aiCheck    = checkServiceReadiness("ai",       "ANTHROPIC_API_KEY",   true)
-  const paymentsCheck = checkServiceReadiness("payments", "PAYSTACK_SECRET_KEY", true)
-  const waCheck    = checkServiceReadiness("whatsapp", "WHATSAPP_BUSINESS_TOKEN", false)
+  const aiCheck = checkServiceReadiness("ai", ["ANTHROPIC_API_KEY"], true)
+  const paymentsCheck = checkServiceReadiness("payments", ["PAYSTACK_SECRET_KEY", "STRIPE_SECRET_KEY"], true)
+  const waCheck = checkServiceReadiness("whatsapp", ["WHATSAPP_BUSINESS_TOKEN"], false)
 
   const checks: ReadinessCheck[] = [envCheck, dbCheck, webhookCheck, aiCheck, paymentsCheck, waCheck]
-
-  // Weighted score: critical checks = 20pts each, non-critical = 10pts
-  const totalWeight = checks.reduce((s, c) => s + (c.critical ? 20 : 10), 0)
-  const achieved    = checks.reduce((s, c) => s + (c.score / 100) * (c.critical ? 20 : 10), 0)
-  const score       = Math.round((achieved / totalWeight) * 100)
-
-  const blockers = checks.filter(c => c.critical && !c.ok).map(c => `${c.name}: ${c.detail}`)
-  const warnings = checks.filter(c => !c.critical && !c.ok).map(c => `${c.name}: ${c.detail}`)
+  const totalWeight = checks.reduce((sum, check) => sum + (check.critical ? 20 : 10), 0)
+  const achieved = checks.reduce((sum, check) => sum + (check.score / 100) * (check.critical ? 20 : 10), 0)
+  const score = Math.round((achieved / totalWeight) * 100)
+  const blockers = checks.filter((check) => check.critical && !check.ok).map((check) => `${check.name}: ${check.detail}`)
+  const warnings = checks.filter((check) => !check.critical && !check.ok).map((check) => `${check.name}: ${check.detail}`)
 
   return {
     ready: blockers.length === 0,

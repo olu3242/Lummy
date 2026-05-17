@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
-import { createPaystackCheckoutSession } from '@/lib/payments/paystack/provider';
-import { createStripeCheckoutSession } from '@/lib/payments/stripe/provider';
+import { createPaymentSession } from '../../../../packages/payments-core/src/orchestrator';
+import type { DatabaseClient } from '@lummy/db-core';
 import { validatePaymentRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
 
@@ -48,11 +48,12 @@ export async function POST(req: Request) {
       quantity: String(created.quantity),
     };
 
-    const session = provider === 'stripe'
-      ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl })
-      : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl });
+    const session = await createPaymentSession(supabase as unknown as DatabaseClient, provider, { amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl }, correlationId)
 
-    await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
+    // ensure order/payment record references provider reference
+    if (session.providerReference) {
+      await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
+    }
 
     logApiEvent('info', 'checkout.session_created', { correlationId, orderId: created.order.id, provider });
     return NextResponse.json({ order: created.order, payment: created.payment, checkoutUrl: session.checkoutUrl, successUrl, cancelUrl, correlationId }, { headers: { 'x-correlation-id': correlationId } });
