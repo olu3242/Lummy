@@ -81,23 +81,45 @@ importers:
 
   apps/mobile: {}
 
-  apps/workers: {}
+  apps/workers:
+    dependencies:
+      '@lummy/automation-engine':
+        specifier: workspace:*
+        version: link:../../packages/automation-engine
+      '@lummy/runtime-orchestrator':
+        specifier: workspace:*
+        version: link:../../packages/runtime-orchestrator
 
   packages/adaptive-optimization-layer: {}
 
-  packages/ads-engine: {}
+  packages/ads-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/affiliate-network: {}
 
   packages/agent-marketplace: {}
 
-  packages/agent-orchestrator: {}
+  packages/agent-orchestrator:
+    dependencies:
+      '@lummy/runtime-orchestrator':
+        specifier: workspace:*
+        version: link:../runtime-orchestrator
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
   packages/agent-registry: {}
 
   packages/agent-settlement-engine: {}
 
-  packages/ai-engine: {}
+  packages/ai-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/ai-evolution: {}
 
@@ -105,19 +127,31 @@ importers:
 
   packages/ai-os: {}
 
-  packages/ai-os-runtime: {}
+  packages/ai-os-runtime:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/ai-skill-runtime: {}
 
   packages/ambient-ai-runtime: {}
 
-  packages/analytics-engine: {}
+  packages/analytics-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/api-governance: {}
 
   packages/api-platform: {}
 
-  packages/automation-engine: {}
+  packages/automation-engine:
+    dependencies:
+      '@lummy/runtime-orchestrator':
+        specifier: workspace:*
+        version: link:../runtime-orchestrator
 
   packages/autonomous-commerce-runtime: {}
 
@@ -135,29 +169,56 @@ importers:
 
   packages/compliance: {}
 
-  packages/compliance-runtime: {}
+  packages/compliance-runtime:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/contextual-presence-layer: {}
 
   packages/creator-finance: {}
 
-  packages/creator-network: {}
+  packages/creator-network:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/data-intelligence: {}
 
-  packages/db-core: {}
+  packages/db-core:
+    dependencies:
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
-  packages/deployment-governance: {}
+  packages/deployment-governance:
+    dependencies:
+      '@lummy/feature-flags':
+        specifier: workspace:*
+        version: link:../feature-flags
 
   packages/developer-auth: {}
 
-  packages/developer-platform: {}
+  packages/developer-platform:
+    dependencies:
+      '@lummy/ecosystem-api':
+        specifier: workspace:*
+        version: link:../ecosystem-api
+      '@lummy/feature-flags':
+        specifier: workspace:*
+        version: link:../feature-flags
 
   packages/economic-coordination-network: {}
 
   packages/economic-intelligence: {}
 
-  packages/ecosystem-api: {}
+  packages/ecosystem-api:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/ecosystem-billing: {}
 
@@ -171,7 +232,11 @@ importers:
 
   packages/enterprise-expansion: {}
 
-  packages/enterprise-governance: {}
+  packages/enterprise-governance:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/event-platform: {}
 
@@ -181,21 +246,44 @@ importers:
         specifier: ^3.23.8
         version: 3.25.76
 
-  packages/events: {}
+  packages/events:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
-  packages/execution-control-plane: {}
+  packages/execution-control-plane:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/feature-flags: {}
 
   packages/federated-grid: {}
 
-  packages/geo-routing-control-plane: {}
+  packages/geo-routing-control-plane:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
-  packages/global-region-runtime: {}
+  packages/global-region-runtime:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/governance: {}
 
-  packages/growth-engine: {}
+  packages/growth-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/incentive-governance-runtime: {}
 
@@ -207,25 +295,49 @@ importers:
 
   packages/market-expansion: {}
 
-  packages/messaging: {}
+  packages/messaging:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/meta-orchestrator: {}
 
-  packages/mobile-runtime: {}
+  packages/mobile-runtime:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/multimodal-interaction-engine: {}
 
-  packages/observability: {}
+  packages/observability:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/operational-readiness: {}
 
-  packages/org-governance: {}
+  packages/org-governance:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/partner-network: {}
 
-  packages/payments: {}
+  packages/payments:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
-  packages/platform-core: {}
+  packages/platform-core:
+    dependencies:
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
   packages/platform-health: {}
 
@@ -241,17 +353,35 @@ importers:
 
   packages/public-api: {}
 
-  packages/recommendation-engine: {}
+  packages/recommendation-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/regionalization: {}
 
-  packages/repositories: {}
+  packages/repositories:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
+      '@lummy/events':
+        specifier: workspace:*
+        version: link:../events
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
   packages/runtime-governance: {}
 
   packages/runtime-hardening: {}
 
-  packages/runtime-orchestrator: {}
+  packages/runtime-orchestrator:
+    dependencies:
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
   packages/security-governance: {}
 
@@ -261,17 +391,32 @@ importers:
 
   packages/skill-governance-engine: {}
 
-  packages/sovereign-data-engine: {}
+  packages/sovereign-data-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/strategy-simulation-runtime: {}
 
-  packages/telemetry: {}
+  packages/telemetry:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
+      '@lummy/shared-types':
+        specifier: workspace:*
+        version: link:../shared-types
 
   packages/tenant-policy-runtime: {}
 
   packages/tool-registry: {}
 
-  packages/trust-engine: {}
+  packages/trust-engine:
+    dependencies:
+      '@lummy/db-core':
+        specifier: workspace:*
+        version: link:../db-core
 
   packages/universal-interface-runtime: {}
 

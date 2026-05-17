@@ -197,6 +197,9 @@
       "path": "packages/observability"
     },
     {
+      "path": "packages/operational-readiness"
+    },
+    {
       "path": "packages/org-governance"
     },
     {
@@ -207,6 +210,9 @@
     },
     {
       "path": "packages/platform-core"
+    },
+    {
+      "path": "packages/platform-health"
     },
     {
       "path": "packages/platform-sdk"
@@ -237,6 +243,9 @@
     },
     {
       "path": "packages/runtime-governance"
+    },
+    {
+      "path": "packages/runtime-hardening"
     },
     {
       "path": "packages/runtime-orchestrator"

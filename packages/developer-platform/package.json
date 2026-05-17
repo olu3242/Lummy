@@ -12,5 +12,9 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@lummy/ecosystem-api": "workspace:*",
+    "@lummy/feature-flags": "workspace:*"
   }
 }
