@@ -1,4 +1,4 @@
-import type { DatabaseClient } from "../../db-core/src"
+import type { DatabaseClient } from "@lummy/db-core"
 
 export class SessionService {
   constructor(private readonly db: DatabaseClient) {}

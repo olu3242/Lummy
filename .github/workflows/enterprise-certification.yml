@@ -1,0 +1,17 @@
+name: enterprise-certification
+on: [push, pull_request]
+jobs:
+  enterprise_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run enterprise certification
+        run: python3 scripts/reliability/enterprise_certify.py
+      - name: Upload enterprise certification report
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-certification
+          path: artifacts/enterprise-certification.json

@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto"
-import type { EventPublisher } from "../../events/src"
-import type { EventEnvelope, TenantContext } from "../../shared-types/src"
+import type { EventPublisher } from "@lummy/events"
+import type { EventEnvelope, TenantContext } from "@lummy/shared-types"
 import { BaseRepository } from "./base"
 
 export interface CreateOrderInput {

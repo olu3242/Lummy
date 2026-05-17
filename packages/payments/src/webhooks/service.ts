@@ -1,32 +1,23 @@
-import type { DatabaseClient } from "../../db-core/src"
+import type { DatabaseClient } from "@lummy/db-core"
 import type { PaymentProviderAdapter } from "../providers/types"
-
-export class PaymentWebhookService {
+import { toWebhookEventEnvelope } from "../contracts/webhook"
+export class WebhookReplayService {
   constructor(private readonly db: DatabaseClient, private readonly provider: PaymentProviderAdapter) {}
-
-  async ingest(
-    tenantId: string,
-    headers: Record<string, string>,
-    rawBody: string,
-    eventKey: string,
-    providerIntentId: string,
-    idempotencyKey: string
-  ) {
-    if (!this.provider.verifyWebhookSignature(headers, rawBody)) {
-      throw new Error("Invalid payment webhook signature")
-    }
-
-    const log = await this.db.insert("provider_webhook_logs", {
-      tenant_id: tenantId,
-      event_key: eventKey,
-      provider_intent_id: providerIntentId,
-      idempotency_key: idempotencyKey,
-      raw_payload: rawBody,
-      received_at: new Date().toISOString(),
-      processed: false,
+  async ingest(tenantId: string, headers: Record<string, string>, rawBody: string, eventKey: string, providerIntentId: string, idempotencyKey: string) {
+    if (!tenantId || !eventKey || !providerIntentId || !idempotencyKey) throw new Error("missing webhook identifiers")
+    if (!this.provider.verifyWebhookSignature(headers, rawBody)) throw new Error("Invalid payment webhook signature")
+    const normalizedIdempotencyKey = idempotencyKey.trim().toLowerCase()
+    const existing = await this.db.findOne("provider_webhook_logs", { tenant_id: tenantId, idempotency_key: normalizedIdempotencyKey })
+    if (existing.data) return { replayed: true }
+    const envelope = toWebhookEventEnvelope({
+      tenantId,
+      eventKey,
+      providerIntentId,
+      idempotencyKey: normalizedIdempotencyKey,
+      correlationId: headers["x-correlation-id"] || normalizedIdempotencyKey,
+      rawPayload: rawBody,
     })
-
-    if (log.error) throw log.error
-    return log.data
+    await this.db.insert("provider_webhook_logs", { tenant_id: envelope.tenantId, event_key: envelope.eventKey, provider_intent_id: envelope.providerIntentId, idempotency_key: envelope.idempotencyKey, raw_payload: envelope.rawPayload, received_at: envelope.receivedAt, processed: false, correlation_id: envelope.correlationId, schema_version: envelope.version })
+    return { replayed: false }
   }
 }

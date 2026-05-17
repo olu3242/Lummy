@@ -9,3 +9,5 @@ export * from "./audit/service"
 export * from "./feature-flags/service"
 export * from "./governance/service"
 export * from "./approvals/service"
+
+export * from "./policy-engine";

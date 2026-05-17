@@ -1,5 +1,5 @@
-import type { TelemetryEvent } from "../../shared-types/src"
-import type { DatabaseClient } from "../../db-core/src"
+import type { TelemetryEvent } from "@lummy/shared-types"
+import type { DatabaseClient } from "@lummy/db-core"
 
 export interface TelemetrySink {
   track(event: TelemetryEvent): Promise<void>

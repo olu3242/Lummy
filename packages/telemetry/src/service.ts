@@ -1,4 +1,4 @@
-import type { TelemetryEvent } from "../../shared-types/src"
+import type { TelemetryEvent } from "@lummy/shared-types"
 import type { TelemetrySink } from "./sdk"
 
 export class TelemetryService {

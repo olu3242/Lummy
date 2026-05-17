@@ -76,7 +76,6 @@ npx vercel --prod
 ```
 
 Set `NEXT_PUBLIC_APP_URL` in your Vercel project settings.
-<<<<<<< HEAD
 
 ## Recommended Local Workflow
 
@@ -86,6 +85,3 @@ Set `NEXT_PUBLIC_APP_URL` in your Vercel project settings.
 ## Execution Plan
 
 - See `docs/execution/mvp-convergence-plan.md` for the execution-mode implementation blueprint and sprint roadmap.
-
-=======
->>>>>>> main
