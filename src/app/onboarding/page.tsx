@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { completeOnboarding } from "@/server/actions/onboarding"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -579,6 +580,8 @@ export default function OnboardingPage() {
     accountNumber: "",
     accountName: "",
   })
+  const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
 
   const update = (partial: Partial<WizardData>) => setData((d) => ({ ...d, ...partial }))
 
@@ -601,6 +604,27 @@ export default function OnboardingPage() {
   }
 
   const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
+
+  const submitOnboarding = async () => {
+    try {
+      setIsSubmitting(true)
+      setSubmitError(null)
+      await completeOnboarding({
+        fullName: data.storeName || "Creator",
+        phone: data.whatsapp,
+        orgName: data.storeName || "Creator Workspace",
+        handle: data.handle,
+        productTitle: data.addProduct ? data.productName : undefined,
+        productPrice: data.addProduct && data.productPrice ? Number(data.productPrice) : undefined,
+        productDescription: data.addProduct ? data.productDesc : undefined,
+      })
+      window.location.href = "/dashboard"
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Failed to complete onboarding")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">
@@ -693,16 +717,15 @@ export default function OnboardingPage() {
             </Button>
           ) : (
             <div className="flex-1 flex flex-col gap-3">
-              <Button size="lg" className="w-full gap-2" asChild>
-                <Link href="/dashboard">
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button size="lg" className="w-full gap-2" onClick={submitOnboarding} disabled={isSubmitting}>
+                {isSubmitting ? "Completing setup..." : "Go to Dashboard"}
+                <ArrowRight className="h-4 w-4" />
               </Button>
               <Button variant="whatsapp" size="lg" className="w-full gap-2">
                 <MessageCircle className="h-5 w-5 fill-white" />
                 Share Store on WhatsApp
               </Button>
+              {submitError ? <p className="text-xs text-brand-coral">{submitError}</p> : null}
             </div>
           )}
         </div>
