@@ -197,7 +197,14 @@ export class ExecutionCoordinator {
         })
       }
     } finally {
-      await this.lock.release(`worker:${queueName}`)
+      try {
+        await this.lock.release(`worker:${queueName}`)
+      } catch (error) {
+        logRuntime("lock.release_failed", {
+          queue: queueName,
+          error: `${error}`
+        })
+      }
     }
   }
 }

@@ -12,5 +12,10 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@lummy/db-core": "workspace:*",
+    "@lummy/events": "workspace:*",
+    "@lummy/shared-types": "workspace:*"
   }
 }

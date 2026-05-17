@@ -8,5 +8,9 @@
     "build": "tsc -b",
     "typecheck": "tsc -b --pretty false",
     "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@lummy/automation-engine": "workspace:*",
+    "@lummy/runtime-orchestrator": "workspace:*"
   }
 }

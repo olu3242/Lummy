@@ -1,4 +1,4 @@
-import { nextBackoffMs, type JobEnvelope, type JobResult, type QueueAdapter } from "../../../runtime-orchestrator/src"
+import { nextBackoffMs, type JobEnvelope, type JobResult, type QueueAdapter } from "@lummy/runtime-orchestrator"
 import { enqueueDownstreamAction } from "../actions/registry"
 import type { AutomationRule } from "../dsl/rules"
 
