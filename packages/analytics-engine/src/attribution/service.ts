@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class AttributionService { constructor(private readonly db: DatabaseClient) {} async record(input: { tenantId: string; customerId: string; source: string; campaign: string; eventId: string }) { return this.db.insert("attribution_events", { tenant_id: input.tenantId, customer_id: input.customerId, source: input.source, campaign: input.campaign, event_id: input.eventId, occurred_at: new Date().toISOString() }) } }

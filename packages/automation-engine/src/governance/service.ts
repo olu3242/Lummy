@@ -1,0 +1,1 @@
+export class AutomationGovernanceService { enforceFeatureFlags(flags: Record<string, boolean>, required: string[]) { for (const flag of required) if (!flags[flag]) throw new Error(`flag disabled: ${flag}`) } }

@@ -1,0 +1,1 @@
+export class ArchitectureEnforcementService { enforce(noCircularDeps: boolean, noBoundaryViolations: boolean) { if (!noCircularDeps || !noBoundaryViolations) throw new Error("architecture policy failed") } }

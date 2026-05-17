@@ -1,0 +1,1 @@
+export const financeRoutes = ['Wallet Dashboard','Revenue Streams','Payout Center','Affiliate Earnings','Commerce Analytics','Settlement Timeline','Tax/Export Center','Commission Insights','Financial Health Dashboard'];

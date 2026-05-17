@@ -1,0 +1,2 @@
+import type { WorkflowDefinition } from "../graph/types"; import type { WorkflowRunState } from "../runtime/state-machine"
+export class WorkflowExecutionEngine { evaluateNext(def: WorkflowDefinition, currentStepId: string): string[] { return def.steps.find(s=>s.id===currentStepId)?.next||[] } transition(state: WorkflowRunState, stepType: string): WorkflowRunState { if (stepType==="approval") return "waiting_approval"; return state==="queued"?"running":state } }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -70,16 +71,20 @@ function PasswordStrength({ password }: { password: string }) {
 
 type HandleStatus = "idle" | "checking" | "available" | "taken"
 
-const TAKEN_HANDLES = ["sade", "shop", "store", "lummy", "admin"]
+const RESERVED_HANDLES = ["sade", "shop", "store", "lummy", "admin"]
 
 export default function SignupPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
   const [step, setStep] = React.useState<"details" | "done">("details")
   const [password, setPassword] = React.useState("")
+  const [email, setEmail] = React.useState("")
+  const [fullName, setFullName] = React.useState("")
   const [handle, setHandle] = React.useState("")
   const [handleStatus, setHandleStatus] = React.useState<HandleStatus>("idle")
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const handleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const supabase = React.useMemo(() => createClient(), [])
 
   const onHandleChange = (val: string) => {
     const cleaned = val.toLowerCase().replace(/[^a-z0-9._-]/g, "")
@@ -88,20 +93,39 @@ export default function SignupPage() {
     if (handleTimerRef.current) clearTimeout(handleTimerRef.current)
     if (cleaned.length < 3) return
     setHandleStatus("checking")
-    handleTimerRef.current = setTimeout(() => {
-      setHandleStatus(TAKEN_HANDLES.includes(cleaned) ? "taken" : "available")
+    handleTimerRef.current = setTimeout(async () => {
+      if (RESERVED_HANDLES.includes(cleaned)) {
+        setHandleStatus("taken")
+        return
+      }
+      const { data } = await supabase.from("storefronts").select("handle").eq("handle", cleaned).limit(1)
+      setHandleStatus((data?.length ?? 0) > 0 ? "taken" : "available")
     }, 650)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setErrorMessage(null)
     if (handleStatus === "taken") return
     setIsLoading(true)
-    setTimeout(() => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          handle,
+        },
+        emailRedirectTo: `${window.location.origin}/onboarding`,
+      },
+    })
+    if (error) {
       setIsLoading(false)
-      setStep("done")
-      setTimeout(() => { window.location.href = "/dashboard" }, 1500)
-    }, 1400)
+      setErrorMessage(error.message)
+      return
+    }
+    setStep("done")
+    window.location.href = "/onboarding"
   }
 
   return (
@@ -175,7 +199,8 @@ export default function SignupPage() {
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-white/70">Full name</Label>
                     <Input id="name" type="text" placeholder="Sade Okoye" icon={<User className="h-4 w-4" />}
-                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple" required />
+                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple" required
+                      value={fullName} onChange={(e) => setFullName(e.target.value)} />
                   </div>
 
                   {/* Handle */}
@@ -216,7 +241,8 @@ export default function SignupPage() {
                   <div className="space-y-1.5">
                     <Label htmlFor="signup-email" className="text-white/70">Email address</Label>
                     <Input id="signup-email" type="email" placeholder="you@example.com" icon={<Mail className="h-4 w-4" />}
-                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple" required />
+                      className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple" required
+                      value={email} onChange={(e) => setEmail(e.target.value)} />
                   </div>
 
                   {/* Password with strength */}
@@ -243,6 +269,7 @@ export default function SignupPage() {
                       : <span className="flex items-center gap-2">Create Free Store <ArrowRight className="h-4 w-4" /></span>}
                   </Button>
                 </motion.form>
+                {errorMessage ? <p className="mt-3 text-xs text-brand-coral">{errorMessage}</p> : null}
 
                 <motion.p {...fadeUp(0.25)} className="mt-6 text-center text-xs text-white/25">
                   By signing up, you agree to our{" "}

@@ -1,0 +1,1 @@
+export class WorkflowReplayService { replayWorkflow(runId: string){ return { runId, mode: "workflow" as const } } replayStep(runId: string, stepId: string){ return { runId, stepId, mode: "step" as const } } }

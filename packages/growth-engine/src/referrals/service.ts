@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class ReferralService { constructor(private readonly db: DatabaseClient) {} async record(tenantId: string, referrerId: string, refereeId: string, idempotencyKey: string) { return this.db.insert("referral_events", { tenant_id: tenantId, referrer_id: referrerId, referee_id: refereeId, idempotency_key: idempotencyKey, created_at: new Date().toISOString() }) } }
