@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
+import { getAIOperationsSnapshot } from '@/lib/ai/runtime';
 
 export async function GET(): Promise<NextResponse> {
-  return NextResponse.json({ resource: 'ai/telemetry', status: 'ok' });
+  const snapshot = await getAIOperationsSnapshot();
+  return NextResponse.json({ resource: 'ai/telemetry', snapshot });
 }

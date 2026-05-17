@@ -3,6 +3,7 @@ import { handleProviderWebhook } from '../../../../../packages/payments-core/src
 import { getCorrelationId, logApiEvent } from '@/lib/ops-observability'
 import { createClient } from '@/lib/supabase/server'
 import { ensurePaymentProvidersConfigured } from '@/lib/runtime/readiness'
+import { createPaymentDatabaseAdapter } from '@/lib/payments/payment-db-adapter'
 
 export async function POST(req: Request, { params }: { params: { provider: string } }) {
   const correlationId = getCorrelationId(req)
@@ -15,7 +16,7 @@ export async function POST(req: Request, { params }: { params: { provider: strin
 
     const supabase = await createClient()
 
-    const tx = await handleProviderWebhook(supabase as any, provider, headers, rawBody, correlationId)
+    const tx = await handleProviderWebhook(createPaymentDatabaseAdapter(supabase as never), provider, headers, rawBody, correlationId)
     if (!tx) {
       logApiEvent('warn', 'webhook.unknown', { provider, correlationId })
       return NextResponse.json({ ok: true }, { status: 200 })

@@ -106,7 +106,7 @@ function canUseServiceRole() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
-function emptySnapshot(reason: string) {
+function emptySnapshot(reason: string): AIOperationsSnapshot {
   return {
     status: 'degraded',
     reason,

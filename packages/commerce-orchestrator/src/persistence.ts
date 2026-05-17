@@ -1,11 +1,14 @@
 import type { DatabaseClient } from "@lummy/db-core"
-import type { CommerceEventEnvelope, OrderHistoryEntry, OrderRecord } from "./types"
+import type { CommerceEventEnvelope, CommerceTimelineEntry, OrderHistoryEntry, OrderRecord } from "./types"
 
 export interface OrchestratorStore {
   getOrder(orderId: string): Promise<OrderRecord | null>
   upsertOrder(order: OrderRecord): Promise<void>
   appendOrderHistory(entry: OrderHistoryEntry): Promise<void>
+  appendOrderTransition(entry: OrderHistoryEntry & { previousState: string; nextState: string; valid: boolean }): Promise<void>
+  appendTimeline(entry: CommerceTimelineEntry): Promise<void>
   appendEvent(event: CommerceEventEnvelope): Promise<void>
+  markIdempotencyKey?(idempotencyKey: string): Promise<boolean>
 }
 
 export class SqlOrchestratorStore implements OrchestratorStore {
@@ -42,6 +45,36 @@ export class SqlOrchestratorStore implements OrchestratorStore {
       event_name: entry.eventName,
       occurred_at: entry.occurredAt,
       payload: entry.payload,
+    })
+
+    if (result.error) throw result.error
+  }
+
+  async appendOrderTransition(entry: OrderHistoryEntry & { previousState: string; nextState: string; valid: boolean }): Promise<void> {
+    const result = await this.db.insert("order_state_transitions", {
+      order_id: entry.orderId,
+      event_id: entry.eventId,
+      event_name: entry.eventName,
+      previous_state: entry.previousState,
+      next_state: entry.nextState,
+      valid: entry.valid,
+      occurred_at: entry.occurredAt,
+      payload: entry.payload,
+    })
+
+    if (result.error) throw result.error
+  }
+
+  async appendTimeline(entry: CommerceTimelineEntry): Promise<void> {
+    const result = await this.db.insert("commerce_operational_timeline", {
+      tenant_id: entry.tenantId,
+      subject_id: entry.subjectId,
+      subject_type: entry.subjectType,
+      event_id: entry.eventId,
+      event_name: entry.eventName,
+      correlation_id: entry.correlationId,
+      occurred_at: entry.occurredAt,
+      metadata: entry.metadata,
     })
 
     if (result.error) throw result.error

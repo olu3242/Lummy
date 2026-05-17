@@ -44,7 +44,7 @@ export class OrderOrchestrator {
     const orderId = (event.payload as { orderId: string }).orderId
     const existingOrder = await this.store.getOrder(orderId)
 
-    if (existingOrder && existingOrder.updatedAt >= event.occurredAt) {
+    if (existingOrder?.lastEvent === event.eventId) {
       return existingOrder
     }
 
@@ -52,7 +52,22 @@ export class OrderOrchestrator {
 
     switch (event.eventName) {
       case "order.created":
+      case "lead.created":
         order = await this.handleOrderCreated(event)
+        break
+      case "conversation.started":
+      case "product.selected":
+      case "checkout.initiated":
+      case "payment.pending":
+      case "payment.confirmed":
+      case "creator.notified":
+      case "fulfillment.started":
+      case "delivery.completed":
+      case "order.shipped":
+      case "order.completed":
+      case "order.cancelled":
+      case "order.failed":
+        order = await this.handleLifecycleEvent(event)
         break
       case "order.payment_confirmed":
         order = await this.handlePaymentConfirmed(event as CommerceEventEnvelope & { payload: PaymentConfirmedPayload })
@@ -75,6 +90,16 @@ export class OrderOrchestrator {
       occurredAt: event.occurredAt,
       payload: event.payload,
     })
+    await this.store.appendTimeline({
+      tenantId: event.tenantId,
+      subjectId: order.customerId || order.orderId,
+      subjectType: "customer",
+      eventName: event.eventName,
+      eventId: event.eventId,
+      occurredAt: event.occurredAt,
+      correlationId: event.correlationId,
+      metadata: { orderId: order.orderId, state: order.state },
+    })
 
     return order
   }
@@ -88,7 +113,7 @@ export class OrderOrchestrator {
       customerId: payload.customerId,
       totalAmount: payload.totalAmount,
       currency: payload.currency,
-      state: "payment_pending",
+      state: event.eventName === "lead.created" ? "lead_created" : "payment_pending",
       createdAt: event.occurredAt,
       updatedAt: event.occurredAt,
       metadata: payload.metadata,
@@ -96,8 +121,33 @@ export class OrderOrchestrator {
     }
 
     await this.store.upsertOrder(order)
-    await this.publishStatusChange(order, "created", "payment_pending")
+    await this.recordTransition(order, "created", order.state, event, true)
+    await this.publishStatusChange(order, "created", order.state)
     return order
+  }
+
+  private async handleLifecycleEvent(event: CommerceEventEnvelope): Promise<OrderRecord> {
+    const payload = event.payload as { orderId: string; metadata?: Record<string, unknown> }
+    const order = await this.getOrderForEvent(payload.orderId)
+    const nextState = deriveNextOrderState(order.state, event.eventName)
+
+    if (!isValidTransition(order.state, nextState) && order.state !== nextState) {
+      await this.recordTransition(order, order.state, nextState, event, false)
+      throw new Error(`Cannot transition order ${order.orderId} from ${order.state} to ${nextState}`)
+    }
+
+    const updatedOrder = {
+      ...order,
+      state: nextState,
+      updatedAt: event.occurredAt,
+      lastEvent: event.eventId,
+      metadata: { ...order.metadata, ...payload.metadata },
+    }
+
+    await this.store.upsertOrder(updatedOrder)
+    await this.recordTransition(order, order.state, nextState, event, true)
+    if (order.state !== nextState) await this.publishStatusChange(updatedOrder, order.state, nextState)
+    return updatedOrder
   }
 
   private async handlePaymentConfirmed(event: CommerceEventEnvelope & { payload: PaymentConfirmedPayload }): Promise<OrderRecord> {
@@ -118,6 +168,7 @@ export class OrderOrchestrator {
     }
 
     await this.store.upsertOrder(updatedOrder)
+    await this.recordTransition(order, order.state, nextState, event, true)
     await this.publishStatusChange(order, order.state, nextState)
     return updatedOrder
   }
@@ -140,6 +191,7 @@ export class OrderOrchestrator {
     }
 
     await this.store.upsertOrder(updatedOrder)
+    await this.recordTransition(order, order.state, nextState, event, true)
     await this.publishStatusChange(order, order.state, nextState)
     return updatedOrder
   }
@@ -162,7 +214,21 @@ export class OrderOrchestrator {
     }
 
     await this.store.upsertOrder(updatedOrder)
+    await this.recordTransition(order, order.state, nextState, event, true)
     return updatedOrder
+  }
+
+  private async recordTransition(order: OrderRecord, previousState: string, nextState: string, event: CommerceEventEnvelope, valid: boolean): Promise<void> {
+    await this.store.appendOrderTransition({
+      orderId: order.orderId,
+      eventId: event.eventId,
+      eventName: event.eventName,
+      occurredAt: event.occurredAt,
+      payload: event.payload,
+      previousState,
+      nextState,
+      valid,
+    })
   }
 
   private async publishStatusChange(order: OrderRecord, previousState: string, nextState: string): Promise<void> {

@@ -35,6 +35,9 @@
       "path": "packages/ai-os"
     },
     {
+      "path": "packages/ai-runtime"
+    },
+    {
       "path": "packages/ai-os-runtime"
     },
     {
@@ -54,6 +57,9 @@
     },
     {
       "path": "packages/automation-engine"
+    },
+    {
+      "path": "packages/automation-runtime"
     },
     {
       "path": "packages/autonomous-commerce-runtime"

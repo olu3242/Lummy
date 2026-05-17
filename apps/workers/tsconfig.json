@@ -15,6 +15,9 @@
       "path": "../../packages/automation-engine"
     },
     {
+      "path": "../../packages/events-core"
+    },
+    {
       "path": "../../packages/events"
     },
     {

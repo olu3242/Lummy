@@ -4,19 +4,22 @@ jest.mock('../../../src/repositories/order-repository', () => ({
   markPaymentCompleted: jest.fn().mockResolvedValue({ payment: {}, order: {} }),
 }))
 
-jest.mock('../../../src/lib/payments/paystack/provider', () => ({
-  paystackProvider: {
-    createCheckoutSession: jest.fn().mockResolvedValue({ checkoutUrl: 'https://paystack.test/checkout/ref_test_1' }),
-  },
-}))
-
-jest.mock('../../../src/lib/payments/stripe/provider', () => ({
-  stripeProvider: {
-    createCheckoutSession: jest.fn().mockResolvedValue({ checkoutUrl: 'https://stripe.test/checkout/ref_test_1' }),
-  },
-}))
-
 import { createPaymentSession, handleProviderWebhook } from '../src/orchestrator'
+
+beforeEach(() => {
+  process.env.PAYSTACK_SECRET_KEY = 'test_paystack_secret'
+  process.env.STRIPE_SECRET_KEY = 'test_stripe_secret'
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    json: async () => ({
+      status: true,
+      data: {
+        reference: 'ref_test_1',
+        authorization_url: 'https://paystack.test/checkout/ref_test_1',
+      },
+    }),
+  }) as any
+})
 
 class InMemoryDB {
   rows: Record<string, any>[] = []
@@ -27,7 +30,7 @@ class InMemoryDB {
     this.rows.push(obj)
     return obj
   }
-  async update(table: string, updates: Record<string, any>, where: Record<string, any>) {
+  async update(table: string, where: Record<string, any>, updates: Record<string, any>) {
     const row = this.rows.find(r => Object.keys(where).every(k => r[k] === where[k]))
     if (row) Object.assign(row, updates)
     return row

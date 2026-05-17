@@ -10,6 +10,11 @@ const requiredPayment = [
   'PAYSTACK_SECRET_KEY',
 ] as const;
 
+const providerEnv = {
+  stripe: ['STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET'],
+  paystack: ['PAYSTACK_SECRET_KEY'],
+} as const;
+
 export function validatePublicRuntimeEnv() {
   const missing = requiredPublic.filter((k) => !process.env[k]);
   if (missing.length) throw new Error(`Missing required env vars: ${missing.join(', ')}`);
@@ -20,10 +25,22 @@ export function validatePaymentRuntimeEnv() {
   if (missing.length) throw new Error(`Missing required payment env vars: ${missing.join(', ')}`);
 }
 
+export function validateProviderRuntimeEnv(provider: keyof typeof providerEnv) {
+  const missing = providerEnv[provider].filter((key) => !process.env[key]);
+  if (missing.length) throw new Error(`Missing required ${provider} env vars: ${missing.join(', ')}`);
+}
+
+export function validateAiRuntimeEnv() {
+  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error('Missing AI provider env vars: configure OPENAI_API_KEY or ANTHROPIC_API_KEY');
+  }
+}
+
 export function getMvpDeploymentReadiness() {
   const checks = {
     publicEnv: requiredPublic.every((k) => Boolean(process.env[k])),
     paymentEnv: requiredPayment.every((k) => Boolean(process.env[k])),
+    aiProviderEnv: Boolean(process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY),
     supabaseServiceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
   };
 

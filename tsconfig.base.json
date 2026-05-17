@@ -53,6 +53,9 @@
       "@lummy/ai-os": [
         "packages/ai-os/src/index.ts"
       ],
+      "@lummy/ai-runtime": [
+        "packages/ai-runtime/src/index.ts"
+      ],
       "@lummy/ai-os-runtime": [
         "packages/ai-os-runtime/src/index.ts"
       ],
@@ -73,6 +76,9 @@
       ],
       "@lummy/automation-engine": [
         "packages/automation-engine/src/index.ts"
+      ],
+      "@lummy/automation-runtime": [
+        "packages/automation-runtime/src/index.ts"
       ],
       "@lummy/autonomous-commerce-runtime": [
         "packages/autonomous-commerce-runtime/src/index.ts"

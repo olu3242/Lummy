@@ -35,6 +35,14 @@ export function ensurePaymentProvidersConfigured() {
 
 export function ensureRuntimeReadiness() {
   ensurePaymentProvidersConfigured()
+
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error("Supabase runtime is not configured")
+  }
+
+  if (!process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error("No AI provider configured: set OPENAI_API_KEY or ANTHROPIC_API_KEY")
+  }
 }
 
 async function checkEnvReadiness(): Promise<ReadinessCheck> {
@@ -121,7 +129,7 @@ export async function computeReadiness(): Promise<ReadinessReport> {
     checkWebhookReadiness(),
   ])
 
-  const aiCheck = checkServiceReadiness("ai", ["ANTHROPIC_API_KEY"], true)
+  const aiCheck = checkServiceReadiness("ai", ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"], true)
   const paymentsCheck = checkServiceReadiness("payments", ["PAYSTACK_SECRET_KEY", "STRIPE_SECRET_KEY"], true)
   const waCheck = checkServiceReadiness("whatsapp", ["WHATSAPP_BUSINESS_TOKEN"], false)
 
