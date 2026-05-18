@@ -12,10 +12,17 @@ import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting"
 import { ShareStorePanel } from "@/components/dashboard/share-store-panel"
 import { Button } from "@/components/ui/button"
 import { mockDashboardStats, mockCreatorProfile } from "@/data/mock/dashboard"
+import { getAuthCreatorId, getCreatorMetrics } from "@/lib/queries/dashboard"
 
 const HANDLE = "sade.styles"
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  // Live data with graceful mock fallback
+  const creatorId = await getAuthCreatorId().catch(() => null)
+  const liveMetrics = creatorId
+    ? await getCreatorMetrics(creatorId).catch(() => null)
+    : null
+  const stats = liveMetrics?.stats ?? mockDashboardStats
   const firstName = mockCreatorProfile.name.split(" ")[0]
 
   return (
@@ -71,9 +78,9 @@ export default function DashboardPage() {
         </Button>
       </div>
 
-      {/* Stats grid */}
+      {/* Stats grid — live data if available */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockDashboardStats.map((stat, i) => (
+        {stats.map((stat, i) => (
           <StatsCard key={stat.id} stat={stat} index={i} />
         ))}
       </div>
