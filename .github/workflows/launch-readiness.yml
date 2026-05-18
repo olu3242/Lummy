@@ -1,0 +1,17 @@
+name: launch-readiness
+on: [push, pull_request]
+jobs:
+  launch_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run launch readiness audit
+        run: python3 scripts/reliability/launch_readiness.py
+      - name: Upload launch readiness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-readiness
+          path: artifacts/launch-readiness.json

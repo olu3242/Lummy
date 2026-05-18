@@ -160,11 +160,19 @@ function StoreSection() {
   const [form, setForm] = React.useState(() => loadLS(STORE_KEY, defaults))
   const [saved, setSaved] = React.useState(false)
 
-  const save = () => {
-    saveLS(STORE_KEY, form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })
+  const save = async () => {
+    try {
+      const res = await fetch('/api/storefront', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName: form.storeName, handle: form.handle, social_links: { instagram: form.instagram, twitter: form.twitter, tiktok: form.tiktok } }) })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error || 'Failed to save storefront settings')
+      saveLS(STORE_KEY, form)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to save storefront settings'
+      toast({ title: 'Store save failed', description: message, variant: 'destructive' })
+    }
   }
 
   const field = (key: keyof typeof defaults) => ({

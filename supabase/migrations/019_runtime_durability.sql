@@ -1,0 +1,8 @@
+create table if not exists public.job_executions (id uuid primary key default gen_random_uuid(), job_id text not null unique, tenant_id text not null, workflow_id text, state text not null, trace_id text not null, correlation_id text not null, causation_id text, worker_id text, started_at timestamptz, completed_at timestamptz, retry_count int not null default 0, execution_time_ms int, error_payload jsonb, created_at timestamptz not null default now());
+create table if not exists public.job_failures (id uuid primary key default gen_random_uuid(), job_id text not null, reason text not null, failed_at timestamptz not null default now());
+create table if not exists public.job_retries (id uuid primary key default gen_random_uuid(), job_id text not null, retry_at timestamptz not null, retry_count int not null, created_at timestamptz not null default now());
+create table if not exists public.job_dead_letters (id uuid primary key default gen_random_uuid(), job_id text not null, reason text not null, dead_lettered_at timestamptz not null default now());
+create table if not exists public.job_leases (id uuid primary key default gen_random_uuid(), job_id text not null, worker_id text not null, lease_until timestamptz not null, heartbeat_at timestamptz not null default now());
+create table if not exists public.job_replays (id uuid primary key default gen_random_uuid(), job_id text not null, replayed_by text not null, replayed_at timestamptz not null default now());
+create index if not exists idx_job_executions_tenant_state on public.job_executions(tenant_id, state);
+create index if not exists idx_job_leases_expiry on public.job_leases(lease_until);

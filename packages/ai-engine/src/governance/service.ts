@@ -1,0 +1,1 @@
+export class GovernanceService { enforceTokenBudget(requested: number, max: number) { if (requested > max) throw new Error("token cap exceeded") } requireApproval(approved: boolean) { if (!approved) throw new Error("prompt approval required") } }

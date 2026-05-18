@@ -1,0 +1,11 @@
+create table if not exists runtime_metrics (id uuid primary key default gen_random_uuid(), metric_name text not null, metric_value numeric not null, tags jsonb not null default '{}'::jsonb, observed_at timestamptz not null);
+create table if not exists deployment_events (id uuid primary key default gen_random_uuid(), release_id text not null, stage text not null, status text not null, created_at timestamptz not null default now());
+create table if not exists rollout_failures (id uuid primary key default gen_random_uuid(), release_id text not null, reason text not null, created_at timestamptz not null default now());
+create table if not exists replay_anomalies (id uuid primary key default gen_random_uuid(), subsystem text not null, entity_id text not null, details jsonb not null, created_at timestamptz not null default now());
+create table if not exists operational_alerts (id uuid primary key default gen_random_uuid(), severity text not null, summary text not null, payload jsonb not null, created_at timestamptz not null);
+create table if not exists feature_flags (id uuid primary key default gen_random_uuid(), flag_key text not null unique, enabled boolean not null default false, updated_at timestamptz not null default now());
+create table if not exists feature_rollouts (id uuid primary key default gen_random_uuid(), flag_key text not null, tenant_id text, rollout_percent int not null default 0, created_at timestamptz not null default now());
+create table if not exists rollout_audits (id uuid primary key default gen_random_uuid(), flag_key text not null, action text not null, actor text not null, created_at timestamptz not null default now());
+create table if not exists offline_sync_jobs (id uuid primary key default gen_random_uuid(), tenant_id text not null, session_id text not null, payload jsonb not null, state text not null, created_at timestamptz not null default now());
+create table if not exists mobile_sessions (id uuid primary key default gen_random_uuid(), session_id text not null unique, tenant_id text not null, heartbeat_at timestamptz not null);
+create table if not exists push_notification_logs (id uuid primary key default gen_random_uuid(), token text not null, title text not null, sent_at timestamptz not null);

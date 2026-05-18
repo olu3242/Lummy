@@ -1,0 +1,20 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "apps/admin"
+    },
+    {
+      "path": "apps/dashboard"
+    },
+    {
+      "path": "apps/developers"
+    },
+    {
+      "path": "apps/mobile"
+    },
+    {
+      "path": "apps/workers"
+    }
+  ]
+}

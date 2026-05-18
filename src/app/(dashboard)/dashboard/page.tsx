@@ -1,129 +1,88 @@
-import { Sparkles, ArrowRight, Plus, ExternalLink } from "lucide-react"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { StatsCard } from "@/components/dashboard/stats-card"
-import { RevenueChart } from "@/components/dashboard/revenue-chart"
-import { OrderSourcesChart } from "@/components/dashboard/order-sources-chart"
-import { RecentOrders } from "@/components/dashboard/recent-orders"
-import { TopProducts } from "@/components/dashboard/top-products"
-import { ActivityFeed } from "@/components/dashboard/activity-feed"
-import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist"
-import { DashboardGreeting } from "@/components/dashboard/dashboard-greeting"
-import { ShareStorePanel } from "@/components/dashboard/share-store-panel"
-import { Button } from "@/components/ui/button"
-import { mockDashboardStats, mockCreatorProfile } from "@/data/mock/dashboard"
-import { getAuthCreatorId, getCreatorMetrics } from "@/lib/queries/dashboard"
-
-const HANDLE = "sade.styles"
+import { redirect } from 'next/navigation'
+import { Sparkles, ArrowRight, Plus, ExternalLink } from 'lucide-react'
+import Link from 'next/link'
+import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
+import { DashboardGreeting } from '@/components/dashboard/dashboard-greeting'
+import { ShareStorePanel } from '@/components/dashboard/share-store-panel'
+import { Button } from '@/components/ui/button'
+import { topActions } from '@/data/mock/dashboard-overview'
+import { DashboardOverview } from '@/components/dashboard'
+import { resolveTopActions } from '@/lib/dashboard-overview'
+import { createClient } from '@/lib/supabase/server'
+import { logApiEvent } from '@/lib/ops-observability'
 
 export default async function DashboardPage() {
-  // Live data with graceful mock fallback
-  const creatorId = await getAuthCreatorId().catch(() => null)
-  const liveMetrics = creatorId
-    ? await getCreatorMetrics(creatorId).catch(() => null)
-    : null
-  const stats = liveMetrics?.stats ?? mockDashboardStats
-  const firstName = mockCreatorProfile.name.split(" ")[0]
+  const correlationId = crypto.randomUUID()
+  const supabase = await createClient()
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) redirect('/login')
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('full_name,onboarding_completed,organization_id')
+    .eq('id', auth.user.id)
+    .maybeSingle()
+
+  if (profileError) {
+    logApiEvent('error', 'dashboard.profile_query_failed', { correlationId, message: profileError.message, userId: auth.user.id })
+    redirect('/onboarding?error=profile-load')
+  }
+
+  if (!profile?.onboarding_completed || !profile.organization_id) {
+    redirect('/onboarding')
+  }
+
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('organization_id', profile.organization_id)
+    .eq('user_id', auth.user.id)
+    .maybeSingle()
+
+  if (membership.error) {
+    logApiEvent('error', 'dashboard.membership_query_failed', { correlationId, message: membership.error.message, userId: auth.user.id })
+    redirect('/onboarding?error=membership-load')
+  }
+  if (!membership.data) redirect('/onboarding')
+
+  const firstName = (profile.full_name || auth.user.email || 'Creator').split(' ')[0]
+  const storefront = await supabase
+    .from('storefronts')
+    .select('handle')
+    .eq('organization_id', profile.organization_id)
+    .maybeSingle()
+  const resolvedTopActions = resolveTopActions(topActions, storefront.data?.handle ?? 'dashboard')
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-[1400px] mx-auto">
-      {/* Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <DashboardGreeting firstName={firstName} />
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Here&apos;s what&apos;s happening with your store.
-          </p>
+          <p className="text-sm text-muted-foreground mt-0.5">Here&apos;s what&apos;s happening with your store.</p>
         </div>
-
-        {/* Quick actions */}
         <div className="flex gap-2 flex-wrap">
-          <Link href="/dashboard/products"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors bg-brand-purple/10 text-brand-purple hover:bg-brand-purple/20">
-            <Plus className="h-3.5 w-3.5" /> Add Product
-          </Link>
-
+          {resolvedTopActions.map((action) => {
+            const Icon = action.icon === 'plus' ? Plus : action.icon === 'sparkles' ? Sparkles : ExternalLink
+            return (
+              <Link key={action.label} href={action.href} target={action.external ? '_blank' : undefined}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors ${action.colorClass}`}>
+                <Icon className="h-3.5 w-3.5" /> {action.label}
+              </Link>
+            )
+          })}
           <ShareStorePanel />
-
-          <Link href="/dashboard/ai"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors bg-brand-coral/10 text-brand-coral hover:bg-brand-coral/20">
-            <Sparkles className="h-3.5 w-3.5" /> AI Caption
-          </Link>
-
-          <Link href={`/${HANDLE}`} target="_blank"
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-colors bg-amber-500/10 text-amber-500 hover:bg-amber-500/20">
-            <ExternalLink className="h-3.5 w-3.5" /> View Store
-          </Link>
         </div>
       </div>
 
-      {/* Onboarding checklist */}
       <OnboardingChecklist />
 
-      {/* AI banner */}
       <div className="rounded-2xl border border-brand-purple/20 bg-brand-purple/5 px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-purple/10 border border-brand-purple/20">
-          <Sparkles className="h-5 w-5 text-brand-purple" />
-        </div>
-        <div className="flex-1">
-          <p className="text-sm font-semibold">Your AI weekly brief is ready</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            3 campaign ideas, 5 caption drafts, and 2 pricing recommendations based on last week&apos;s data.
-          </p>
-        </div>
-        <Button size="sm" variant="default" asChild>
-          <Link href="/dashboard/ai" className="flex items-center gap-1.5">
-            View Brief <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </Button>
+        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-purple/10 border border-brand-purple/20"><Sparkles className="h-5 w-5 text-brand-purple" /></div>
+        <div className="flex-1"><p className="text-sm font-semibold">Your AI weekly brief is ready</p><p className="text-xs text-muted-foreground mt-0.5">3 campaign ideas, 5 caption drafts, and 2 pricing recommendations based on last week&apos;s data.</p></div>
+        <Button size="sm" variant="default" asChild><Link href="/dashboard/ai" className="flex items-center gap-1.5">View Brief <ArrowRight className="h-3.5 w-3.5" /></Link></Button>
       </div>
 
-      {/* Stats grid — live data if available */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
-          <StatsCard key={stat.id} stat={stat} index={i} />
-        ))}
-      </div>
-
-      {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <RevenueChart />
-        </div>
-        <OrderSourcesChart />
-      </div>
-
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2">
-          <RecentOrders limit={5} />
-        </div>
-        <TopProducts />
-      </div>
-
-      {/* Live activity + mini top-products */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4" style={{ minHeight: 340 }}>
-        <div className="lg:col-span-2 h-[340px]">
-          <ActivityFeed />
-        </div>
-        <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-          <p className="text-sm font-bold">Quick Actions</p>
-          {[
-            { label: "Create new order", href: "/dashboard/orders/new",  color: "bg-brand-purple/10 text-brand-purple" },
-            { label: "Add product",      href: "/dashboard/products/new", color: "bg-brand-green/10 text-brand-green"  },
-            { label: "Send broadcast",   href: "/dashboard/broadcast",    color: "bg-[#25D366]/10 text-[#25D366]"     },
-            { label: "View reports",     href: "/dashboard/reports",      color: "bg-amber-500/10 text-amber-500"     },
-            { label: "Add discount",     href: "/dashboard/discounts",    color: "bg-brand-coral/10 text-brand-coral" },
-            { label: "Check inventory",  href: "/dashboard/inventory",    color: "bg-brand-indigo/10 text-brand-indigo"},
-          ].map((item) => (
-            <Link key={item.label} href={item.href}
-              className={cn("flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all hover:opacity-80", item.color)}>
-              {item.label}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Link>
-          ))}
-        </div>
-      </div>
+      <DashboardOverview />
     </div>
   )
 }

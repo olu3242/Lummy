@@ -1,13 +1,26 @@
 {
-  "name": "lummy-web",
+  "name": "lummy-workspace",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "turbo run build",
     "start": "next start",
-    "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "check:deps": "madge --circular --extensions ts --exclude \"(^|/)dist/\" packages apps",
+    "check:imports": "eslint . --max-warnings=0",
+    "validate:migrations": "test -d supabase/migrations && find supabase/migrations -name \"*.sql\" | wc -l",
+    "ci:validate": "pnpm run typecheck && pnpm run lint && pnpm run check:deps && pnpm run validate:migrations",
+    "check:graph": "madge --circular --extensions ts --exclude \"(^|/)dist/\" packages apps src",
+    "build:determinism": "pnpm turbo run build --force --summarize",
+    "build:references": "tsc -b tsconfig.packages.json tsconfig.apps.json --pretty false",
+    "release:preflight": "pnpm check:graph && pnpm build:references && pnpm turbo run typecheck lint",
+    "reliability:certify": "python3 scripts/reliability/certify.py",
+    "reliability:enterprise": "python3 scripts/reliability/enterprise_certify.py",
+    "launch:readiness": "python3 scripts/reliability/launch_readiness.py",
+    "reliability:controlled-beta": "python3 scripts/reliability/controlled_beta_certify.py",
+    "reliability:final-certify": "python3 scripts/reliability/final_enterprise_certify.py"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.96.0",
@@ -22,10 +35,12 @@
     "next-themes": "^0.4.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.76.0",
-    "recharts": "^3.8.1",
+    "framer-motion": "^11.3.19",
+    "lucide-react": "^0.383.0",
+    "clsx": "^2.1.1",
     "tailwind-merge": "^2.4.0",
-    "zod": "^4.4.3"
+    "@supabase/supabase-js": "^2.57.4",
+    "@supabase/ssr": "^0.7.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.12",
@@ -36,6 +51,14 @@
     "eslint-config-next": "14.2.5",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
-    "typescript": "^5.5.4"
-  }
+    "typescript": "^5.5.4",
+    "turbo": "^2.0.0",
+    "madge": "^8.0.0",
+    "eslint-plugin-boundaries": "^4.2.2"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "packageManager": "pnpm@10.28.1"
 }

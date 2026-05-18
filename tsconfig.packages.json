@@ -1,0 +1,290 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "packages/adaptive-optimization-layer"
+    },
+    {
+      "path": "packages/ads-engine"
+    },
+    {
+      "path": "packages/affiliate-network"
+    },
+    {
+      "path": "packages/agent-marketplace"
+    },
+    {
+      "path": "packages/agent-orchestrator"
+    },
+    {
+      "path": "packages/agent-registry"
+    },
+    {
+      "path": "packages/agent-settlement-engine"
+    },
+    {
+      "path": "packages/ai-engine"
+    },
+    {
+      "path": "packages/ai-evolution"
+    },
+    {
+      "path": "packages/ai-orchestrator"
+    },
+    {
+      "path": "packages/ai-os"
+    },
+    {
+      "path": "packages/ai-os-runtime"
+    },
+    {
+      "path": "packages/ai-skill-runtime"
+    },
+    {
+      "path": "packages/ambient-ai-runtime"
+    },
+    {
+      "path": "packages/analytics-engine"
+    },
+    {
+      "path": "packages/api-governance"
+    },
+    {
+      "path": "packages/api-platform"
+    },
+    {
+      "path": "packages/automation-engine"
+    },
+    {
+      "path": "packages/autonomous-commerce-runtime"
+    },
+    {
+      "path": "packages/autonomous-decision-runtime"
+    },
+    {
+      "path": "packages/billing-governance"
+    },
+    {
+      "path": "packages/capability-registry"
+    },
+    {
+      "path": "packages/cognitive-engine"
+    },
+    {
+      "path": "packages/commerce-engine"
+    },
+    {
+      "path": "packages/community-system"
+    },
+    {
+      "path": "packages/compliance"
+    },
+    {
+      "path": "packages/compliance-runtime"
+    },
+    {
+      "path": "packages/contextual-presence-layer"
+    },
+    {
+      "path": "packages/creator-finance"
+    },
+    {
+      "path": "packages/creator-network"
+    },
+    {
+      "path": "packages/data-intelligence"
+    },
+    {
+      "path": "packages/db-core"
+    },
+    {
+      "path": "packages/deployment-governance"
+    },
+    {
+      "path": "packages/developer-auth"
+    },
+    {
+      "path": "packages/developer-platform"
+    },
+    {
+      "path": "packages/economic-coordination-network"
+    },
+    {
+      "path": "packages/economic-intelligence"
+    },
+    {
+      "path": "packages/ecosystem-api"
+    },
+    {
+      "path": "packages/ecosystem-billing"
+    },
+    {
+      "path": "packages/ecosystem-governance"
+    },
+    {
+      "path": "packages/ecosystem-marketplace"
+    },
+    {
+      "path": "packages/ecosystem-telemetry"
+    },
+    {
+      "path": "packages/embed-platform"
+    },
+    {
+      "path": "packages/enterprise-expansion"
+    },
+    {
+      "path": "packages/enterprise-governance"
+    },
+    {
+      "path": "packages/event-platform"
+    },
+    {
+      "path": "packages/event-registry"
+    },
+    {
+      "path": "packages/events"
+    },
+    {
+      "path": "packages/execution-control-plane"
+    },
+    {
+      "path": "packages/feature-flags"
+    },
+    {
+      "path": "packages/federated-grid"
+    },
+    {
+      "path": "packages/geo-routing-control-plane"
+    },
+    {
+      "path": "packages/global-region-runtime"
+    },
+    {
+      "path": "packages/governance"
+    },
+    {
+      "path": "packages/growth-engine"
+    },
+    {
+      "path": "packages/incentive-governance-runtime"
+    },
+    {
+      "path": "packages/infrastructure"
+    },
+    {
+      "path": "packages/intelligence-engine"
+    },
+    {
+      "path": "packages/live-optimization"
+    },
+    {
+      "path": "packages/market-expansion"
+    },
+    {
+      "path": "packages/messaging"
+    },
+    {
+      "path": "packages/meta-orchestrator"
+    },
+    {
+      "path": "packages/mobile-runtime"
+    },
+    {
+      "path": "packages/multimodal-interaction-engine"
+    },
+    {
+      "path": "packages/observability"
+    },
+    {
+      "path": "packages/operational-readiness"
+    },
+    {
+      "path": "packages/org-governance"
+    },
+    {
+      "path": "packages/partner-network"
+    },
+    {
+      "path": "packages/payments"
+    },
+    {
+      "path": "packages/platform-core"
+    },
+    {
+      "path": "packages/platform-health"
+    },
+    {
+      "path": "packages/platform-sdk"
+    },
+    {
+      "path": "packages/plugin-runtime"
+    },
+    {
+      "path": "packages/policy-engine"
+    },
+    {
+      "path": "packages/predictive-intelligence-engine"
+    },
+    {
+      "path": "packages/prompt-registry"
+    },
+    {
+      "path": "packages/public-api"
+    },
+    {
+      "path": "packages/recommendation-engine"
+    },
+    {
+      "path": "packages/regionalization"
+    },
+    {
+      "path": "packages/repositories"
+    },
+    {
+      "path": "packages/runtime-governance"
+    },
+    {
+      "path": "packages/runtime-hardening"
+    },
+    {
+      "path": "packages/runtime-orchestrator"
+    },
+    {
+      "path": "packages/security-governance"
+    },
+    {
+      "path": "packages/shared-types"
+    },
+    {
+      "path": "packages/simulation-engine"
+    },
+    {
+      "path": "packages/skill-governance-engine"
+    },
+    {
+      "path": "packages/sovereign-data-engine"
+    },
+    {
+      "path": "packages/strategy-simulation-runtime"
+    },
+    {
+      "path": "packages/telemetry"
+    },
+    {
+      "path": "packages/tenant-policy-runtime"
+    },
+    {
+      "path": "packages/tool-registry"
+    },
+    {
+      "path": "packages/trust-engine"
+    },
+    {
+      "path": "packages/universal-interface-runtime"
+    },
+    {
+      "path": "packages/workflow-engine"
+    }
+  ]
+}

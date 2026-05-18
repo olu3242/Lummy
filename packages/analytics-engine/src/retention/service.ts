@@ -1,0 +1,2 @@
+import type { DatabaseClient } from "@lummy/db-core"
+export class RetentionService { constructor(private readonly db: DatabaseClient) {} async record(tenantId: string, cohortKey: string, dayIndex: number, retainedUsers: number) { return this.db.upsert("cohort_retention", { tenant_id: tenantId, cohort_key: cohortKey, day_index: dayIndex, retained_users: retainedUsers, updated_at: new Date().toISOString() }) } }

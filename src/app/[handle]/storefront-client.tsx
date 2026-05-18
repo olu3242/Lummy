@@ -153,16 +153,8 @@ function StarRow({ rating, small }: { rating: number; small?: boolean }) {
   )
 }
 
-export function StorefrontClient({
-  handle,
-  dbCreatorId: _dbCreatorId,
-  dbStoreSchema,
-}: {
-  handle: string
-  dbCreatorId?: string
-  dbStoreSchema?: Json | null
-}) {
-  const creator = storefrontCreator
+export function StorefrontClient({ handle, storeName, bio }: { handle: string; storeName: string; bio: string }) {
+  const creator = { ...storefrontCreator, handle, storeName, bio: bio || storefrontCreator.bio }
   const [schema, setSchema] = React.useState<StoreSchema | null>(null)
 
   const storeUrl = `https://lummy.co/${creator.handle}`

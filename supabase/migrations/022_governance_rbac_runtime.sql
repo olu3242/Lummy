@@ -1,0 +1,7 @@
+create table if not exists org_roles (id uuid primary key, org_id uuid not null, role_key text not null, created_at timestamptz not null default now());
+create table if not exists org_permissions (id uuid primary key, permission_key text not null, scope text not null, created_at timestamptz not null default now());
+create table if not exists org_role_assignments (id uuid primary key, org_id uuid not null, tenant_id uuid not null, subject_id uuid not null, role_id uuid not null references org_roles(id), expires_at timestamptz, created_at timestamptz not null default now());
+create table if not exists policy_assignments (id uuid primary key, tenant_id uuid not null, policy_id text not null, target_type text not null, target_id text not null, created_at timestamptz not null default now());
+create table if not exists policy_violations (id uuid primary key, tenant_id uuid not null, policy_id text not null, severity text not null, details jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists runtime_enforcements (id uuid primary key, tenant_id uuid not null, enforcement_type text not null, outcome text not null, details jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
+create table if not exists audit_actions (id uuid primary key, tenant_id uuid not null, actor_id uuid not null, action text not null, target_type text not null, target_id text not null, metadata jsonb not null default '{}'::jsonb, created_at timestamptz not null default now());
