@@ -6,6 +6,7 @@ import {
   RefreshCw, TrendingUp, CreditCard, Activity,
   Database, Shield, Users, Target, Play, Heart,
   Ticket, Flag, Rocket, BarChart2, AlertOctagon,
+  Share2, ShoppingBag, Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -46,6 +47,14 @@ interface StatCard {
   sub?: string
   icon: React.ReactNode
   status?: "ok" | "warn" | "error"
+}
+
+interface EcosystemData {
+  referrals: { totalReferrals: number; activated: number; rewarded: number; topReferrers: Array<{ handle: string; referred: number; activated: number }> } | null
+  collaborations: { totalActive: number; byType: Record<string, number>; recentActivity: number } | null
+  customers: { totalUniqueCustomers: number; avgRepeatRate: number; platformAvgCLVKobo: number } | null
+  monetizationSegments: Array<{ label: string; creatorCount: number; avgRevenueKobo: number }>
+  commerceOps: { totalPendingOrders: number; totalOverdueOrders: number; platformAvgFulfillmentDays: number; creatorsWithOverdue: number } | null
 }
 
 interface GrowthMetrics {
@@ -165,6 +174,7 @@ export default function OpsPage() {
   const [automationStats, setAutomationStats] = React.useState<{ pendingEvents: number; processedLast24h: number; stalledEvents: number } | null>(null)
   const [churnRisk, setChurnRisk] = React.useState<{ critical: number; high: number; medium: number; low: number; total: number } | null>(null)
   const [recentJobs, setRecentJobs] = React.useState<Array<{ job_name: string; status: string; completed_at: string | null }>>([])
+  const [ecosystem, setEcosystem] = React.useState<EcosystemData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -269,6 +279,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchEcosystem = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/ecosystem", { cache: "no-store" })
+      if (res.ok) setEcosystem(await res.json() as EcosystemData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -287,17 +304,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -855,6 +872,142 @@ export default function OpsPage() {
             <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
           )}
         </div>
+      </div>
+
+      {/* Ecosystem — Referrals + Collaborations + Customer Intelligence */}
+      <div className="space-y-4">
+        <h2 className="text-white font-semibold flex items-center gap-2 text-sm">
+          <Globe className="h-4 w-4 text-white/40" />
+          Creator Ecosystem
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Referral network */}
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Share2 className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Referral Network</h3>
+            </div>
+            {ecosystem?.referrals ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Total referrals</span>
+                  <span className="text-white font-medium">{ecosystem.referrals.totalReferrals}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Activated</span>
+                  <span className="text-brand-green font-medium">{ecosystem.referrals.activated}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Rewarded</span>
+                  <span className="text-white/70 font-medium">{ecosystem.referrals.rewarded}</span>
+                </div>
+                {ecosystem.referrals.topReferrers.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-white/5">
+                    <p className="text-[10px] text-white/30 mb-1.5">TOP REFERRERS</p>
+                    {ecosystem.referrals.topReferrers.slice(0, 3).map(r => (
+                      <div key={r.handle} className="flex justify-between text-xs py-0.5">
+                        <span className="text-white/60">@{r.handle}</span>
+                        <span className="text-white/40">{r.referred} referred</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-20 animate-pulse bg-white/5 rounded-lg" />
+            )}
+          </div>
+
+          {/* Collaborations */}
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Collaborations</h3>
+            </div>
+            {ecosystem?.collaborations ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Active</span>
+                  <span className="text-brand-green font-medium">{ecosystem.collaborations.totalActive}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Activity (7d)</span>
+                  <span className="text-white font-medium">{ecosystem.collaborations.recentActivity}</span>
+                </div>
+                {Object.entries(ecosystem.collaborations.byType).map(([type, count]) => (
+                  <div key={type} className="flex justify-between text-xs">
+                    <span className="text-white/40 capitalize">{type.replace("_", " ")}</span>
+                    <span className="text-white/60">{count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="h-20 animate-pulse bg-white/5 rounded-lg" />
+            )}
+          </div>
+
+          {/* Commerce ops */}
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <ShoppingBag className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Commerce Ops</h3>
+              {ecosystem?.commerceOps && ecosystem.commerceOps.totalOverdueOrders > 0 && (
+                <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">
+                  {ecosystem.commerceOps.totalOverdueOrders} overdue
+                </span>
+              )}
+            </div>
+            {ecosystem?.commerceOps ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Pending orders</span>
+                  <span className="text-white font-medium">{ecosystem.commerceOps.totalPendingOrders}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Avg fulfillment</span>
+                  <span className={cn("font-medium",
+                    ecosystem.commerceOps.platformAvgFulfillmentDays < 2 ? "text-brand-green" : "text-amber-400"
+                  )}>
+                    {ecosystem.commerceOps.platformAvgFulfillmentDays}d
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Creators w/ overdue</span>
+                  <span className={cn("font-medium",
+                    ecosystem.commerceOps.creatorsWithOverdue === 0 ? "text-brand-green" : "text-red-400"
+                  )}>
+                    {ecosystem.commerceOps.creatorsWithOverdue}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="h-20 animate-pulse bg-white/5 rounded-lg" />
+            )}
+          </div>
+        </div>
+
+        {/* Monetization segments */}
+        {ecosystem?.monetizationSegments && ecosystem.monetizationSegments.length > 0 && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <TrendingUp className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Revenue Segmentation (30d)</h3>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {ecosystem.monetizationSegments.map(seg => (
+                <div key={seg.label} className="rounded-xl bg-white/3 p-3">
+                  <p className="text-xs text-white/40 mb-1">{seg.label}</p>
+                  <p className="text-lg font-bold text-white">{seg.creatorCount}</p>
+                  {seg.avgRevenueKobo > 0 && (
+                    <p className="text-[10px] text-white/30 mt-0.5">
+                      avg ₦{(seg.avgRevenueKobo / 100).toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick links */}
