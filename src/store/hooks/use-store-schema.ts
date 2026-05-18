@@ -34,8 +34,26 @@ export function useStoreSchema() {
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    setSchema(loadSchema())
+    const local = loadSchema()
+    setSchema(local)
     setHydrated(true)
+
+    // Background: fetch server schema and merge if it's newer (version check)
+    fetch("/api/store/schema")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { schema?: unknown } | null) => {
+        if (data?.schema && typeof data.schema === "object") {
+          const serverSchema = data.schema as import("../schema/types").StoreSchema
+          // Server wins if it has version 2 and local is default
+          setSchema(prev => {
+            const isDefault = prev.sections.length === local.sections.length &&
+              prev.theme.accent === local.theme.accent
+            return (serverSchema.version === 2 && isDefault) ? serverSchema : prev
+          })
+        }
+      })
+      .catch(() => { /* network unavailable — stay with local */ })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const updateTheme = useCallback((patch: Partial<ThemeTokens>) => {
@@ -99,12 +117,30 @@ export function useStoreSchema() {
     setSchema(s => ({ ...s, hours: { ...s.hours, ...patch } }))
   }, [])
 
-  const save = useCallback(() => {
+  const save = useCallback(async () => {
+    // Always persist to localStorage as fast local cache
     try {
       localStorage.setItem(SCHEMA_KEY, JSON.stringify(schema))
-      toast({ title: "Store saved!", description: "Your changes are live.", variant: "success" })
+    } catch { /* ignore quota errors */ }
+
+    // Persist to Supabase if authenticated
+    try {
+      const res = await fetch("/api/store/schema", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schema }),
+      })
+      if (res.ok) {
+        toast({ title: "Store saved!", description: "Your changes are live.", variant: "success" })
+      } else if (res.status === 401) {
+        // Not logged in — local save still succeeded
+        toast({ title: "Store saved locally", description: "Sign in to sync across devices.", variant: "default" })
+      } else {
+        toast({ title: "Save failed", description: "Could not sync to cloud.", variant: "error" })
+      }
     } catch {
-      toast({ title: "Save failed", description: "Could not save changes.", variant: "error" })
+      // Network error — local save already succeeded
+      toast({ title: "Saved locally", description: "Changes saved on this device.", variant: "default" })
     }
   }, [schema])
 

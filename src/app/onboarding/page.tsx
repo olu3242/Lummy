@@ -2,7 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { createClient } from "@/lib/supabase/client"
 import {
   ShoppingBag,
   Sparkles,
@@ -561,8 +563,10 @@ const slideVariants = {
 }
 
 export default function OnboardingPage() {
+  const router = useRouter()
   const [step, setStep] = React.useState(1)
   const [dir, setDir] = React.useState(1)
+  const [submitting, setSubmitting] = React.useState(false)
   const [data, setData] = React.useState<WizardData>({
     creatorType: "",
     storeName: "",
@@ -589,8 +593,56 @@ export default function OnboardingPage() {
     return true
   }
 
-  const next = () => {
+  const persistOnboarding = async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const profileUpdate: Record<string, unknown> = {
+      business_name: data.storeName,
+      handle: data.handle,
+      whatsapp_number: data.whatsapp,
+      niche: data.niche,
+      location: data.location,
+      creator_type: data.creatorType || "product_seller",
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    }
+    if (data.bankName) profileUpdate["metadata"] = { bank_name: data.bankName, account_number: data.accountNumber, account_name: data.accountName }
+
+    await supabase.from("creator_profiles").update(profileUpdate).eq("user_id", user.id)
+
+    if (data.addProduct && data.productName && data.productPrice) {
+      const { data: profile } = await supabase
+        .from("creator_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .single()
+
+      if (profile?.id) {
+        const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
+        void Promise.resolve(supabase.from("products").insert({
+          creator_id: profile.id,
+          name: data.productName,
+          description: data.productDesc || null,
+          price: priceKobo,
+          currency: "NGN",
+          type: "physical",
+          category: data.productCategory || "Other",
+          is_published: true,
+        })).catch(console.error)
+      }
+    }
+  }
+
+  const next = async () => {
     if (!canAdvance()) return
+    // Persist when leaving the bank setup step (step 4 → 5)
+    if (step === 4) {
+      setSubmitting(true)
+      await persistOnboarding().catch(console.error)
+      setSubmitting(false)
+    }
     setDir(1)
     setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
@@ -684,20 +736,27 @@ export default function OnboardingPage() {
           {step < TOTAL_STEPS ? (
             <Button
               size="lg"
-              onClick={next}
-              disabled={!canAdvance()}
-              className={cn("flex-1 gap-2", !canAdvance() && "opacity-40")}
+              onClick={() => void next()}
+              disabled={!canAdvance() || submitting}
+              className={cn("flex-1 gap-2", (!canAdvance() || submitting) && "opacity-40")}
             >
-              Continue
-              <ArrowRight className="h-4 w-4" />
+              {submitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           ) : (
             <div className="flex-1 flex flex-col gap-3">
-              <Button size="lg" className="w-full gap-2" asChild>
-                <Link href="/dashboard">
-                  Go to Dashboard
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+              <Button size="lg" className="w-full gap-2" onClick={() => router.push("/dashboard")}>
+                Go to Dashboard
+                <ArrowRight className="h-4 w-4" />
               </Button>
               <Button variant="whatsapp" size="lg" className="w-full gap-2">
                 <MessageCircle className="h-5 w-5 fill-white" />
