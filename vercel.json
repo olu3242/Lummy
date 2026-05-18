@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/analytics-rollup",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/health-scoring",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/churn-scoring",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/notification-cleanup",
+      "schedule": "0 4 * * *"
+    }
+  ]
+}
