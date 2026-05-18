@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import {
-  AlertTriangle, CheckCircle2, Clock, Zap, MessageCircle,
+  AlertTriangle, CheckCircle2, Zap, MessageCircle,
   RefreshCw, TrendingUp, CreditCard, Activity,
   Database, Shield, Users, Target, Play, Heart,
-  Ticket, Flag, Rocket,
+  Ticket, Flag, Rocket, BarChart2, AlertOctagon,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -140,6 +140,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 const JOB_LABELS: Record<string, string> = {
   health_scoring:       "Health Scoring",
+  churn_scoring:        "Churn Scoring",
   automation_processor: "Automation Processor",
   webhook_retry:        "Webhook Retry",
   notification_cleanup: "Notification Cleanup",
@@ -161,6 +162,9 @@ export default function OpsPage() {
   const [openTickets, setOpenTickets] = React.useState<number | null>(null)
   const [paymentHealth, setPaymentHealth] = React.useState<{ successRate: number; stalePending: number; total: number } | null>(null)
   const [onboardingBatch, setOnboardingBatch] = React.useState<{ topDropOffPoint: string; avgActivationScore: number; fullyActivated: number; totalCreators: number } | null>(null)
+  const [automationStats, setAutomationStats] = React.useState<{ pendingEvents: number; processedLast24h: number; stalledEvents: number } | null>(null)
+  const [churnRisk, setChurnRisk] = React.useState<{ critical: number; high: number; medium: number; low: number; total: number } | null>(null)
+  const [recentJobs, setRecentJobs] = React.useState<Array<{ job_name: string; status: string; completed_at: string | null }>>([])
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -233,6 +237,18 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchAutomation = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/automation", { cache: "no-store" })
+      if (res.ok) {
+        const { automation, churnRisk: cr, recentJobs: rj } = await res.json()
+        if (automation) setAutomationStats(automation)
+        if (cr) setChurnRisk(cr)
+        if (rj) setRecentJobs(rj)
+      }
+    } catch {}
+  }, [])
+
   const fetchFlags = React.useCallback(async () => {
     try {
       const res = await fetch("/api/flags", { cache: "no-store" })
@@ -271,17 +287,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -577,6 +593,89 @@ export default function OpsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Churn risk + Automation health */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Churn risk distribution */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertOctagon className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Churn Risk</h2>
+            {churnRisk && churnRisk.critical > 0 && (
+              <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-red-500/15 text-red-400">
+                {churnRisk.critical} critical
+              </span>
+            )}
+          </div>
+          {churnRisk && churnRisk.total > 0 ? (
+            <div className="space-y-2">
+              {[
+                { label: "Critical", value: churnRisk.critical, color: "bg-red-500", text: "text-red-400" },
+                { label: "High",     value: churnRisk.high,     color: "bg-amber-500", text: "text-amber-400" },
+                { label: "Medium",   value: churnRisk.medium,   color: "bg-yellow-400", text: "text-yellow-300" },
+                { label: "Low",      value: churnRisk.low,      color: "bg-brand-green", text: "text-brand-green" },
+              ].map(row => (
+                <div key={row.label} className="flex items-center gap-3">
+                  <span className="text-xs text-white/50 w-14">{row.label}</span>
+                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className={cn("h-full rounded-full", row.color)}
+                      style={{ width: `${Math.round(row.value / churnRisk.total * 100)}%` }}
+                    />
+                  </div>
+                  <span className={cn("text-xs font-medium w-6 text-right", row.text)}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <p className="text-xs text-white/30">Run churn_scoring job to populate</p>
+            </div>
+          )}
+        </div>
+
+        {/* Automation health */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart2 className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Automation Health</h2>
+            {automationStats && automationStats.stalledEvents > 0 && (
+              <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400">
+                {automationStats.stalledEvents} stalled
+              </span>
+            )}
+          </div>
+          {automationStats ? (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Pending events</span>
+                <span className="text-white font-medium">{automationStats.pendingEvents}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Processed (24h)</span>
+                <span className="text-brand-green font-medium">{automationStats.processedLast24h}</span>
+              </div>
+              {recentJobs.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-white/5 space-y-1">
+                  {recentJobs.slice(0, 3).map((job, i) => (
+                    <div key={i} className="flex items-center justify-between">
+                      <span className="text-[10px] text-white/40 truncate">{job.job_name}</span>
+                      <span className={cn("text-[10px] font-medium",
+                        job.status === "success" ? "text-brand-green" :
+                        job.status === "running" ? "text-amber-400 animate-pulse" : "text-red-400"
+                      )}>
+                        {job.status}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
+          )}
+        </div>
       </div>
 
       {/* Launch readiness + Support + Feature Flags row */}

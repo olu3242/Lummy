@@ -2,6 +2,7 @@ import { createAdminClient } from "@/lib/supabase/server"
 import { logger } from "@/lib/observability/logger"
 import { recomputeAllHealthScores } from "@/lib/growth/health"
 import { processAutomationEvent } from "@/lib/automation/handlers"
+import { runChurnScoringJob } from "@/lib/creator/churn"
 import type { AutomationEventName } from "@/lib/automation/events"
 
 export interface JobResult {
@@ -97,8 +98,21 @@ export async function runNotificationCleanupJob(): Promise<JobResult> {
   }
 }
 
+/** Daily: compute churn risk scores for all active creators */
+export async function runChurnScoringJobWorker(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const result = await runChurnScoringJob(200)
+    logger.info("[job] churn_scoring complete", result as unknown as Record<string, unknown>)
+    return { jobName: "churn_scoring", ok: true, durationMs: Date.now() - start, processed: result.scored }
+  } catch (err) {
+    return { jobName: "churn_scoring", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:        runHealthScoringJob,
+  churn_scoring:         runChurnScoringJobWorker,
   automation_processor:  runAutomationProcessorJob,
   webhook_retry:         runWebhookRetryJob,
   notification_cleanup:  runNotificationCleanupJob,
