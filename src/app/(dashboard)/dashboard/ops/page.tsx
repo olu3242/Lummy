@@ -3,8 +3,8 @@
 import * as React from "react"
 import {
   AlertTriangle, CheckCircle2, Clock, Zap, MessageCircle,
-  RefreshCw, TrendingUp, CreditCard, Upload, Activity,
-  XCircle, AlertCircle, Database, Shield,
+  RefreshCw, TrendingUp, CreditCard, Activity,
+  Database, Shield, Users, Target, Play, Heart,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -45,6 +45,22 @@ interface StatCard {
   sub?: string
   icon: React.ReactNode
   status?: "ok" | "warn" | "error"
+}
+
+interface GrowthMetrics {
+  totalCreators: number
+  publishedCreators: number
+  creatorsWithProducts: number
+  creatorsWithSales: number
+  newCreators30d: number
+}
+
+interface HealthDistribution {
+  totalScored: number
+  healthy: number
+  atRisk: number
+  churned: number
+  avgScore: number
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -107,13 +123,24 @@ const STATUS_COLOR: Record<string, string> = {
   dead:      "text-red-600 bg-red-600/15",
 }
 
+const JOB_LABELS: Record<string, string> = {
+  health_scoring:       "Health Scoring",
+  automation_processor: "Automation Processor",
+  webhook_retry:        "Webhook Retry",
+  notification_cleanup: "Notification Cleanup",
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function OpsPage() {
   const [health, setHealth] = React.useState<HealthData | null>(null)
   const [webhooks, setWebhooks] = React.useState<WebhookEvent[]>([])
+  const [growth, setGrowth] = React.useState<GrowthMetrics | null>(null)
+  const [healthDist, setHealthDist] = React.useState<HealthDistribution | null>(null)
+  const [runningJob, setRunningJob] = React.useState<string | null>(null)
   const [loadingHealth, setLoadingHealth] = React.useState(true)
   const [loadingWebhooks, setLoadingWebhooks] = React.useState(true)
+  const [loadingGrowth, setLoadingGrowth] = React.useState(true)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -143,15 +170,54 @@ export default function OpsPage() {
     }
   }, [])
 
+  const fetchGrowth = React.useCallback(async () => {
+    setLoadingGrowth(true)
+    try {
+      const res = await fetch("/api/ops/growth", { cache: "no-store" })
+      if (res.ok) {
+        const { growth: g, health: h } = await res.json()
+        if (g) setGrowth(g)
+        if (h) setHealthDist(h)
+      }
+    } catch {
+      // Fail gracefully
+    } finally {
+      setLoadingGrowth(false)
+    }
+  }, [])
+
   const refresh = React.useCallback(async () => {
     setLastRefresh(new Date())
-    await Promise.all([fetchHealth(), fetchWebhooks()])
+    await Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth()])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth])
 
   React.useEffect(() => {
-    void Promise.all([fetchHealth(), fetchWebhooks()])
-  }, [fetchHealth, fetchWebhooks])
+    void Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth()])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth])
+
+  const runJob = React.useCallback(async (jobName: string) => {
+    if (runningJob) return
+    setRunningJob(jobName)
+    try {
+      const res = await fetch("/api/jobs/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ job: jobName }),
+      })
+      const data = await res.json() as { ok: boolean; error?: string }
+      if (data.ok) {
+        toast({ title: `${JOB_LABELS[jobName] ?? jobName} completed`, variant: "success" })
+        void fetchGrowth()
+      } else {
+        toast({ title: `Job failed: ${data.error ?? "unknown error"}`, variant: "error" })
+      }
+    } catch {
+      toast({ title: "Failed to run job", variant: "error" })
+    } finally {
+      setRunningJob(null)
+    }
+  }, [runningJob, fetchGrowth])
 
   const isHealthy = health?.status === "healthy"
   const failedWebhooks = webhooks.filter(w => w.status === "failed" || w.status === "dead")
@@ -172,16 +238,16 @@ export default function OpsPage() {
       status: deadWebhooks.length > 0 ? "error" : failedWebhooks.length > 0 ? "warn" : "ok",
     },
     {
-      label: "Webhook Queue",
-      value: webhooks.filter(w => w.status === "pending").length,
-      sub: "pending processing",
-      icon: <Clock className="h-4 w-4 text-white/40" />,
+      label: "Total Creators",
+      value: loadingGrowth ? "…" : (growth?.totalCreators ?? "—"),
+      sub: growth ? `${growth.newCreators30d} new this month` : undefined,
+      icon: <Users className="h-4 w-4 text-white/40" />,
     },
     {
-      label: "Processed Today",
-      value: webhooks.filter(w => w.status === "processed").length,
-      sub: "webhook events",
-      icon: <CheckCircle2 className="h-4 w-4 text-brand-green" />,
+      label: "Live Storefronts",
+      value: loadingGrowth ? "…" : (growth?.publishedCreators ?? "—"),
+      sub: growth ? `${growth.creatorsWithSales} with sales` : undefined,
+      icon: <Target className="h-4 w-4 text-brand-green" />,
       status: "ok",
     },
   ]
@@ -210,6 +276,91 @@ export default function OpsPage() {
         {statCards.map(card => (
           <StatCardItem key={card.label} card={card} />
         ))}
+      </div>
+
+      {/* Growth funnel + health distribution */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Creator funnel */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingUp className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white">Creator Funnel</h2>
+          </div>
+          {loadingGrowth ? (
+            <div className="space-y-2">
+              {[1,2,3,4].map(i => <div key={i} className="h-8 rounded-lg bg-white/5 animate-pulse" />)}
+            </div>
+          ) : growth ? (
+            <div className="space-y-3">
+              {[
+                { label: "Signed up", value: growth.totalCreators, pct: 100 },
+                { label: "Added products", value: growth.creatorsWithProducts, pct: growth.totalCreators ? Math.round(growth.creatorsWithProducts / growth.totalCreators * 100) : 0 },
+                { label: "Published store", value: growth.publishedCreators, pct: growth.totalCreators ? Math.round(growth.publishedCreators / growth.totalCreators * 100) : 0 },
+                { label: "Made a sale", value: growth.creatorsWithSales, pct: growth.totalCreators ? Math.round(growth.creatorsWithSales / growth.totalCreators * 100) : 0 },
+              ].map(row => (
+                <div key={row.label}>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-white/60">{row.label}</span>
+                    <span className="text-white font-medium">{row.value} <span className="text-white/30">({row.pct}%)</span></span>
+                  </div>
+                  <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand-purple rounded-full transition-all"
+                      style={{ width: `${row.pct}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-white/30 text-center py-4">No data available</p>
+          )}
+        </div>
+
+        {/* Health distribution */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Heart className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white">Creator Health</h2>
+            {healthDist && (
+              <span className="ml-auto text-xs text-white/30">
+                avg score: <span className="text-white/60">{healthDist.avgScore}</span>
+              </span>
+            )}
+          </div>
+          {loadingGrowth ? (
+            <div className="space-y-2">
+              {[1,2,3].map(i => <div key={i} className="h-10 rounded-lg bg-white/5 animate-pulse" />)}
+            </div>
+          ) : healthDist && healthDist.totalScored > 0 ? (
+            <div className="space-y-3">
+              {[
+                { label: "Healthy", value: healthDist.healthy, color: "bg-brand-green", textColor: "text-brand-green" },
+                { label: "At risk", value: healthDist.atRisk, color: "bg-amber-400", textColor: "text-amber-400" },
+                { label: "Churned", value: healthDist.churned, color: "bg-red-500", textColor: "text-red-400" },
+              ].map(row => {
+                const pct = Math.round(row.value / healthDist.totalScored * 100)
+                return (
+                  <div key={row.label}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="text-white/60">{row.label}</span>
+                      <span className={cn("font-medium", row.textColor)}>{row.value} <span className="text-white/30">({pct}%)</span></span>
+                    </div>
+                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className={cn("h-full rounded-full transition-all", row.color)} style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                )
+              })}
+              <p className="text-xs text-white/25 pt-1">{healthDist.totalScored} creators scored</p>
+            </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-sm text-white/30">No health scores yet</p>
+              <p className="text-xs text-white/20 mt-1">Run health scoring job to populate</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* System health checks */}
@@ -244,6 +395,43 @@ export default function OpsPage() {
         ) : (
           <p className="text-sm text-white/30 text-center py-4">Health data unavailable</p>
         )}
+      </div>
+
+      {/* Job runner */}
+      <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <Play className="h-4 w-4 text-white/40" />
+          <h2 className="font-semibold text-white">Background Jobs</h2>
+          {runningJob && (
+            <span className="ml-auto text-xs text-amber-400 animate-pulse">
+              Running {JOB_LABELS[runningJob] ?? runningJob}…
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Object.entries(JOB_LABELS).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => void runJob(key)}
+              disabled={!!runningJob}
+              className={cn(
+                "flex flex-col items-start gap-1 px-3 py-3 rounded-xl border border-white/8 text-left transition-all",
+                runningJob === key
+                  ? "bg-amber-400/10 border-amber-400/30"
+                  : "bg-white/3 hover:bg-white/8 hover:border-white/20",
+                runningJob && runningJob !== key ? "opacity-40 cursor-not-allowed" : ""
+              )}
+            >
+              <div className="flex items-center gap-1.5">
+                <Play className={cn("h-3 w-3", runningJob === key ? "text-amber-400" : "text-white/30")} />
+                <span className={cn("text-xs font-medium", runningJob === key ? "text-amber-400" : "text-white/70")}>
+                  {label}
+                </span>
+              </div>
+              <span className="text-[10px] text-white/25">{key}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Webhook event log */}
