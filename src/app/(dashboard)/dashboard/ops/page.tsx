@@ -5,6 +5,7 @@ import {
   AlertTriangle, CheckCircle2, Clock, Zap, MessageCircle,
   RefreshCw, TrendingUp, CreditCard, Activity,
   Database, Shield, Users, Target, Play, Heart,
+  Ticket, Flag, Rocket,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -61,6 +62,20 @@ interface HealthDistribution {
   atRisk: number
   churned: number
   avgScore: number
+}
+
+interface LaunchReport {
+  ready: boolean
+  score: number
+  blockers: string[]
+  warnings: string[]
+}
+
+interface FeatureFlag {
+  key: string
+  enabled: boolean
+  rolloutPct: number
+  description?: string
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -141,6 +156,9 @@ export default function OpsPage() {
   const [loadingHealth, setLoadingHealth] = React.useState(true)
   const [loadingWebhooks, setLoadingWebhooks] = React.useState(true)
   const [loadingGrowth, setLoadingGrowth] = React.useState(true)
+  const [launch, setLaunch] = React.useState<LaunchReport | null>(null)
+  const [flags, setFlags] = React.useState<FeatureFlag[]>([])
+  const [openTickets, setOpenTickets] = React.useState<number | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -186,15 +204,56 @@ export default function OpsPage() {
     }
   }, [])
 
+  const fetchLaunch = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/launch", { cache: "no-store" })
+      if (res.ok) setLaunch(await res.json())
+    } catch {}
+  }, [])
+
+  const fetchFlags = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/flags", { cache: "no-store" })
+      if (res.ok) {
+        const { data } = await res.json()
+        if (Array.isArray(data)) setFlags(data as FeatureFlag[])
+      }
+    } catch {}
+  }, [])
+
+  const fetchTickets = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/tickets", { cache: "no-store" })
+      if (res.ok) {
+        const { count } = await res.json()
+        setOpenTickets(count ?? 0)
+      }
+    } catch {}
+  }, [])
+
+  const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
+    try {
+      await fetch("/api/flags", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ key, enabled }),
+      })
+      setFlags(prev => prev.map(f => f.key === key ? { ...f, enabled } : f))
+      toast({ title: `Flag "${key}" ${enabled ? "enabled" : "disabled"}`, variant: "success" })
+    } catch {
+      toast({ title: "Failed to update flag", variant: "error" })
+    }
+  }, [])
+
   const refresh = React.useCallback(async () => {
     setLastRefresh(new Date())
-    await Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth()])
+    await Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(), fetchFlags(), fetchTickets()])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets])
 
   React.useEffect(() => {
-    void Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth()])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth])
+    void Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(), fetchFlags(), fetchTickets()])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -490,6 +549,108 @@ export default function OpsPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Launch readiness + Support + Feature Flags row */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Launch readiness */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Rocket className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Launch Readiness</h2>
+            {launch && (
+              <span className={cn(
+                "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+                launch.ready ? "bg-brand-green/15 text-brand-green" : "bg-red-500/15 text-red-400"
+              )}>
+                {launch.score}%
+              </span>
+            )}
+          </div>
+          {launch ? (
+            <div className="space-y-2">
+              {launch.blockers.length > 0 && (
+                <div>
+                  <p className="text-[10px] text-red-400 font-medium mb-1">BLOCKERS</p>
+                  {launch.blockers.map(b => (
+                    <p key={b} className="text-xs text-red-400/80 truncate">• {b}</p>
+                  ))}
+                </div>
+              )}
+              {launch.warnings.slice(0, 3).map(w => (
+                <p key={w} className="text-xs text-amber-400/70 truncate">⚠ {w}</p>
+              ))}
+              {launch.ready && (
+                <div className="flex items-center gap-1.5 text-brand-green">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <span className="text-xs">Ready for launch</span>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
+          )}
+        </div>
+
+        {/* Support tickets */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Ticket className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Support</h2>
+            {openTickets !== null && openTickets > 0 && (
+              <span className="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-400">
+                {openTickets} open
+              </span>
+            )}
+          </div>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-white/60">Open tickets</span>
+              <span className="text-lg font-bold text-white">
+                {openTickets === null ? "…" : openTickets}
+              </span>
+            </div>
+            <a
+              href="/dashboard/support"
+              className="block text-center text-xs text-white/40 hover:text-white transition-colors py-2 rounded-lg bg-white/3 hover:bg-white/8"
+            >
+              View all tickets →
+            </a>
+          </div>
+        </div>
+
+        {/* Feature flags */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Flag className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Feature Flags</h2>
+          </div>
+          {flags.length === 0 ? (
+            <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
+          ) : (
+            <div className="space-y-2">
+              {flags.slice(0, 5).map(flag => (
+                <div key={flag.key} className="flex items-center justify-between">
+                  <span className="text-xs text-white/60 truncate flex-1 mr-2" title={flag.description}>
+                    {flag.key}
+                  </span>
+                  <button
+                    onClick={() => void toggleFlag(flag.key, !flag.enabled)}
+                    className={cn(
+                      "flex-shrink-0 w-8 h-4 rounded-full transition-colors relative",
+                      flag.enabled ? "bg-brand-green" : "bg-white/20"
+                    )}
+                  >
+                    <span className={cn(
+                      "absolute top-0.5 h-3 w-3 rounded-full bg-white transition-all",
+                      flag.enabled ? "left-4" : "left-0.5"
+                    )} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Quick links */}
