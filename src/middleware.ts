@@ -4,8 +4,17 @@ import { updateSession } from "@/lib/supabase/middleware"
 const PROTECTED_PREFIXES = ["/dashboard", "/onboarding"]
 const AUTH_ROUTES = ["/login", "/signup"]
 
+function genCorrelationId(): string {
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
+}
+
 export async function middleware(request: NextRequest) {
+  const start = Date.now()
   const { pathname } = request.nextUrl
+
+  // Propagate or mint correlation ID
+  const correlationId = request.headers.get("x-correlation-id") ?? genCorrelationId()
+
   const { supabaseResponse, user } = await updateSession(request)
 
   const isProtected = PROTECTED_PREFIXES.some(p => pathname.startsWith(p))
@@ -25,6 +34,23 @@ export async function middleware(request: NextRequest) {
     redirectUrl.pathname = "/dashboard"
     redirectUrl.searchParams.delete("next")
     return NextResponse.redirect(redirectUrl)
+  }
+
+  // Attach observability headers to response
+  supabaseResponse.headers.set("x-correlation-id", correlationId)
+  supabaseResponse.headers.set("x-response-time", `${Date.now() - start}ms`)
+
+  // Structured request log (server-side only)
+  if (pathname.startsWith("/api/")) {
+    console.log(JSON.stringify({
+      level: "info",
+      message: "api_request",
+      method: request.method,
+      pathname,
+      correlationId,
+      latencyMs: Date.now() - start,
+      userId: user?.id ?? null,
+    }))
   }
 
   return supabaseResponse

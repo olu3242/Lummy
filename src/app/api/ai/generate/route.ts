@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import Anthropic from "@anthropic-ai/sdk"
 import { createClient } from "@/lib/supabase/server"
+import { checkRateLimit, getRateLimitKey, rateLimitHeaders } from "@/lib/security/rate-limit"
+import { trackError } from "@/lib/observability/events"
 
 const generateSchema = z.object({
   type: z.enum(["caption", "cta", "reply", "description", "campaign"]),
@@ -55,6 +57,16 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  // 20 AI generations per minute per creator
+  const rlKey = getRateLimitKey("ai:generate", request, user.id)
+  const rl = checkRateLimit(rlKey, 20)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Try again shortly." },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    )
+  }
+
   const body = await request.json()
   const parsed = generateSchema.safeParse(body)
   if (!parsed.success) {
@@ -96,7 +108,7 @@ export async function POST(request: NextRequest) {
       model: "claude-sonnet-4-20250514",
     })
   } catch (err) {
-    console.error("[ai/generate]", err)
+    trackError("ai.generation", err, { userId: user.id, type })
     return NextResponse.json({ error: "AI generation failed" }, { status: 500 })
   }
 }

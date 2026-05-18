@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server"
 import { recordWebhookReceived, markWebhookProcessed, markWebhookFailed } from "@/lib/webhooks/retry"
 import { trackEvent, trackError } from "@/lib/observability/events"
 import { generateCorrelationId } from "@/lib/observability/correlation"
+import { hashPayload, buildIdempotencyKey } from "@/lib/security/idempotency"
 
 function verifySignature(payload: string, signature: string): boolean {
   const secret = process.env.PAYSTACK_SECRET_KEY
@@ -29,9 +30,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 })
   }
 
-  trackEvent("webhook.received", { source: "paystack", eventType: event.event, correlationId })
+  // Deduplicate by payload hash — reject replays
+  const eventHash = hashPayload(rawBody)
 
-  const webhookId = await recordWebhookReceived("paystack", event.event, event.data, correlationId)
+  trackEvent("webhook.received", { source: "paystack", eventType: event.event, correlationId, eventHash })
+
+  const webhookId = await recordWebhookReceived("paystack", event.event, event.data, correlationId, eventHash)
 
   const supabase = createAdminClient()
 
@@ -48,13 +52,24 @@ export async function POST(request: NextRequest) {
       const transactionId = charge.metadata?.transaction_id
 
       if (transactionId) {
-        const fee = Math.round(charge.amount * 0.015)
-        await supabase.from("transactions").update({
-          status: "paid",
-          net_amount: charge.amount - fee,
-          fee,
-          paid_at: new Date().toISOString(),
-        }).eq("id", transactionId)
+        // Guard: check current status before updating to prevent double-processing
+        const { data: tx } = await supabase
+          .from("transactions")
+          .select("status")
+          .eq("id", transactionId)
+          .maybeSingle()
+
+        if (tx && (tx as { status: string }).status !== "paid") {
+          const fee = Math.round(charge.amount * 0.015)
+          const idemKey = buildIdempotencyKey("paystack", charge.reference)
+          await supabase.from("transactions").update({
+            status: "paid",
+            net_amount: charge.amount - fee,
+            fee,
+            paid_at: new Date().toISOString(),
+            idempotency_key: idemKey,
+          }).eq("id", transactionId)
+        }
       }
 
       if (orderId) {

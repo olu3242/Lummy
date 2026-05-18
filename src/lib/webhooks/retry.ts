@@ -23,15 +23,32 @@ export async function recordWebhookReceived(
   eventType: string,
   payload: Record<string, unknown>,
   correlationId?: string,
+  eventHash?: string,
 ): Promise<string | null> {
   try {
     const supabase = createAdminClient()
+
+    // Duplicate detection: if this hash already exists and was processed, skip
+    if (eventHash) {
+      const { data: existing } = await supabase
+        .from("webhook_events")
+        .select("id, status")
+        .eq("event_hash", eventHash)
+        .maybeSingle()
+
+      if (existing) {
+        logger.info("[webhooks/retry] duplicate webhook detected", { eventHash, existingId: existing.id })
+        return null // caller should return 200 without reprocessing
+      }
+    }
+
     const { data, error } = await supabase
       .from("webhook_events")
       .insert({
         source,
         event_type: eventType,
         correlation_id: correlationId ?? null,
+        event_hash: eventHash ?? null,
         payload,
         status: "pending",
         attempt_count: 1,

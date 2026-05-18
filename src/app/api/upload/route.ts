@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { uploadFile, BUCKETS, buildCreatorPath, buildProductPath, type StorageBucket } from "@/lib/supabase/storage"
+import { checkRateLimit, getRateLimitKey, rateLimitHeaders } from "@/lib/security/rate-limit"
+import { sanitizeFilename } from "@/lib/security/idempotency"
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"]
@@ -19,6 +21,15 @@ export async function POST(request: NextRequest) {
 
   if (!profile?.id) return NextResponse.json({ error: "Creator profile not found" }, { status: 404 })
 
+  // 30 uploads per minute per creator
+  const rl = checkRateLimit(getRateLimitKey("upload", request, profile.id), 30)
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "Upload rate limit exceeded" },
+      { status: 429, headers: rateLimitHeaders(rl) }
+    )
+  }
+
   const formData = await request.formData().catch(() => null)
   if (!formData) return NextResponse.json({ error: "Invalid multipart data" }, { status: 400 })
 
@@ -34,7 +45,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "File too large (max 10 MB)" }, { status: 400 })
   }
 
-  const ext = file.name.split(".").pop() ?? "jpg"
+  const safeName = sanitizeFilename(file.name)
+  const ext = safeName.split(".").pop() ?? "jpg"
   const timestamp = Date.now()
   let bucket: StorageBucket
   let path: string
