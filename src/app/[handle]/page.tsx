@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { storefrontCreator } from "@/data/mock/storefront"
+import { getCreatorByHandle } from "@/lib/queries/creator"
 import { StorefrontClient } from "./storefront-client"
 
 export async function generateMetadata({
@@ -7,29 +8,39 @@ export async function generateMetadata({
 }: {
   params: { handle: string }
 }): Promise<Metadata> {
-  const creator = storefrontCreator
+  // Try real DB first; fall back to mock for dev
+  const creator = await getCreatorByHandle(params.handle).catch(() => null)
+  const name = creator?.business_name ?? storefrontCreator.storeName
+  const bio = creator?.bio ?? storefrontCreator.bio
+  const url = `https://lummy.co/${params.handle}`
 
   return {
-    title: `${creator.storeName} — Shop on Lummy`,
-    description: creator.bio,
+    title: `${name} — Shop on Lummy`,
+    description: bio ?? undefined,
     openGraph: {
-      title: creator.storeName,
-      description: creator.bio,
-      url: `https://lummy.co/${params.handle}`,
+      title: name,
+      description: bio ?? undefined,
+      url,
       siteName: "Lummy",
       type: "website",
     },
     twitter: {
       card: "summary_large_image",
-      title: creator.storeName,
-      description: creator.bio,
+      title: name,
+      description: bio ?? undefined,
     },
-    alternates: {
-      canonical: `https://lummy.co/${params.handle}`,
-    },
+    alternates: { canonical: url },
   }
 }
 
-export default function StorefrontPage({ params }: { params: { handle: string } }) {
-  return <StorefrontClient handle={params.handle} />
+export default async function StorefrontPage({ params }: { params: { handle: string } }) {
+  // Attempt to load real creator data server-side
+  const dbCreator = await getCreatorByHandle(params.handle).catch(() => null)
+
+  if (!dbCreator) {
+    // Handle not found in DB — render with mock data (dev mode / preview)
+    return <StorefrontClient handle={params.handle} />
+  }
+
+  return <StorefrontClient handle={params.handle} dbCreatorId={dbCreator.id} dbStoreSchema={dbCreator.store_schema} />
 }

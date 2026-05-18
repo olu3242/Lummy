@@ -22,11 +22,17 @@ import { StorefrontRenderer } from "@/store/renderer/storefront-renderer"
 import { migrateToStoreSchema } from "@/store/schema/migrate"
 import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
 import type { StoreSchema } from "@/store/schema/types"
+import type { Json } from "@/lib/supabase/types"
 
 const SCHEMA_KEY = "lummy_store_schema_v2"
 const OLD_KEY = "lummy_store_settings"
 
-function loadPublicSchema(): StoreSchema {
+function loadPublicSchema(serverSchema: Json | null): StoreSchema {
+  // Server-provided schema (from Supabase) takes precedence
+  if (serverSchema && typeof serverSchema === "object" && !Array.isArray(serverSchema)) {
+    try { return migrateToStoreSchema(serverSchema) } catch {}
+  }
+  // Fall back to localStorage (creator's own device) then default
   if (typeof window === "undefined") return DEFAULT_SCHEMA
   try {
     const newRaw = localStorage.getItem(SCHEMA_KEY)
@@ -147,15 +153,23 @@ function StarRow({ rating, small }: { rating: number; small?: boolean }) {
   )
 }
 
-export function StorefrontClient({ handle }: { handle: string }) {
+export function StorefrontClient({
+  handle,
+  dbCreatorId: _dbCreatorId,
+  dbStoreSchema,
+}: {
+  handle: string
+  dbCreatorId?: string
+  dbStoreSchema?: Json | null
+}) {
   const creator = storefrontCreator
   const [schema, setSchema] = React.useState<StoreSchema | null>(null)
 
   const storeUrl = `https://lummy.co/${creator.handle}`
 
   React.useEffect(() => {
-    setSchema(loadPublicSchema())
-  }, [])
+    setSchema(loadPublicSchema(dbStoreSchema ?? null))
+  }, [dbStoreSchema])
 
   if (!schema) {
     return (
