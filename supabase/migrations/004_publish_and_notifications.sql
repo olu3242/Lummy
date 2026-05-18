@@ -14,7 +14,7 @@ CREATE INDEX IF NOT EXISTS idx_creator_profiles_published
 -- (all SELECT/UPDATE/DELETE already covered by "notifications_own" policy)
 DROP POLICY IF EXISTS "notifications_insert_service" ON notifications;
 CREATE POLICY "notifications_insert_service" ON notifications
-  FOR INSERT WITH CHECK (true);  -- row-level: auth check happens at app layer via admin client
+  FOR INSERT TO service_role WITH CHECK (true);
 
 -- Activation metadata on creator_profiles
 ALTER TABLE creator_profiles

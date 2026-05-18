@@ -33,8 +33,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_webhook_events_hash
   ON webhook_events(event_hash) WHERE event_hash IS NOT NULL;
 
 -- ─── Missing performance indexes ──────────────────────────────────────────────
-CREATE INDEX IF NOT EXISTS idx_orders_payment_status
-  ON orders(payment_status, creator_id);
+CREATE INDEX IF NOT EXISTS idx_orders_status_creator
+  ON orders(status, creator_id);
 
 CREATE INDEX IF NOT EXISTS idx_transactions_provider_creator
   ON transactions(provider, creator_id);

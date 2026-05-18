@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   // Bearer token auth — prevents public abuse
   const auth = request.headers.get("authorization") ?? ""
   const cronSecret = process.env.CRON_SECRET
-  if (cronSecret && auth !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || auth !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
