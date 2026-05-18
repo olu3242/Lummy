@@ -427,7 +427,7 @@ export default function CheckoutPage() {
 
   if (step === "confirmation") {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-dvh bg-background flex flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center px-4 border-b border-border bg-background/90 backdrop-blur-sm">
           <Link href={`/${handle}`} className="flex items-center gap-1.5 text-sm font-semibold text-brand-purple">
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-indigo">
@@ -444,7 +444,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-dvh bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -473,8 +473,8 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
+      {/* Body — pb-safe ensures content isn't hidden behind keyboard on iOS */}
+      <div className="flex-1 max-w-3xl mx-auto px-4 py-6 pb-8 pb-safe w-full">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
 
           {/* Left: Form */}

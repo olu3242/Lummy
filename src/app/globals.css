@@ -55,6 +55,8 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
+    /* Prevent horizontal overflow on narrow viewports */
+    overflow-x: hidden;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
@@ -149,5 +151,28 @@
   /* Text balance */
   .text-balance {
     text-wrap: balance;
+  }
+
+  /* iOS safe area support for fixed bottom elements */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  .mb-safe {
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Dynamic viewport height — avoids iOS Safari toolbar overlap */
+  .min-h-dvh {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+  .h-dvh {
+    height: 100dvh;
+    height: -webkit-fill-available;
+  }
+
+  /* Prevent modal content scroll bleed on iOS */
+  .overscroll-contain {
+    overscroll-behavior: contain;
   }
 }

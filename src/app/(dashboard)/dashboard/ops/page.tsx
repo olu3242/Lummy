@@ -159,6 +159,8 @@ export default function OpsPage() {
   const [launch, setLaunch] = React.useState<LaunchReport | null>(null)
   const [flags, setFlags] = React.useState<FeatureFlag[]>([])
   const [openTickets, setOpenTickets] = React.useState<number | null>(null)
+  const [paymentHealth, setPaymentHealth] = React.useState<{ successRate: number; stalePending: number; total: number } | null>(null)
+  const [onboardingBatch, setOnboardingBatch] = React.useState<{ topDropOffPoint: string; avgActivationScore: number; fullyActivated: number; totalCreators: number } | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -211,6 +213,26 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchPaymentHealth = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/transactions", { cache: "no-store" })
+      if (res.ok) {
+        const { health } = await res.json()
+        if (health) setPaymentHealth(health)
+      }
+    } catch {}
+  }, [])
+
+  const fetchOnboarding = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/onboarding", { cache: "no-store" })
+      if (res.ok) {
+        const { batch } = await res.json()
+        if (batch) setOnboardingBatch(batch)
+      }
+    } catch {}
+  }, [])
+
   const fetchFlags = React.useCallback(async () => {
     try {
       const res = await fetch("/api/flags", { cache: "no-store" })
@@ -247,13 +269,19 @@ export default function OpsPage() {
 
   const refresh = React.useCallback(async () => {
     setLastRefresh(new Date())
-    await Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(), fetchFlags(), fetchTickets()])
+    await Promise.all([
+      fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(),
+    ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding])
 
   React.useEffect(() => {
-    void Promise.all([fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(), fetchFlags(), fetchTickets()])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets])
+    void Promise.all([
+      fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(),
+    ])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -649,6 +677,83 @@ export default function OpsPage() {
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      </div>
+
+      {/* Payment health + Onboarding drop-off */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Payment health */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <CreditCard className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Payment Health (24h)</h2>
+            {paymentHealth && (
+              <span className={cn(
+                "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+                paymentHealth.successRate >= 90 ? "bg-brand-green/15 text-brand-green"
+                  : paymentHealth.successRate >= 70 ? "bg-amber-400/15 text-amber-400"
+                  : "bg-red-500/15 text-red-400"
+              )}>
+                {paymentHealth.successRate}% success
+              </span>
+            )}
+          </div>
+          {paymentHealth ? (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Transactions</span>
+                <span className="text-white font-medium">{paymentHealth.total}</span>
+              </div>
+              {paymentHealth.stalePending > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-amber-400/80">Stale pending</span>
+                  <span className="text-amber-400 font-medium">{paymentHealth.stalePending}</span>
+                </div>
+              )}
+              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden mt-2">
+                <div
+                  className={cn("h-full rounded-full transition-all",
+                    paymentHealth.successRate >= 90 ? "bg-brand-green" :
+                    paymentHealth.successRate >= 70 ? "bg-amber-400" : "bg-red-500"
+                  )}
+                  style={{ width: `${paymentHealth.successRate}%` }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
+          )}
+        </div>
+
+        {/* Onboarding drop-off */}
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="h-4 w-4 text-white/40" />
+            <h2 className="font-semibold text-white text-sm">Creator Activation</h2>
+            {onboardingBatch && (
+              <span className="ml-auto text-[10px] text-white/40">
+                avg: <span className="text-white/60">{onboardingBatch.avgActivationScore}pts</span>
+              </span>
+            )}
+          </div>
+          {onboardingBatch ? (
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Fully activated</span>
+                <span className="text-brand-green font-medium">
+                  {onboardingBatch.fullyActivated} / {onboardingBatch.totalCreators}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-white/60">Top drop-off</span>
+                <span className="text-amber-400 text-xs font-medium truncate max-w-[160px]">
+                  {onboardingBatch.topDropOffPoint}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="h-16 animate-pulse bg-white/5 rounded-lg" />
           )}
         </div>
       </div>

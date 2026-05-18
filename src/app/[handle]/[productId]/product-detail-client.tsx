@@ -195,7 +195,7 @@ export function ProductDetailClient({
       </div>
 
       {/* Sticky CTA */}
-      <div className="fixed bottom-0 inset-x-0 z-20 p-4 bg-background/90 backdrop-blur-sm border-t border-border">
+      <div className="fixed bottom-0 inset-x-0 z-20 px-4 pt-3 pb-4 pb-safe bg-background/90 backdrop-blur-sm border-t border-border">
         {isOutOfStock ? (
           <div className="w-full h-12 rounded-2xl border-2 border-border flex items-center justify-center text-sm font-semibold text-muted-foreground">
             This product is currently sold out
