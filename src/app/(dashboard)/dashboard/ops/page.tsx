@@ -6,7 +6,7 @@ import {
   RefreshCw, TrendingUp, CreditCard, Activity,
   Database, Shield, Users, Target, Play, Heart,
   Ticket, Flag, Rocket, BarChart2, AlertOctagon,
-  Share2, ShoppingBag, Globe,
+  Share2, ShoppingBag, Globe, Award, Layers,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -55,6 +55,13 @@ interface EcosystemData {
   customers: { totalUniqueCustomers: number; avgRepeatRate: number; platformAvgCLVKobo: number } | null
   monetizationSegments: Array<{ label: string; creatorCount: number; avgRevenueKobo: number }>
   commerceOps: { totalPendingOrders: number; totalOverdueOrders: number; platformAvgFulfillmentDays: number; creatorsWithOverdue: number } | null
+}
+
+interface OutcomesData {
+  firstSale: { medianDaysToFirstSale: number | null; creatorsWithFirstSale: number; creatorsPublishedNoSale: number; creatorsNoProduct: number } | null
+  actions: { totalCompletions: number; topCompletedAction: string | null; creatorsWithActions: number } | null
+  monetization: { creatorsWithSales: number; creatorsNoSales: number; topTierCount: number; avgMonthlyRevenueKobo: number; recentMilestones: Array<{ creatorId: string; milestoneKey: string; achievedAt: string }> } | null
+  ecosystem: { participationRate: number; contributorRate: number; totalReferralPairs: number; totalActiveCollaborations: number; weeklyAttributionLinks: number; ecosystemGrowthTrend: "growing" | "stable" | "declining" } | null
 }
 
 interface GrowthMetrics {
@@ -175,6 +182,7 @@ export default function OpsPage() {
   const [churnRisk, setChurnRisk] = React.useState<{ critical: number; high: number; medium: number; low: number; total: number } | null>(null)
   const [recentJobs, setRecentJobs] = React.useState<Array<{ job_name: string; status: string; completed_at: string | null }>>([])
   const [ecosystem, setEcosystem] = React.useState<EcosystemData | null>(null)
+  const [outcomes, setOutcomes] = React.useState<OutcomesData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -286,6 +294,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchOutcomes = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/outcomes", { cache: "no-store" })
+      if (res.ok) setOutcomes(await res.json() as OutcomesData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -304,17 +319,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1005,6 +1020,137 @@ export default function OpsPage() {
                   )}
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Creator Outcomes Command Center */}
+      <div className="space-y-4">
+        <h2 className="text-white font-semibold flex items-center gap-2 text-sm">
+          <Award className="h-4 w-4 text-white/40" />
+          Creator Outcomes
+        </h2>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* First-sale acceleration */}
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Target className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">First-Sale Acceleration</h3>
+            </div>
+            {outcomes?.firstSale ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Creators with first sale</span>
+                  <span className="text-brand-green font-medium">{outcomes.firstSale.creatorsWithFirstSale}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Published, no sale yet</span>
+                  <span className="text-amber-400 font-medium">{outcomes.firstSale.creatorsPublishedNoSale}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">No products added</span>
+                  <span className="text-red-400 font-medium">{outcomes.firstSale.creatorsNoProduct}</span>
+                </div>
+                {outcomes.firstSale.medianDaysToFirstSale !== null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-white/60">Median days to first sale</span>
+                    <span className="text-white font-medium">{outcomes.firstSale.medianDaysToFirstSale}d</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-20 animate-pulse bg-white/5 rounded-lg" />
+            )}
+          </div>
+
+          {/* Monetization progression */}
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Layers className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Monetization Progression</h3>
+            </div>
+            {outcomes?.monetization ? (
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Creators with sales</span>
+                  <span className="text-brand-green font-medium">{outcomes.monetization.creatorsWithSales}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">No sales yet</span>
+                  <span className="text-white/50 font-medium">{outcomes.monetization.creatorsNoSales}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Top tier (₦50k+ mo)</span>
+                  <span className="text-brand-purple font-medium">{outcomes.monetization.topTierCount}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/60">Avg monthly revenue</span>
+                  <span className="text-white font-medium">
+                    ₦{(outcomes.monetization.avgMonthlyRevenueKobo / 100).toLocaleString()}
+                  </span>
+                </div>
+                {outcomes.monetization.recentMilestones.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-white/5">
+                    <p className="text-[10px] text-white/30 mb-1">RECENT MILESTONES</p>
+                    {outcomes.monetization.recentMilestones.slice(0, 3).map((m, i) => (
+                      <div key={i} className="flex justify-between text-xs py-0.5">
+                        <span className="text-white/50 capitalize">{m.milestoneKey.replace(/_/g, " ")}</span>
+                        <span className="text-white/30">{new Date(m.achievedAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="h-20 animate-pulse bg-white/5 rounded-lg" />
+            )}
+          </div>
+        </div>
+
+        {/* Ecosystem growth health */}
+        {outcomes?.ecosystem && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Share2 className="h-4 w-4 text-white/40" />
+              <h3 className="font-semibold text-white text-sm">Ecosystem Growth Health</h3>
+              <span className={cn(
+                "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+                outcomes.ecosystem.ecosystemGrowthTrend === "growing" ? "bg-brand-green/15 text-brand-green" :
+                outcomes.ecosystem.ecosystemGrowthTrend === "declining" ? "bg-red-500/15 text-red-400" :
+                "bg-white/5 text-white/40"
+              )}>
+                {outcomes.ecosystem.ecosystemGrowthTrend}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { label: "Referral participation", value: `${outcomes.ecosystem.participationRate}%` },
+                { label: "Referral pairs", value: outcomes.ecosystem.totalReferralPairs },
+                { label: "Active collabs", value: outcomes.ecosystem.totalActiveCollaborations },
+                { label: "Attribution links (7d)", value: outcomes.ecosystem.weeklyAttributionLinks },
+              ].map(stat => (
+                <div key={stat.label} className="rounded-xl bg-white/3 p-3">
+                  <p className="text-xs text-white/40 mb-1">{stat.label}</p>
+                  <p className="text-lg font-bold text-white">{stat.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action adoption */}
+        {outcomes?.actions && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4 flex items-center gap-4">
+            <Zap className="h-4 w-4 text-white/40 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white">Creator Action Adoption</p>
+              <p className="text-xs text-white/40 mt-0.5">
+                {outcomes.actions.creatorsWithActions} creators completed actions ·
+                {" "}{outcomes.actions.totalCompletions} total completions
+                {outcomes.actions.topCompletedAction && ` · Top: ${outcomes.actions.topCompletedAction.replace(/_/g, " ")}`}
+              </p>
             </div>
           </div>
         )}
