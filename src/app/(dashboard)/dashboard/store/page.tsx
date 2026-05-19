@@ -12,6 +12,7 @@ import {
   Clock, ChevronDown, X, Sparkles, LayoutGrid, List, Package,
   Star, Users, ShoppingBag, Tag, Plus, Trash2, Wand2,
 } from "lucide-react"
+import { PublishToggle } from "@/components/dashboard/publish-toggle"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -216,9 +217,10 @@ export default function StorePage() {
     <div className="p-4 sm:p-6 space-y-5 max-w-4xl">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="space-y-1.5">
           <h1 className="text-xl font-bold">My Store</h1>
           <p className="text-sm text-muted-foreground">Customize how your store looks and works</p>
+          <PublishToggle handle={p.handle} />
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <a

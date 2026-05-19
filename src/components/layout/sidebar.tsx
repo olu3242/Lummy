@@ -33,6 +33,8 @@ import {
   Layers,
   Puzzle,
   Link2,
+  Lightbulb,
+  MessageCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
@@ -70,6 +72,8 @@ const navGroups: NavGroup[] = [
     items: [
       { label: "My Store", icon: Store, href: "/dashboard/store" },
       { label: "CRM", icon: Users, href: "/dashboard/crm" },
+      { label: "Insights", icon: Lightbulb, href: "/dashboard/insights", isNew: true },
+      { label: "WhatsApp", icon: MessageCircle, href: "/dashboard/whatsapp" },
       { label: "Analytics", icon: BarChart3, href: "/dashboard/analytics" },
       { label: "AI Assistant", icon: Bot, href: "/dashboard/ai", isNew: true },
       { label: "Campaigns", icon: Target, href: "/dashboard/campaigns" },

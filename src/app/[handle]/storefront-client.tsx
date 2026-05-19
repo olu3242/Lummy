@@ -22,11 +22,17 @@ import { StorefrontRenderer } from "@/store/renderer/storefront-renderer"
 import { migrateToStoreSchema } from "@/store/schema/migrate"
 import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
 import type { StoreSchema } from "@/store/schema/types"
+import type { Json } from "@/lib/supabase/types"
 
 const SCHEMA_KEY = "lummy_store_schema_v2"
 const OLD_KEY = "lummy_store_settings"
 
-function loadPublicSchema(): StoreSchema {
+function loadPublicSchema(serverSchema: Json | null): StoreSchema {
+  // Server-provided schema (from Supabase) takes precedence
+  if (serverSchema && typeof serverSchema === "object" && !Array.isArray(serverSchema)) {
+    try { return migrateToStoreSchema(serverSchema) } catch {}
+  }
+  // Fall back to localStorage (creator's own device) then default
   if (typeof window === "undefined") return DEFAULT_SCHEMA
   try {
     const newRaw = localStorage.getItem(SCHEMA_KEY)
@@ -154,8 +160,8 @@ export function StorefrontClient({ handle, storeName, bio }: { handle: string; s
   const storeUrl = `https://lummy.co/${creator.handle}`
 
   React.useEffect(() => {
-    setSchema(loadPublicSchema())
-  }, [])
+    setSchema(loadPublicSchema(dbStoreSchema ?? null))
+  }, [dbStoreSchema])
 
   if (!schema) {
     return (
@@ -190,12 +196,12 @@ export function StorefrontClient({ handle, storeName, bio }: { handle: string; s
       </header>
 
       {/* Schema-driven sections */}
-      <div className="pb-24 lg:pb-8">
+      <div className="pb-28 lg:pb-8">
         <StorefrontRenderer schema={schema} creator={creator} />
       </div>
 
-      {/* Mobile sticky CTA — always shown */}
-      <div className="fixed bottom-0 inset-x-0 z-20 p-4 bg-background/90 backdrop-blur-sm border-t border-border lg:hidden">
+      {/* Mobile sticky CTA — safe-area aware for iOS */}
+      <div className="fixed bottom-0 inset-x-0 z-20 px-4 pt-3 pb-4 pb-safe bg-background/90 backdrop-blur-sm border-t border-border lg:hidden">
         <a href={buildStoreWhatsAppUrl(creator.whatsapp, creator.storeName)} target="_blank" rel="noopener noreferrer">
           <Button variant="whatsapp" size="lg" className="w-full gap-2">
             <MessageCircle className="h-5 w-5 fill-white" /> Order from {creator.storeName}

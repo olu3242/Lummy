@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { images } from "@/config/images"
+import { createClient } from "@/lib/supabase/client"
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -16,28 +17,35 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.5, ease: "easeOut", delay },
 })
 
-const MOCK_EMAIL = "sade@sadeboutique.com"
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
   const [error, setError] = React.useState("")
   const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
   const [shakeKey, setShakeKey] = React.useState(0)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      if (email.toLowerCase() !== MOCK_EMAIL) {
+    try {
+      const supabase = createClient()
+      const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError) {
         setError("Incorrect email or password. Please try again.")
         setShakeKey(k => k + 1)
         return
       }
-      window.location.href = "/dashboard"
-    }, 1200)
+      // Read ?next= param for post-login redirect
+      const params = new URLSearchParams(window.location.search)
+      window.location.href = params.get("next") ?? "/dashboard"
+    } catch {
+      setError("Something went wrong. Please try again.")
+      setShakeKey(k => k + 1)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -163,6 +171,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   icon={<Lock className="h-4 w-4" />}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple focus-visible:border-brand-purple/50 pr-10"
                   required
                 />

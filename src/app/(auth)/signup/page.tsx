@@ -76,7 +76,10 @@ const RESERVED_HANDLES = ["sade", "shop", "store", "lummy", "admin"]
 export default function SignupPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState("")
   const [step, setStep] = React.useState<"details" | "done">("details")
+  const [fullName, setFullName] = React.useState("")
+  const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [fullName, setFullName] = React.useState("")
@@ -195,6 +198,13 @@ export default function SignupPage() {
                 </motion.div>
 
                 <motion.form {...fadeUp(0.1)} onSubmit={handleSubmit} className="space-y-4">
+                  {/* Error */}
+                  {error && (
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-coral/10 border border-brand-coral/20 text-xs text-brand-coral font-medium">
+                      {error}
+                    </div>
+                  )}
+
                   {/* Name */}
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-white/70">Full name</Label>

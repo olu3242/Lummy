@@ -10,7 +10,8 @@ import {
   TrendingUp, ShoppingBag, Eye, MessageCircle,
   ArrowUpRight, ArrowDownRight, Target, Edit2, CheckCheck,
   Trophy, Download, Sparkles, Users, MapPin,
-  AlertTriangle, Lightbulb, RefreshCw,
+  AlertTriangle, Lightbulb, RefreshCw, ShoppingCart,
+  UserCheck, UserPlus, BarChart2, Calendar,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -21,18 +22,18 @@ const GOAL_KEY = "lummy_revenue_goal"
 const CURRENT_MONTH_REVENUE = 623000
 
 const revenueData = [
-  { month: "Jan", revenue: 285000, orders: 42, views: 1820, prev: 241000 },
-  { month: "Feb", revenue: 312000, orders: 51, views: 2100, prev: 267000 },
-  { month: "Mar", revenue: 298000, orders: 48, views: 1950, prev: 255000 },
-  { month: "Apr", revenue: 425000, orders: 67, views: 2840, prev: 361000 },
-  { month: "May", revenue: 389000, orders: 58, views: 2600, prev: 310000 },
-  { month: "Jun", revenue: 467000, orders: 74, views: 3200, prev: 400000 },
-  { month: "Jul", revenue: 512000, orders: 82, views: 3750, prev: 438000 },
-  { month: "Aug", revenue: 448000, orders: 70, views: 3100, prev: 381000 },
-  { month: "Sep", revenue: 534000, orders: 88, views: 4020, prev: 461000 },
-  { month: "Oct", revenue: 591000, orders: 94, views: 4380, prev: 505000 },
-  { month: "Nov", revenue: 623000, orders: 99, views: 4700, prev: 526000 },
-  { month: "Dec", revenue: 718000, orders: 112, views: 5240, prev: 611000 },
+  { month: "Jan", revenue: 285000, orders: 42, views: 1820, prev: 241000, aov: 6786 },
+  { month: "Feb", revenue: 312000, orders: 51, views: 2100, prev: 267000, aov: 6118 },
+  { month: "Mar", revenue: 298000, orders: 48, views: 1950, prev: 255000, aov: 6208 },
+  { month: "Apr", revenue: 425000, orders: 67, views: 2840, prev: 361000, aov: 6343 },
+  { month: "May", revenue: 389000, orders: 58, views: 2600, prev: 310000, aov: 6707 },
+  { month: "Jun", revenue: 467000, orders: 74, views: 3200, prev: 400000, aov: 6311 },
+  { month: "Jul", revenue: 512000, orders: 82, views: 3750, prev: 438000, aov: 6244 },
+  { month: "Aug", revenue: 448000, orders: 70, views: 3100, prev: 381000, aov: 6400 },
+  { month: "Sep", revenue: 534000, orders: 88, views: 4020, prev: 461000, aov: 6068 },
+  { month: "Oct", revenue: 591000, orders: 94, views: 4380, prev: 505000, aov: 6287 },
+  { month: "Nov", revenue: 623000, orders: 99, views: 4700, prev: 526000, aov: 6293 },
+  { month: "Dec", revenue: 718000, orders: 112, views: 5240, prev: 611000, aov: 6411 },
 ]
 
 const weeklyConversionData = [
@@ -69,7 +70,6 @@ const locationData = [
   { city: "Other",    customers:  11, pct:  4, color: "#94A3B8" },
 ]
 
-// Hour-of-day order heatmap data (0–23)
 const hourlyData = [
   { hour: "12a", orders: 1 }, { hour: "1a",  orders: 0 }, { hour: "2a",  orders: 0 },
   { hour: "3a",  orders: 0 }, { hour: "4a",  orders: 1 }, { hour: "5a",  orders: 2 },
@@ -81,7 +81,6 @@ const hourlyData = [
   { hour: "9p",  orders: 26 }, { hour: "10p", orders: 18 }, { hour: "11p", orders: 9 },
 ]
 
-// WhatsApp funnel
 const whatsappFunnel = [
   { label: "Store visits",         value: 4700, pct: 100 },
   { label: "Clicked 'Order on WA'", value: 1316, pct: 28 },
@@ -103,6 +102,31 @@ const AI_INSIGHTS: AIInsight[] = [
   { type: "warning", title: "Conversion rate declining",       body: "At 2.23%, your conversion is down 0.3pp. More visitors are browsing but not clicking 'Order' — review your product CTAs." },
   { type: "tip",     title: "Peak hours are 6–8pm weekdays",   body: "38% of orders come in between 6pm–8pm. Schedule broadcasts and new-drop announcements for 5:30pm to catch peak intent." },
   { type: "success", title: "WhatsApp drives 58% of traffic",  body: "Your link-in-bio WhatsApp CTA is working. Customers from WhatsApp convert at 3.1× vs direct — double down on it." },
+]
+
+// New vs returning customers data
+const customerSplitData = [
+  { name: "Returning", value: 62, color: "#6C4EF3" },
+  { name: "New",       value: 38, color: "#10B981" },
+]
+
+// Revenue by channel (monthly sum per source)
+const channelRevenueData = [
+  { channel: "WhatsApp",    revenue: 2958000, pct: 58, color: "#25D366" },
+  { channel: "Direct Link", revenue: 1224000, pct: 24, color: "#6C4EF3" },
+  { channel: "Instagram",   revenue:  561300, pct: 11, color: "#E1306C" },
+  { channel: "TikTok",      revenue:  357000, pct:  7, color: "#3B82F6" },
+]
+
+// Day-of-week revenue pattern
+const dowRevenueData = [
+  { day: "Mon", revenue: 520000, orders: 82  },
+  { day: "Tue", revenue: 468000, orders: 74  },
+  { day: "Wed", revenue: 634000, orders: 101 },
+  { day: "Thu", revenue: 712000, orders: 114 },
+  { day: "Fri", revenue: 891000, orders: 142 },
+  { day: "Sat", revenue: 1043000, orders: 167 },
+  { day: "Sun", revenue: 932000, orders: 148 },
 ]
 
 // ─── Components ───────────────────────────────────────────────────────────────
@@ -189,7 +213,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
       {payload.map(p => (
         <p key={p.dataKey} style={{ color: p.color }} className="flex items-center gap-2">
           <span className="w-20 text-muted-foreground capitalize">{p.dataKey}:</span>
-          <span className="font-semibold">{p.dataKey === "revenue" || p.dataKey === "prev" ? `₦${Number(p.value).toLocaleString()}` : p.value.toLocaleString()}</span>
+          <span className="font-semibold">{p.dataKey === "revenue" || p.dataKey === "prev" || p.dataKey === "aov" ? `₦${Number(p.value).toLocaleString()}` : p.value.toLocaleString()}</span>
         </p>
       ))}
     </div>
@@ -198,8 +222,8 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 function exportAnalyticsCSV(period: "3m" | "6m" | "12m") {
   const slice = period === "3m" ? revenueData.slice(-3) : period === "6m" ? revenueData.slice(-6) : revenueData
-  const header = ["Month", "Revenue (₦)", "Prev Revenue (₦)", "Orders", "Store Views"]
-  const rows = slice.map(r => [r.month, r.revenue, r.prev, r.orders, r.views].join(","))
+  const header = ["Month", "Revenue (₦)", "Prev Revenue (₦)", "Orders", "Store Views", "AOV (₦)"]
+  const rows = slice.map(r => [r.month, r.revenue, r.prev, r.orders, r.views, r.aov].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
@@ -209,12 +233,171 @@ function exportAnalyticsCSV(period: "3m" | "6m" | "12m") {
   toast({ title: "Exported", description: `Analytics ${period} downloaded.`, variant: "success" })
 }
 
+// AOV sparkline (SVG inline)
+function AOVSparkline() {
+  const values = revenueData.map(d => d.aov)
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const w = 120, h = 36
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w
+    const y = h - ((v - min) / (max - min || 1)) * (h - 4) - 2
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(" ")
+  const latest = values[values.length - 1]
+  const prev = values[values.length - 2]
+  const up = latest >= prev
+
+  return (
+    <div className="flex items-end gap-3">
+      <div>
+        <p className="font-display text-2xl font-extrabold">₦{latest.toLocaleString()}</p>
+        <div className={cn("flex items-center gap-1 mt-0.5 text-xs font-semibold", up ? "text-brand-green" : "text-brand-coral")}>
+          {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+          {up ? "+" : ""}{(((latest - prev) / prev) * 100).toFixed(1)}% vs last month
+        </div>
+      </div>
+      <svg width={w} height={h} className="flex-shrink-0 mb-1">
+        <defs>
+          <linearGradient id="aovLine" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="#6C4EF3" stopOpacity={0.4} />
+            <stop offset="100%" stopColor="#6C4EF3" stopOpacity={1} />
+          </linearGradient>
+        </defs>
+        <polyline points={pts} fill="none" stroke="url(#aovLine)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+        {/* endpoint dot */}
+        <circle cx={w} cy={parseFloat(pts.split(" ").pop()!.split(",")[1])} r={3} fill="#6C4EF3" />
+      </svg>
+    </div>
+  )
+}
+
+// Channel revenue horizontal bars
+function ChannelRevenuePanel() {
+  const total = channelRevenueData.reduce((s, d) => s + d.revenue, 0)
+  return (
+    <div className="space-y-3.5">
+      {channelRevenueData.map((ch, i) => (
+        <div key={ch.channel}>
+          <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: ch.color }} />
+              <span className="text-xs font-semibold">{ch.channel}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-bold">₦{(ch.revenue / 1000).toFixed(0)}K</span>
+              <span className="text-[10px] text-muted-foreground w-8 text-right">{ch.pct}%</span>
+            </div>
+          </div>
+          <div className="h-2.5 rounded-full bg-muted overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }} animate={{ width: `${(ch.revenue / total) * 100}%` }}
+              transition={{ duration: 0.8, delay: i * 0.08, ease: "easeOut" }}
+              className="h-full rounded-full"
+              style={{ backgroundColor: ch.color }}
+            />
+          </div>
+        </div>
+      ))}
+      <p className="text-[11px] text-muted-foreground pt-2 border-t border-border">
+        Total YTD: <strong className="text-foreground">₦{(total / 1000000).toFixed(2)}M</strong>
+      </p>
+    </div>
+  )
+}
+
+// New vs returning donut
+function CustomerSplitDonut() {
+  const returning = customerSplitData[0]
+  const newC = customerSplitData[1]
+  return (
+    <div className="flex items-center gap-4">
+      <div className="h-36 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={customerSplitData} cx="50%" cy="50%" innerRadius={38} outerRadius={56} paddingAngle={4} dataKey="value" startAngle={90} endAngle={-270}>
+              {customerSplitData.map((entry) => <Cell key={entry.name} fill={entry.color} opacity={0.9} />)}
+            </Pie>
+            <Tooltip formatter={(v) => `${v}%`} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="space-y-4 flex-shrink-0">
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <UserCheck className="h-3.5 w-3.5 text-brand-purple" />
+            <span className="text-xs font-semibold">Returning</span>
+          </div>
+          <p className="font-display text-xl font-extrabold text-brand-purple">{returning.value}%</p>
+          <p className="text-[10px] text-muted-foreground">549 customers</p>
+        </div>
+        <div>
+          <div className="flex items-center gap-2 mb-0.5">
+            <UserPlus className="h-3.5 w-3.5 text-brand-green" />
+            <span className="text-xs font-semibold">New</span>
+          </div>
+          <p className="font-display text-xl font-extrabold text-brand-green">{newC.value}%</p>
+          <p className="text-[10px] text-muted-foreground">336 customers</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Day-of-week revenue bars
+function DayOfWeekChart() {
+  const maxRev = Math.max(...dowRevenueData.map(d => d.revenue))
+  const bestDay = dowRevenueData.reduce((best, d) => d.revenue > best.revenue ? d : best, dowRevenueData[0])
+  return (
+    <div>
+      <div className="flex items-end gap-1.5 h-28">
+        {dowRevenueData.map((d, i) => {
+          const heightPct = (d.revenue / maxRev) * 100
+          const isBest = d.day === bestDay.day
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                <div className="bg-card border border-border rounded-lg px-2 py-1 text-[10px] whitespace-nowrap shadow-lg">
+                  <p className="font-semibold">{d.day}</p>
+                  <p className="text-muted-foreground">₦{(d.revenue / 1000).toFixed(0)}K · {d.orders} orders</p>
+                </div>
+              </div>
+              <div className="relative w-full flex flex-col justify-end" style={{ height: "80px" }}>
+                <motion.div
+                  initial={{ height: 0 }} animate={{ height: `${heightPct}%` }}
+                  transition={{ duration: 0.6, delay: i * 0.06, ease: "easeOut" }}
+                  className="w-full rounded-t-lg"
+                  style={{
+                    backgroundColor: isBest ? "#6C4EF3" : "#6C4EF3",
+                    opacity: isBest ? 1 : 0.3 + (d.revenue / maxRev) * 0.5,
+                  }}
+                />
+              </div>
+              <span className={cn("text-[10px] font-semibold", isBest ? "text-brand-purple" : "text-muted-foreground")}>{d.day}</span>
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
+        <p className="text-[11px] text-muted-foreground">
+          Best day: <strong className="text-foreground">{bestDay.day}</strong> — avg ₦{(bestDay.revenue / 1000).toFixed(0)}K/week
+        </p>
+        <p className="text-[11px] text-muted-foreground">
+          Weekends earn <strong className="text-foreground">2.1×</strong> weekday avg
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
   const [revPeriod, setRevPeriod] = React.useState<"3m" | "6m" | "12m">("12m")
   const [showComparison, setShowComparison] = React.useState(false)
   const [showInsights, setShowInsights] = React.useState(true)
+  const [aovMetric, setAovMetric] = React.useState<"revenue" | "aov">("revenue")
   const [dismissedInsights, setDismissedInsights] = React.useState<Set<number>>(new Set())
 
   const revSlice = revPeriod === "3m" ? revenueData.slice(-3) : revPeriod === "6m" ? revenueData.slice(-6) : revenueData
@@ -222,6 +405,11 @@ export default function AnalyticsPage() {
   const hourMax = Math.max(...hourlyData.map(d => d.orders))
 
   const visibleInsights = AI_INSIGHTS.filter((_, i) => !dismissedInsights.has(i))
+
+  // Current AOV
+  const currentAOV = Math.round(revenueData[revenueData.length - 2].revenue / revenueData[revenueData.length - 2].orders)
+  const prevAOV    = Math.round(revenueData[revenueData.length - 3].revenue / revenueData[revenueData.length - 3].orders)
+  const aovChange  = (((currentAOV - prevAOV) / prevAOV) * 100).toFixed(1)
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -311,6 +499,84 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
+      {/* Row: AOV trend + Customer split */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* AOV trend */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}
+          className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-purple/10">
+                  <ShoppingCart className="h-3.5 w-3.5 text-brand-purple" />
+                </div>
+                <h2 className="font-display font-bold text-base">Avg order value</h2>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5 ml-9">12-month AOV trend</p>
+            </div>
+            <div className={cn("flex items-center gap-1 text-xs font-semibold", Number(aovChange) >= 0 ? "text-brand-green" : "text-brand-coral")}>
+              {Number(aovChange) >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+              {aovChange}%
+            </div>
+          </div>
+          <AOVSparkline />
+          <div className="mt-4 pt-4 border-t border-border">
+            <div className="flex gap-4">
+              <button onClick={() => setAovMetric("revenue")}
+                className={cn("text-[11px] font-semibold pb-0.5 border-b-2 transition-colors",
+                  aovMetric === "revenue" ? "border-brand-purple text-brand-purple" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                Revenue
+              </button>
+              <button onClick={() => setAovMetric("aov")}
+                className={cn("text-[11px] font-semibold pb-0.5 border-b-2 transition-colors",
+                  aovMetric === "aov" ? "border-brand-purple text-brand-purple" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                AOV
+              </button>
+            </div>
+            <div className="h-24 mt-3">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueData} margin={{ top: 2, right: 2, left: -30, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="aovAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6C4EF3" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#6C4EF3" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="month" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false}
+                    tickFormatter={v => aovMetric === "revenue" ? `₦${(v / 1000).toFixed(0)}k` : `₦${(v / 1000).toFixed(1)}k`} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey={aovMetric} stroke="#6C4EF3" strokeWidth={1.5} fill="url(#aovAreaGrad)" dot={false} activeDot={{ r: 3, fill: "#6C4EF3" }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* New vs returning customers */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}
+          className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-green/10">
+              <Users className="h-3.5 w-3.5 text-brand-green" />
+            </div>
+            <h2 className="font-display font-bold text-base">Customer type</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 ml-9">New vs returning — last 12 months</p>
+          <CustomerSplitDonut />
+          <div className="mt-4 pt-4 border-t border-border grid grid-cols-2 gap-3 text-center">
+            <div className="rounded-xl bg-muted/50 p-2.5">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Repeat rate</p>
+              <p className="text-sm font-bold text-brand-purple">62%</p>
+            </div>
+            <div className="rounded-xl bg-muted/50 p-2.5">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Avg orders (returning)</p>
+              <p className="text-sm font-bold">3.2×</p>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
       {/* Revenue chart */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
         className="rounded-2xl border border-border bg-card p-5">
@@ -367,6 +633,35 @@ export default function AnalyticsPage() {
           </ResponsiveContainer>
         </div>
       </motion.div>
+
+      {/* Row: Revenue by channel + Day-of-week analysis */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Revenue by channel */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }}
+          className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-500/10">
+              <BarChart2 className="h-3.5 w-3.5 text-amber-500" />
+            </div>
+            <h2 className="font-display font-bold text-base">Revenue by channel</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5 ml-9">YTD earnings per traffic source</p>
+          <ChannelRevenuePanel />
+        </motion.div>
+
+        {/* Day-of-week revenue */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="rounded-2xl border border-border bg-card p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="flex h-7 w-7 items-center justify-center rounded-xl bg-brand-coral/10">
+              <Calendar className="h-3.5 w-3.5 text-brand-coral" />
+            </div>
+            <h2 className="font-display font-bold text-base">Revenue by day of week</h2>
+          </div>
+          <p className="text-xs text-muted-foreground mb-5 ml-9">Weekly revenue pattern — monthly avg</p>
+          <DayOfWeekChart />
+        </motion.div>
+      </div>
 
       {/* Row: Conversion funnel + Traffic sources */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -577,6 +872,30 @@ export default function AnalyticsPage() {
                   {Math.abs(product.growth)}%
                 </span>
               </div>
+            </div>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Summary stats footer */}
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+        className="rounded-2xl border border-border bg-card p-5">
+        <h2 className="font-display font-bold text-base mb-4">Year-end summary</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            { label: "Total revenue",   value: "₦5.1M",  icon: TrendingUp,  color: "text-brand-purple" },
+            { label: "Avg order value", value: `₦${currentAOV.toLocaleString()}`, icon: ShoppingCart, color: "text-amber-500" },
+            { label: "Total customers", value: "885",    icon: Users,        color: "text-brand-green" },
+            { label: "Repeat rate",     value: "62%",    icon: UserCheck,    color: "text-brand-indigo" },
+          ].map((s, i) => (
+            <div key={i} className="text-center">
+              <div className="flex justify-center mb-2">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted">
+                  <s.icon className={cn("h-4 w-4", s.color)} />
+                </div>
+              </div>
+              <p className="font-display text-xl font-extrabold">{s.value}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
             </div>
           ))}
         </div>
