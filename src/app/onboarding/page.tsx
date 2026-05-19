@@ -643,8 +643,14 @@ export default function OnboardingPage() {
     // Persist when leaving the bank setup step (step 4 → 5)
     if (step === 4) {
       setSubmitting(true)
-      await persistOnboarding().catch(console.error)
-      setSubmitting(false)
+      try {
+        await persistOnboarding()
+      } catch (err) {
+        console.error("[onboarding persist]", err)
+        // Non-fatal: completeOnboarding() will upsert profile at final submission
+      } finally {
+        setSubmitting(false)
+      }
     }
     setDir(1)
     setStep((s) => Math.min(s + 1, TOTAL_STEPS))

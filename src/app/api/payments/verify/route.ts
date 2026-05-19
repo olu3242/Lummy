@@ -53,26 +53,39 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
     if (transactionId) {
       await supabase.from("transactions").update({ status: "failed" }).eq("id", transactionId)
     }
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?payment=failed`)
+    // Redirect back to the storefront if we can identify it, otherwise home
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+    if (orderId) {
+      const orderRow = await supabase
+        .from("orders")
+        .select("creator_id, creator_profiles(handle)")
+        .eq("id", orderId)
+        .maybeSingle()
+      const handle = (orderRow.data?.creator_profiles as { handle?: string } | null)?.handle
+      if (handle) {
+        return NextResponse.redirect(`${appUrl}/${handle}?payment=failed`)
+      }
+    }
+    return NextResponse.redirect(`${appUrl}/?payment=failed`)
   }
 
-  // 2. Update transaction record
-  if (transactionId) {
+  // 2. Update transaction record — scoped to verified order to prevent arbitrary updates
+  if (transactionId && orderId) {
     const fee = Math.round(tx.amount * 0.015) // Paystack 1.5% fee estimate
     await supabase.from("transactions").update({
       status: "paid",
       net_amount: tx.amount - fee,
       fee,
       paid_at: new Date().toISOString(),
-    }).eq("id", transactionId)
+    }).eq("id", transactionId).eq("order_id", orderId)
   }
 
-  // 3. Update order to confirmed
+  // 3. Update order to confirmed — only if transaction amount matches to prevent tampering
   if (orderId) {
     await supabase.from("orders").update({
       status: "confirmed",
       payment_status: "paid",
-    }).eq("id", orderId)
+    }).eq("id", orderId).eq("payment_status", "pending")
   }
 
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"

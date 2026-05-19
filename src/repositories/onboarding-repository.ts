@@ -70,7 +70,7 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
   const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;
   const slugBase = RESERVED_ORG_SLUGS.has(base) ? `${base}-${input.userId.slice(0, 4)}` : base;
 
-  let slug = slugBase;
+  let slug = '';
   for (let i = 0; i < 5; i += 1) {
     const suffix = i === 0 ? '' : `-${i + 1}`;
     const candidate = `${slugBase}${suffix}`;
@@ -81,6 +81,8 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
       break;
     }
   }
+  // If all 5 attempts collide, append a random suffix to guarantee uniqueness
+  if (!slug) slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
 
   const createdOrg = await supabase
     .from('organizations')
