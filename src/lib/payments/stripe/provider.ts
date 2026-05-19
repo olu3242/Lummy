@@ -19,7 +19,7 @@ interface CheckoutParams {
   cancelUrl: string;
 }
 
-export async function createStripeCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string }> {
+export async function createStripeCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string; providerReference: string }> {
   const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) throw new Error('STRIPE_SECRET_KEY is not configured');
 

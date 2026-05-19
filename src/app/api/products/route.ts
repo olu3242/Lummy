@@ -6,7 +6,7 @@ import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observab
 export async function GET(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return errorResponse(401, 'UNAUTHORIZED', 'Unauthorized', correlationId);
 

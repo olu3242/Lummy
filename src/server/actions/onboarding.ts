@@ -21,7 +21,7 @@ export async function completeOnboarding(input: {
   productPrice?: number;
   productDescription?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 

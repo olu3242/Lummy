@@ -606,6 +606,7 @@ export default function ProductsPage() {
             stock: null,
             category: "Other",
             status: (p.status ?? "active") as DashboardProduct["status"],
+            image: p.image_url ?? "",
             imageUrl: p.image_url ?? "",
             whatsappEnabled: true,
             sizes: [],
@@ -613,6 +614,7 @@ export default function ProductsPage() {
             sales: 0,
             views: 0,
             revenue: 0,
+            createdAt: p.created_at?.split("T")[0] ?? "",
           })))
         }
       })
@@ -882,8 +884,10 @@ export default function ProductsPage() {
                   id: p.id, name: p.title, description: p.description ?? "",
                   price: p.price, stock: null, category: "Other",
                   status: (p.status ?? "active") as DashboardProduct["status"],
-                  imageUrl: p.image_url ?? "", whatsappEnabled: true,
-                  sizes: [], colors: [], sales: 0, views: 0, revenue: 0,
+                  image: p.image_url ?? "", imageUrl: p.image_url ?? "",
+                  whatsappEnabled: true, sizes: [], colors: [],
+                  sales: 0, views: 0, revenue: 0,
+                  createdAt: p.created_at?.split("T")[0] ?? "",
                 })))
               }
             })

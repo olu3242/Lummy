@@ -181,7 +181,7 @@ function OrderDetailDrawer({ order, onClose, onStatusChange }: {
   }
 
   return (
-    <Sheet open={!!order} onOpenChange={(v) => !v && onClose()}>
+    <Sheet open={!!order} onOpenChange={(v: boolean) => !v && onClose()}>
       <SheetContent side="right" className="sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">

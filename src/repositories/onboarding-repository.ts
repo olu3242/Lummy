@@ -32,7 +32,7 @@ export async function saveOnboardingProfile(input: {
   onboarding_completed?: boolean;
   organization_id?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
@@ -52,7 +52,7 @@ export async function saveOnboardingProfile(input: {
 }
 
 export async function ensureOrganizationForUser(input: { userId: string; orgName: string; country?: string; currency?: string }) {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const existingMembership = await supabase
     .from('organization_members')
@@ -64,7 +64,9 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
 
   if (existingMembership.error) throw existingMembership.error;
   if (existingMembership.data?.organizations) {
-    return existingMembership.data.organizations as { id: string; name: string; slug: string };
+    const orgs = existingMembership.data.organizations;
+    const org = Array.isArray(orgs) ? orgs[0] : orgs;
+    return org as unknown as { id: string; name: string; slug: string };
   }
 
   const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;

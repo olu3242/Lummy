@@ -18,7 +18,7 @@ export async function emitConversionEvent(input: {
   payload?: Record<string, unknown>;
   processingStatus?: 'completed' | 'failed' | 'pending';
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { error } = await supabase.from('ai_conversion_events').insert({
     org_id: input.orgId,
     interaction_id: input.interactionId,

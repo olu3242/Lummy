@@ -576,8 +576,7 @@ export default function OnboardingPage() {
         if (data?.onboarding_completed && data.organization_id) {
           router.replace("/dashboard")
         }
-      })
-      .catch(() => null)
+      }, () => null)
   }, [router])
 
   const [step, setStep] = React.useState(1)

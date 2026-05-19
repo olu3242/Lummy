@@ -17,7 +17,7 @@ export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createClient();
     const storefront = await supabase
       .from('storefronts')
       .select('id,organization_id,handle')

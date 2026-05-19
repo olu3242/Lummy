@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 
 export async function createProduct(organizationId: string, input: { title: string; price: number; description?: string; image_url?: string; status?: string }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   return supabase
     .from('products')
     .insert({ organization_id: organizationId, title: input.title, price: input.price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active' })
@@ -10,7 +10,7 @@ export async function createProduct(organizationId: string, input: { title: stri
 }
 
 export async function createProductForCurrentUser(input: { title: string; price: number; description?: string; image_url?: string }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
@@ -28,7 +28,7 @@ export async function createProductForCurrentUser(input: { title: string; price:
 }
 
 export async function getPublishedProductsByHandle(handle: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const storefront = await supabase.from('storefronts').select('organization_id,is_active').eq('handle', handle).maybeSingle();
   if (storefront.error) throw storefront.error;
   if (!storefront.data?.is_active) return [];

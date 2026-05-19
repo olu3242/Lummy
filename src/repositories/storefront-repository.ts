@@ -5,7 +5,7 @@ const RESERVED_STOREFRONT_HANDLES = new Set(['admin', 'api', 'app', 'dashboard',
 const normalizeHandle = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
 
 export async function upsertStorefront(organizationId: string, payload: { handle: string; bio?: string; hero_image?: string }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const cleanHandle = normalizeHandle(payload.handle);
   if (!cleanHandle || RESERVED_STOREFRONT_HANDLES.has(cleanHandle)) throw new Error('Reserved storefront handle');
 
@@ -31,7 +31,7 @@ export async function updateStorefrontForCurrentUser(input: {
   social_links?: Record<string, string>;
   publish?: boolean;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
@@ -76,7 +76,7 @@ export async function updateStorefrontForCurrentUser(input: {
 }
 
 export async function getPublishedStorefrontByHandle(handle: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const cleanHandle = normalizeHandle(handle);
   const storefront = await supabase
     .from('storefronts')

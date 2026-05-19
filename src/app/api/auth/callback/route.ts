@@ -22,11 +22,13 @@ export async function GET(request: NextRequest) {
   // Ensure profiles row exists — may not yet if this is first sign-in after email confirmation
   const user = sessionData?.user
   if (user) {
-    await supabase.from("profiles").upsert({
-      id: user.id,
-      email: user.email!,
-      full_name: user.user_metadata?.full_name ?? null,
-    }, { onConflict: "id", ignoreDuplicates: true }).catch(() => null)
+    try {
+      await supabase.from("profiles").upsert({
+        id: user.id,
+        email: user.email!,
+        full_name: user.user_metadata?.full_name ?? null,
+      }, { onConflict: "id", ignoreDuplicates: true })
+    } catch { /* non-critical, profile may already exist */ }
   }
 
   // Ensure next is a relative path to prevent open redirect
