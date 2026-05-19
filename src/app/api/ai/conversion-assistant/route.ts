@@ -54,7 +54,8 @@ export async function POST(req: Request) {
     await supabase
       .from('customer_interactions')
       .update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' })
-      .eq('id', interaction.data.id);
+      .eq('id', interaction.data.id)
+      .eq('org_id', orgId);
     await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'intent_detected', aiAction: 'detectIntent', correlationId, payload: { intent, confidence } });
 
     let checkoutUrl: string | undefined;
@@ -86,7 +87,8 @@ export async function POST(req: Request) {
       await supabase
         .from('customer_interactions')
         .update({ associated_checkout_id: created.order.id, conversion_status: 'checkout_generated' })
-        .eq('id', interaction.data.id);
+        .eq('id', interaction.data.id)
+        .eq('org_id', orgId);
       await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'checkout_created', aiAction: 'createCheckoutFromInquiry', correlationId, payload: { orderId: created.order.id, paymentId: created.payment.id, provider } });
       await upsertConversionAttribution({ orgId, storefrontId, interactionId: interaction.data.id, checkoutId: created.order.id, orderId: created.order.id, customerIdentifier: body.customerIdentifier || body.customerEmail || 'unknown', sourcePlatform: body.sourcePlatform || body.sourceChannel || 'Direct', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'checkout', conversionStatus: 'checkout_generated' });
 

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { markPaymentCompleted } from "@/repositories/order-repository"
 
 const PAYSTACK_API = "https://api.paystack.co"
 
@@ -45,8 +46,11 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
   }
 
   const tx = data.data
-  const orderId = tx.metadata?.order_id
-  const transactionId = tx.metadata?.transaction_id
+  // Support both camelCase (checkout flow) and snake_case (initiate flow) metadata keys
+  const meta = tx.metadata as Record<string, string | undefined> | undefined
+  const orderId = meta?.order_id ?? meta?.orderId
+  const paymentId = meta?.paymentId ?? meta?.payment_id
+  const transactionId = meta?.transaction_id ?? meta?.transactionId
 
   if (tx.status !== "success") {
     // Update transaction status
@@ -69,25 +73,35 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
     return NextResponse.redirect(`${appUrl}/?payment=failed`)
   }
 
-  // 2. Update transaction record — scoped to verified order to prevent arbitrary updates
-  if (transactionId && orderId) {
-    const fee = Math.round(tx.amount * 0.015) // Paystack 1.5% fee estimate
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+
+  // 2. Mark payment completed — handles both payments table (checkout flow) and
+  //    legacy transactions table (initiate flow). paymentId is the payments row ID.
+  if (orderId && paymentId) {
+    await markPaymentCompleted({
+      orderId,
+      paymentId,
+      providerReference: tx.reference,
+      providerEventId: `verify-${tx.reference}`,
+    }).catch((err: unknown) => console.error("[payments/verify] markPaymentCompleted failed", err))
+  } else if (orderId && transactionId) {
+    // Legacy initiate flow: update transactions table directly
+    const fee = Math.round(tx.amount * 0.015)
     await supabase.from("transactions").update({
       status: "paid",
       net_amount: tx.amount - fee,
       fee,
       paid_at: new Date().toISOString(),
     }).eq("id", transactionId).eq("order_id", orderId)
-  }
-
-  // 3. Update order to confirmed — only if transaction amount matches to prevent tampering
-  if (orderId) {
     await supabase.from("orders").update({
       status: "confirmed",
       payment_status: "paid",
     }).eq("id", orderId).eq("payment_status", "pending")
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+  // Redirect to track page if we have orderId, otherwise home
+  if (orderId) {
+    return NextResponse.redirect(`${appUrl}/track/${orderId}?status=success`)
+  }
   return NextResponse.redirect(`${appUrl}/?payment=success&ref=${reference}`)
 }

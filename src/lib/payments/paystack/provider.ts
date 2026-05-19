@@ -20,7 +20,12 @@ interface CheckoutParams {
   cancelUrl: string;
 }
 
-export async function createPaystackCheckoutSession(params: CheckoutParams): Promise<{ checkoutUrl: string }> {
+interface CheckoutResult {
+  checkoutUrl: string;
+  providerReference: string;
+}
+
+export async function createPaystackCheckoutSession(params: CheckoutParams): Promise<CheckoutResult> {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) throw new Error('PAYSTACK_SECRET_KEY is not configured');
 
@@ -52,7 +57,7 @@ export async function createPaystackCheckoutSession(params: CheckoutParams): Pro
     throw new Error(`Paystack error: ${data.message}`);
   }
 
-  return { checkoutUrl: data.data.authorization_url };
+  return { checkoutUrl: data.data.authorization_url, providerReference: data.data.reference };
 }
 
 export function verifyPaystackSignature(rawBody: string, signature: string | null): boolean {

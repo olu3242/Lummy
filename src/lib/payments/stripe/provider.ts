@@ -34,6 +34,10 @@ export async function createStripeCheckoutSession(params: CheckoutParams): Promi
     cancel_url: params.cancelUrl,
     customer_email: params.customerEmail,
   });
+  // Pass order metadata so webhook can link payment back to order/payment records
+  for (const [k, v] of Object.entries(params.metadata)) {
+    if (v !== null && v !== undefined) body.set(`metadata[${k}]`, String(v));
+  }
 
   const res = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
@@ -44,11 +48,11 @@ export async function createStripeCheckoutSession(params: CheckoutParams): Promi
     body: body.toString(),
   });
 
-  const data = await res.json() as { url?: string; error?: { message: string } };
+  const data = await res.json() as { id?: string; url?: string; error?: { message: string } };
 
   if (!data.url) {
     throw new Error(`Stripe error: ${data.error?.message ?? 'unknown'}`);
   }
 
-  return { checkoutUrl: data.url };
+  return { checkoutUrl: data.url, providerReference: data.id ?? '' };
 }

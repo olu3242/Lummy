@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     await upsertConversionAttribution({ orgId, storefrontId: storefront.data.id, interactionId: interaction.data.id, customerIdentifier, sourcePlatform: body.sourcePlatform || 'WhatsApp', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'inquiry', conversionStatus: 'inquiry_captured' });
 
     const { intent, confidence } = detectIntent(message);
-    await supabase.from('customer_interactions').update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' }).eq('id', interaction.data.id);
+    await supabase.from('customer_interactions').update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' }).eq('id', interaction.data.id).eq('org_id', orgId);
 
     let checkoutUrl: string | undefined;
     if ((intent === 'purchase_intent' || intent === 'pricing_inquiry') && body.productId) {
@@ -44,7 +44,7 @@ export async function POST(req: Request) {
         ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) })
         : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) });
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
-      await supabase.from('customer_interactions').update({ associated_checkout_id: created.order.id, checkout_association: created.order.id, conversion_status: 'checkout_generated' }).eq('id', interaction.data.id);
+      await supabase.from('customer_interactions').update({ associated_checkout_id: created.order.id, checkout_association: created.order.id, conversion_status: 'checkout_generated' }).eq('id', interaction.data.id).eq('org_id', orgId);
       await supabase.from('conversion_recovery_queue').insert({ org_id: orgId, interaction_id: interaction.data.id, checkout_id: created.order.id, recovery_stage: 'initial', recovery_status: 'pending' });
       await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'checkout_created', aiAction: 'createCheckoutFromWhatsAppInquiry', correlationId, payload: { provider, orderId: created.order.id } });
       await upsertConversionAttribution({ orgId, storefrontId: storefront.data.id, interactionId: interaction.data.id, checkoutId: created.order.id, orderId: created.order.id, customerIdentifier, sourcePlatform: body.sourcePlatform || 'WhatsApp', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'checkout', conversionStatus: 'checkout_generated' });

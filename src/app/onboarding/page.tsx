@@ -565,6 +565,21 @@ const slideVariants = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+
+  // Redirect already-onboarded creators straight to dashboard
+  React.useEffect(() => {
+    const supabase = createClient()
+    supabase.from("profiles")
+      .select("onboarding_completed, organization_id")
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.onboarding_completed && data.organization_id) {
+          router.replace("/dashboard")
+        }
+      })
+      .catch(() => null)
+  }, [router])
+
   const [step, setStep] = React.useState(1)
   const [dir, setDir] = React.useState(1)
   const [submitting, setSubmitting] = React.useState(false)
