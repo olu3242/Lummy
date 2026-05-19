@@ -31,6 +31,9 @@ export async function completeOnboarding(input: {
   const storefront = await upsertStorefront(organization.id, { handle: input.handle });
   if (storefront.error) throw storefront.error;
 
+  // Publish storefront immediately so it's accessible at /{handle}
+  await supabase.from('storefronts').update({ is_active: true }).eq('organization_id', organization.id);
+
   if (input.productTitle && input.productPrice && input.productPrice > 0) {
     const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription });
     if (product.error) throw product.error;

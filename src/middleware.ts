@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { updateSession } from "@/lib/supabase/middleware"
 
-const PROTECTED_PREFIXES = ["/dashboard", "/onboarding"]
+const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/ops", "/developers"]
 const AUTH_ROUTES = ["/login", "/signup"]
 
 function genCorrelationId(): string {
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   // Propagate or mint correlation ID
   const correlationId = request.headers.get("x-correlation-id") ?? genCorrelationId()
 
-  const { supabaseResponse, user } = await updateSession(request)
+  const { response, user } = await updateSession(request)
 
   const isProtected = PROTECTED_PREFIXES.some(p => pathname.startsWith(p))
   const isAuthRoute = AUTH_ROUTES.some(p => pathname.startsWith(p))
@@ -44,8 +44,8 @@ export async function middleware(request: NextRequest) {
   }
 
   // Attach observability headers to response
-  supabaseResponse.headers.set("x-correlation-id", correlationId)
-  supabaseResponse.headers.set("x-response-time", `${Date.now() - start}ms`)
+  response.headers.set("x-correlation-id", correlationId)
+  response.headers.set("x-response-time", `${Date.now() - start}ms`)
 
   // Structured request log (server-side only)
   if (pathname.startsWith("/api/")) {
@@ -60,7 +60,7 @@ export async function middleware(request: NextRequest) {
     }))
   }
 
-  return supabaseResponse
+  return response
 }
 
 export const config = {

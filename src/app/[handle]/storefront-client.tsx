@@ -24,6 +24,26 @@ import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
 import type { StoreSchema } from "@/store/schema/types"
 import type { Json } from "@/lib/supabase/types"
 
+type DbProduct = { id: string; title: string; description: string | null; price: number; currency: string; image_url: string | null; status: string; created_at: string }
+
+function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
+  return dbProducts.map(p => ({
+    id: p.id,
+    name: p.title,
+    description: p.description ?? "",
+    price: p.price,
+    image: p.image_url ?? "/placeholder-product.jpg",
+    category: "General",
+    status: p.status === "active" ? "active" : "draft",
+    sales: 0,
+    views: 0,
+    revenue: 0,
+    stock: null,
+    whatsappEnabled: true,
+    createdAt: p.created_at,
+  }))
+}
+
 const SCHEMA_KEY = "lummy_store_schema_v2"
 const OLD_KEY = "lummy_store_settings"
 
@@ -153,15 +173,33 @@ function StarRow({ rating, small }: { rating: number; small?: boolean }) {
   )
 }
 
-export function StorefrontClient({ handle, storeName, bio }: { handle: string; storeName: string; bio: string }) {
-  const creator = { ...storefrontCreator, handle, storeName, bio: bio || storefrontCreator.bio }
+export function StorefrontClient({
+  handle, storeName, bio,
+  products: dbProducts = [],
+  storeSchema = null,
+}: {
+  handle: string
+  storeName: string
+  bio: string
+  products?: DbProduct[]
+  storeSchema?: Json | null
+}) {
+  const realProducts = dbProducts.length > 0 ? dbProductsToStorefront(dbProducts) : storefrontCreator.publicProducts
+  const creator = {
+    ...storefrontCreator,
+    handle,
+    storeName,
+    bio: bio || storefrontCreator.bio,
+    publicProducts: realProducts,
+    categories: ["All", ...Array.from(new Set(realProducts.map(p => p.category)))],
+  }
   const [schema, setSchema] = React.useState<StoreSchema | null>(null)
 
   const storeUrl = `https://lummy.co/${creator.handle}`
 
   React.useEffect(() => {
-    setSchema(loadPublicSchema(dbStoreSchema ?? null))
-  }, [dbStoreSchema])
+    setSchema(loadPublicSchema(storeSchema ?? null))
+  }, [storeSchema])
 
   if (!schema) {
     return (
