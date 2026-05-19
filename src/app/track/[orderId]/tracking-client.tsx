@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils"
 
 type OrderStatus = "confirmed" | "processing" | "shipped" | "delivered"
 
-interface TrackingOrder {
+export interface TrackingOrder {
   id: string
   status: OrderStatus
   product: { name: string; image: string; price: number; qty: number }
@@ -127,8 +127,8 @@ function DeliveredCelebration() {
   )
 }
 
-export function TrackingClient({ orderId }: { orderId: string }) {
-  const order = getMockOrder(orderId.toUpperCase())
+export function TrackingClient({ orderId, initialOrder }: { orderId: string; initialOrder: TrackingOrder | null }) {
+  const order = initialOrder ?? getMockOrder(orderId.toUpperCase())
   const [copied, setCopied] = React.useState(false)
   const currentIdx = statusOrder.indexOf(order.status)
 

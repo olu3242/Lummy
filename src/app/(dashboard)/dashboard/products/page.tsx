@@ -385,16 +385,37 @@ function ProductDrawer({
 
   const inputCls = "w-full h-10 px-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    if (!form.name || !form.price) {
+      toast({ title: "Name and price are required", variant: "default" })
+      return
+    }
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false); onClose(); onSaved()
+    try {
+      const payload = {
+        title: form.name,
+        description: form.description || undefined,
+        price: Math.round(parseFloat(form.price) * 100), // kobo
+        image_url: form.imageUrl || undefined,
+        status: form.status,
+      }
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      if (!res.ok) throw new Error("API error")
+      onClose(); onSaved()
       toast({
         title: editing ? "Product updated" : "Product added",
         description: editing ? `"${form.name}" has been updated.` : `"${form.name}" is now live in your store.`,
         variant: "success",
       })
-    }, 900)
+    } catch {
+      toast({ title: "Failed to save product", description: "Please try again.", variant: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -557,7 +578,7 @@ function ProductDrawer({
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ProductsPage() {
-  const [products, setProducts] = React.useState<DashboardProduct[]>(mockProducts)
+  const [products, setProducts] = React.useState<DashboardProduct[]>([])
   const [search, setSearch] = React.useState("")
   const [activeFilter, setActiveFilter] = React.useState("All")
   const [activeCategory, setActiveCategory] = React.useState<string | null>(null)
@@ -570,6 +591,33 @@ export default function ProductsPage() {
   const [lowStockDismissed, setLowStockDismissed] = React.useState(false)
 
   const sortMenuRef = React.useRef<HTMLDivElement>(null)
+
+  // Load real products from API on mount
+  React.useEffect(() => {
+    fetch("/api/products")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { products?: Array<{ id: string; title: string; description?: string; price: number; image_url?: string; status?: string; organization_id: string; created_at: string }> } | null) => {
+        if (data?.products?.length) {
+          setProducts(data.products.map(p => ({
+            id: p.id,
+            name: p.title,
+            description: p.description ?? "",
+            price: p.price,
+            stock: null,
+            category: "Other",
+            status: (p.status ?? "active") as DashboardProduct["status"],
+            imageUrl: p.image_url ?? "",
+            whatsappEnabled: true,
+            sizes: [],
+            colors: [],
+            sales: 0,
+            views: 0,
+            revenue: 0,
+          })))
+        }
+      })
+      .catch(() => { /* keep empty state */ })
+  }, [])
 
   // Close sort menu on outside click
   React.useEffect(() => {
@@ -825,7 +873,22 @@ export default function ProductsPage() {
       )}
 
       <ProductDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)}
-        editing={editingProduct} onSaved={() => {}} />
+        editing={editingProduct} onSaved={() => {
+          fetch("/api/products")
+            .then(r => r.ok ? r.json() : null)
+            .then((data: { products?: Array<{ id: string; title: string; description?: string; price: number; image_url?: string; status?: string; organization_id: string; created_at: string }> } | null) => {
+              if (data?.products) {
+                setProducts(data.products.map(p => ({
+                  id: p.id, name: p.title, description: p.description ?? "",
+                  price: p.price, stock: null, category: "Other",
+                  status: (p.status ?? "active") as DashboardProduct["status"],
+                  imageUrl: p.image_url ?? "", whatsappEnabled: true,
+                  sizes: [], colors: [], sales: 0, views: 0, revenue: 0,
+                })))
+              }
+            })
+            .catch(() => {})
+        }} />
     </div>
   )
 }
