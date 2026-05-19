@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
               .from("creator_profiles")
               .select("id, whatsapp_number")
               .not("whatsapp_number", "is", null)
-              .limit(100)
+              .limit(200)
             const match = (byPhone ?? []).find((p: Record<string, unknown>) =>
               String(p.whatsapp_number ?? "").replace(/\D/g, "").endsWith(suffix)
             )
