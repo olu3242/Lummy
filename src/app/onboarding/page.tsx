@@ -1,7 +1,6 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
@@ -579,29 +578,36 @@ export default function OnboardingPage() {
       }, () => null)
   }, [router])
 
-  const [step, setStep] = React.useState(1)
+  const DRAFT_KEY = "lummy_onboarding_draft"
+
+  const loadDraft = (): { step: number; data: WizardData } => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(DRAFT_KEY) : null
+      if (raw) return JSON.parse(raw)
+    } catch { /* ignore */ }
+    return {
+      step: 1,
+      data: { creatorType: "", storeName: "", handle: "", whatsapp: "", niche: "", location: "", productName: "", productPrice: "", productDesc: "", productCategory: "", addProduct: false, bankName: "", accountNumber: "", accountName: "" },
+    }
+  }
+
+  const draft = loadDraft()
+  const [step, setStep] = React.useState(draft.step)
   const [dir, setDir] = React.useState(1)
   const [submitting, setSubmitting] = React.useState(false)
-  const [data, setData] = React.useState<WizardData>({
-    creatorType: "",
-    storeName: "",
-    handle: "",
-    whatsapp: "",
-    niche: "",
-    location: "",
-    productName: "",
-    productPrice: "",
-    productDesc: "",
-    productCategory: "",
-    addProduct: false,
-    bankName: "",
-    accountNumber: "",
-    accountName: "",
-  })
+  const [data, setData] = React.useState<WizardData>(draft.data)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
 
-  const update = (partial: Partial<WizardData>) => setData((d) => ({ ...d, ...partial }))
+  const saveDraft = React.useCallback((nextStep: number, nextData: WizardData) => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ step: nextStep, data: nextData })) } catch { /* ignore */ }
+  }, [])
+
+  const update = (partial: Partial<WizardData>) => setData((d) => {
+    const next = { ...d, ...partial }
+    saveDraft(step, next)
+    return next
+  })
 
   const canAdvance = () => {
     if (step === 1) return !!data.creatorType
@@ -667,12 +673,12 @@ export default function OnboardingPage() {
       }
     }
     setDir(1)
-    setStep((s) => Math.min(s + 1, TOTAL_STEPS))
+    setStep((s) => { const next = Math.min(s + 1, TOTAL_STEPS); saveDraft(next, data); return next })
   }
 
   const back = () => {
     setDir(-1)
-    setStep((s) => Math.max(s - 1, 1))
+    setStep((s) => { const prev = Math.max(s - 1, 1); saveDraft(prev, data); return prev })
   }
 
   const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
@@ -690,6 +696,7 @@ export default function OnboardingPage() {
         productPrice: data.addProduct && data.productPrice ? Number(data.productPrice) : undefined,
         productDescription: data.addProduct ? data.productDesc : undefined,
       })
+      try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
       window.location.href = "/dashboard"
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to complete onboarding")
@@ -708,11 +715,7 @@ export default function OnboardingPage() {
           </div>
           <span className="font-display text-lg font-bold text-white">Lummy</span>
         </div>
-        {step < TOTAL_STEPS && (
-          <Link href="/dashboard" className="text-xs text-white/30 hover:text-white/60 transition-colors flex items-center gap-1">
-            Skip for now <X className="h-3 w-3" />
-          </Link>
-        )}
+        <span className="text-xs text-white/20">Step {step} of {TOTAL_STEPS}</span>
       </header>
 
       {/* Progress bar */}

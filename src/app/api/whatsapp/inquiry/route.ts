@@ -25,6 +25,15 @@ export async function POST(req: Request) {
     const message = String(body.message ?? '').slice(0, 240);
     const customerIdentifier = String(body.customerIdentifier ?? body.phone ?? body.customerEmail ?? 'unknown').slice(0, 120);
 
+    // Dedup: reuse existing interaction for same customer+message within 5 minutes
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const existing = await supabase.from('customer_interactions').select('*').eq('org_id', orgId).eq('customer_identifier', customerIdentifier).eq('source_channel', 'whatsapp').eq('message_excerpt', message).gte('created_at', fiveMinAgo).maybeSingle();
+    if (existing.data) {
+      const { intent: ei, confidence: ec } = detectIntent(message);
+      const suggestedReply = generateSuggestedReply({ intent: ei, productTitle: body.productTitle, handle: storefront.data.handle });
+      return NextResponse.json({ interactionId: existing.data.id, intent: ei, confidence: ec, suggestedReply, correlationId, duplicate: true }, { headers: { 'x-correlation-id': correlationId } });
+    }
+
     const interaction = await supabase.from('customer_interactions').insert({ org_id: orgId, storefront_id: storefront.data.id, customer_identifier: customerIdentifier, source_channel: 'whatsapp', interaction_type: body.interactionType || 'inquiry', message_excerpt: message, associated_product_id: body.productId ?? null, conversion_status: 'new' }).select('*').single();
     if (interaction.error) throw interaction.error;
 

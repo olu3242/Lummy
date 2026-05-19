@@ -31,15 +31,28 @@ export async function POST(req: Request) {
     const storefrontId = storefront.data.id;
     const orgId = storefront.data.organization_id;
 
+    const customerIdentifier = body.customerIdentifier || body.customerEmail || 'unknown';
+    const messageExcerpt = String(body.message || '').slice(0, 240);
+    const sourceChannel = body.sourceChannel || 'storefront';
+
+    // Dedup: reuse existing interaction for same customer+message within 5 minutes
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const existing = await supabase.from('customer_interactions').select('*').eq('org_id', orgId).eq('customer_identifier', customerIdentifier).eq('source_channel', sourceChannel).eq('message_excerpt', messageExcerpt).gte('created_at', fiveMinAgo).maybeSingle();
+    if (existing.data) {
+      const { intent: ei, confidence: ec } = detectIntent(body.message || '');
+      const reply = generateSuggestedReply({ intent: ei, productTitle: body.productTitle, handle: storefront.data.handle });
+      return NextResponse.json({ interactionId: existing.data.id, intent: ei, confidence: ec, suggestedReply: reply, correlationId, duplicate: true }, { headers: { 'x-correlation-id': correlationId } });
+    }
+
     const interaction = await supabase
       .from('customer_interactions')
       .insert({
         org_id: orgId,
         storefront_id: storefrontId,
-        customer_identifier: body.customerIdentifier || body.customerEmail || 'unknown',
-        source_channel: body.sourceChannel || 'storefront',
+        customer_identifier: customerIdentifier,
+        source_channel: sourceChannel,
         interaction_type: 'inquiry',
-        message_excerpt: String(body.message || '').slice(0, 240),
+        message_excerpt: messageExcerpt,
         associated_product_id: body.productId ?? null,
         conversion_status: 'new',
       })
