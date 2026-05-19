@@ -2,12 +2,15 @@
 
 import * as React from "react"
 import {
-  MessageCircle, CheckCheck, Clock, Phone, User,
+  MessageCircle, CheckCheck, Phone, User,
   RefreshCw, Filter, Zap, TrendingUp, Users, AlertTriangle,
+  ChevronDown, Copy, Smartphone, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import type { InboxMessage, InboxFilter } from "@/lib/whatsapp/inbox"
+import { detectIntent, generateSuggestedReply } from "@/lib/ai-conversion"
+import { buildWhatsAppLink, buildStorefrontShareMessage } from "@/lib/whatsapp/share"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +26,7 @@ interface InboxData {
     repeatSenders: number
     topSenders: Array<{ phone: string; name: string | null; count: number; lastAt: string }>
   } | null
+  creatorProfile: { handle: string; whatsappNumber: string | null } | null
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -39,21 +43,125 @@ function timeAgo(iso: string): string {
 
 function formatPhone(phone: string | null): string {
   if (!phone) return "Unknown number"
-  // Show last 7 digits only for privacy — creators see partial number
   const digits = phone.replace(/\D/g, "")
   return `+${digits.slice(0, 3)} *** ${digits.slice(-4)}`
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
+const INTENT_LABELS: Record<string, string> = {
+  pricing_inquiry:  "Pricing inquiry",
+  purchase_intent:  "Purchase intent",
+  booking_intent:   "Booking inquiry",
+  delivery_inquiry: "Delivery inquiry",
+  support_request:  "Support request",
+  low_intent:       "General message",
+}
+
+// ─── Quick reply panel ────────────────────────────────────────────────────────
+
+function QuickReplyPanel({
+  message,
+  creatorHandle,
+}: {
+  message: InboxMessage
+  creatorHandle: string
+}) {
+  const [copied, setCopied] = React.useState(false)
+
+  const { intent } = React.useMemo(
+    () => (message.messageBody ? detectIntent(message.messageBody) : { intent: "low_intent" as const }),
+    [message.messageBody]
+  )
+
+  const suggestedReply = React.useMemo(
+    () => (message.messageBody
+      ? generateSuggestedReply({ intent, handle: creatorHandle })
+      : `Thanks for reaching out! Reply here to continue our conversation.`),
+    [intent, message.messageBody, creatorHandle]
+  )
+
+  const replyLink = message.senderPhone
+    ? buildWhatsAppLink(message.senderPhone, suggestedReply)
+    : null
+
+  const storefrontLink = message.senderPhone
+    ? buildWhatsAppLink(message.senderPhone, buildStorefrontShareMessage("my store", creatorHandle))
+    : null
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(suggestedReply)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch { /* clipboard unavailable */ }
+  }
+
+  return (
+    <div className="mt-3 pt-3 border-t border-white/8 space-y-3">
+      {/* Intent badge + suggested reply */}
+      <div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[10px] bg-brand-purple/15 text-brand-purple px-2 py-0.5 rounded-full border border-brand-purple/20">
+            {INTENT_LABELS[intent] ?? "General message"}
+          </span>
+          <span className="text-[10px] text-white/25">AI suggested reply</span>
+        </div>
+        <p className="text-xs text-white/50 leading-relaxed bg-white/3 rounded-xl p-2.5 border border-white/6">
+          {suggestedReply}
+        </p>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 text-white/50 hover:text-white hover:bg-white/8 transition-colors"
+        >
+          <Copy className="h-3 w-3" />
+          {copied ? "Copied!" : "Copy reply"}
+        </button>
+        {replyLink && (
+          <a
+            href={replyLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-brand-green/10 text-brand-green hover:bg-brand-green/20 transition-colors"
+          >
+            <Smartphone className="h-3 w-3" />
+            Reply on WhatsApp
+          </a>
+        )}
+        {storefrontLink && (
+          <a
+            href={storefrontLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg bg-white/5 text-white/40 hover:text-white hover:bg-white/8 transition-colors"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Send storefront link
+          </a>
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── InboxCard ────────────────────────────────────────────────────────────────
 
 function InboxCard({
   message,
   onRead,
   onFollowUp,
+  expanded,
+  onToggleExpand,
+  creatorHandle,
 }: {
   message: InboxMessage
   onRead: (id: string) => void
   onFollowUp: (id: string) => void
+  expanded: boolean
+  onToggleExpand: (id: string) => void
+  creatorHandle: string
 }) {
   const preview = message.messageBody
     ? message.messageBody.slice(0, 120) + (message.messageBody.length > 120 ? "…" : "")
@@ -133,9 +241,32 @@ function InboxCard({
           )}
         </div>
       </div>
+
+      {/* Quick reply toggle — only when we have a phone to reply to */}
+      {message.senderPhone && (
+        <div className="pl-11 mt-2.5">
+          <button
+            onClick={() => onToggleExpand(message.id)}
+            className={cn(
+              "flex items-center gap-1 text-[11px] transition-colors",
+              expanded ? "text-white/40 hover:text-white/60" : "text-brand-purple/60 hover:text-brand-purple"
+            )}
+          >
+            <ChevronDown className={cn("h-3 w-3 transition-transform duration-150", expanded && "rotate-180")} />
+            {expanded ? "Close" : "Quick reply"}
+          </button>
+        </div>
+      )}
+
+      {/* Quick reply panel */}
+      {expanded && message.senderPhone && (
+        <QuickReplyPanel message={message} creatorHandle={creatorHandle} />
+      )}
     </div>
   )
 }
+
+// ─── EmptyState ───────────────────────────────────────────────────────────────
 
 function EmptyState({ filter }: { filter: InboxFilter }) {
   const copy = {
@@ -158,17 +289,18 @@ function EmptyState({ filter }: { filter: InboxFilter }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 const FILTERS: { value: InboxFilter; label: string }[] = [
-  { value: "all",          label: "All" },
-  { value: "unread",       label: "Unread" },
-  { value: "followed_up",  label: "Followed up" },
+  { value: "all",         label: "All" },
+  { value: "unread",      label: "Unread" },
+  { value: "followed_up", label: "Followed up" },
 ]
 
 export default function WhatsAppInboxPage() {
-  const [data, setData]       = React.useState<InboxData | null>(null)
-  const [filter, setFilter]   = React.useState<InboxFilter>("all")
-  const [page, setPage]       = React.useState(1)
-  const [loading, setLoading] = React.useState(true)
+  const [data, setData]         = React.useState<InboxData | null>(null)
+  const [filter, setFilter]     = React.useState<InboxFilter>("all")
+  const [page, setPage]         = React.useState(1)
+  const [loading, setLoading]   = React.useState(true)
   const [updating, setUpdating] = React.useState<string | null>(null)
+  const [expandedId, setExpandedId] = React.useState<string | null>(null)
 
   const fetchInbox = React.useCallback(async (f: InboxFilter, p: number) => {
     setLoading(true)
@@ -185,6 +317,7 @@ export default function WhatsAppInboxPage() {
   React.useEffect(() => {
     void fetchInbox(filter, 1)
     setPage(1)
+    setExpandedId(null)
   }, [filter, fetchInbox])
 
   const handleRead = React.useCallback(async (id: string) => {
@@ -208,9 +341,14 @@ export default function WhatsAppInboxPage() {
     }
   }, [])
 
+  const handleToggleExpand = React.useCallback((id: string) => {
+    setExpandedId(prev => prev === id ? null : id)
+  }, [])
+
   const stats = data?.stats
   const messages = data?.messages ?? []
   const hasMore = data ? page * 20 < data.total : false
+  const creatorHandle = data?.creatorProfile?.handle ?? ""
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -236,10 +374,10 @@ export default function WhatsAppInboxPage() {
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label: "Total", value: stats.totalConversations, icon: <MessageCircle className="h-3.5 w-3.5" /> },
-            { label: "Unread", value: stats.unread, icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />, warn: stats.unread > 0 },
+            { label: "Total",       value: stats.totalConversations, icon: <MessageCircle className="h-3.5 w-3.5" /> },
+            { label: "Unread",      value: stats.unread,     icon: <AlertTriangle className="h-3.5 w-3.5 text-amber-400" />, warn: stats.unread > 0 },
             { label: "Followed up", value: stats.followedUp, icon: <CheckCheck className="h-3.5 w-3.5 text-brand-green" /> },
-            { label: "This week", value: stats.last7dCount, icon: <TrendingUp className="h-3.5 w-3.5" /> },
+            { label: "This week",   value: stats.last7dCount, icon: <TrendingUp className="h-3.5 w-3.5" /> },
           ].map(s => (
             <div key={s.label} className="rounded-2xl border border-white/8 bg-white/3 p-3">
               <div className={cn("flex items-center gap-1.5 mb-1.5 text-white/30", s.warn && "text-amber-400/70")}>
@@ -311,7 +449,14 @@ export default function WhatsAppInboxPage() {
         ) : (
           messages.map(m => (
             <div key={m.id} className={cn(updating === m.id && "opacity-60 pointer-events-none")}>
-              <InboxCard message={m} onRead={handleRead} onFollowUp={handleFollowUp} />
+              <InboxCard
+                message={m}
+                onRead={handleRead}
+                onFollowUp={handleFollowUp}
+                expanded={expandedId === m.id}
+                onToggleExpand={handleToggleExpand}
+                creatorHandle={creatorHandle}
+              />
             </div>
           ))
         )}
@@ -330,7 +475,7 @@ export default function WhatsAppInboxPage() {
       {/* Bottom hint */}
       {!loading && messages.length > 0 && (
         <p className="text-[11px] text-white/20 text-center pb-4">
-          Messages are received via WhatsApp webhook · Mark follow-ups to track conversations
+          Tap "Quick reply" on any message to reply or send links via WhatsApp
         </p>
       )}
     </div>
