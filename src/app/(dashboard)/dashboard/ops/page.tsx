@@ -57,6 +57,22 @@ interface EcosystemData {
   commerceOps: { totalPendingOrders: number; totalOverdueOrders: number; platformAvgFulfillmentDays: number; creatorsWithOverdue: number } | null
 }
 
+interface WhatsAppCommsData {
+  comms: {
+    totalCreatorsWithConversations: number
+    platformConversations7d: number
+    staleConversations: number
+  } | null
+  continuity: {
+    score: number
+    whatsappConfigured: boolean
+    last7d: { totalClicks: number; attributedClicks: number; attributionRate: number; uniqueCreators: number }
+    conversionGapCreators: number
+    issues: string[]
+    recommendations: string[]
+  } | null
+}
+
 interface ContinuityData {
   overallScore: number
   ready: boolean
@@ -209,6 +225,7 @@ export default function OpsPage() {
   const [outcomes, setOutcomes] = React.useState<OutcomesData | null>(null)
   const [stability, setStability] = React.useState<StabilityData | null>(null)
   const [continuity, setContinuity] = React.useState<ContinuityData | null>(null)
+  const [waComms, setWaComms] = React.useState<WhatsAppCommsData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -341,6 +358,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchWaComms = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/whatsapp", { cache: "no-store" })
+      if (res.ok) setWaComms(await res.json() as WhatsAppCommsData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -359,17 +383,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1194,6 +1218,44 @@ export default function OpsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── WhatsApp Commerce Command Center ─────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <MessageCircle className="h-4 w-4 text-[#25D366]/60" />
+          <h2 className="font-semibold text-white text-sm">WhatsApp Commerce</h2>
+          {waComms?.continuity && (
+            <span className={cn(
+              "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+              waComms.continuity.score >= 70 ? "bg-brand-green/15 text-brand-green" : "bg-amber-500/15 text-amber-400"
+            )}>
+              {waComms.continuity.score}% health
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Creators messaging", value: waComms?.comms?.totalCreatorsWithConversations ?? "—", sub: "with inbound WA" },
+            { label: "Conversations (7d)", value: waComms?.comms?.platformConversations7d ?? "—" },
+            { label: "Attribution rate", value: waComms?.continuity ? `${waComms.continuity.last7d.attributionRate}%` : "—", sub: "clicks with campaign" },
+            { label: "Stale conversations", value: waComms?.comms?.staleConversations ?? "—", sub: "read, not followed up >48h", warn: (waComms?.comms?.staleConversations ?? 0) > 10 },
+          ].map(stat => (
+            <div key={stat.label} className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <p className={cn("text-2xl font-bold", (stat as { warn?: boolean }).warn ? "text-amber-400" : "text-white")}>{stat.value}</p>
+              <p className="text-xs text-white/40 mt-0.5">{stat.label}</p>
+              {stat.sub && <p className="text-xs text-white/25 mt-0.5">{stat.sub}</p>}
+            </div>
+          ))}
+        </div>
+        {waComms?.continuity && waComms.continuity.issues.length > 0 && (
+          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3">
+            {waComms.continuity.issues.map((issue, i) => (
+              <p key={i} className="text-xs text-amber-300/70 pl-2 border-l border-amber-500/20">{issue}</p>
+            ))}
+          </div>
+        )}
+        {!waComms && <div className="h-20 animate-pulse bg-white/5 rounded-2xl" />}
       </div>
 
       {/* ── Integration Continuity ────────────────────────────────────────── */}
