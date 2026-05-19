@@ -12,6 +12,13 @@ export async function middleware(request: NextRequest) {
   const start = Date.now()
   const { pathname } = request.nextUrl
 
+  // Webhook routes bypass all middleware: no session management, no redirects,
+  // no cookie mutation. Meta's verification requires a fast plain-text 200;
+  // Supabase updateSession overhead risks timeout or response interference.
+  if (pathname.startsWith("/api/webhooks/")) {
+    return NextResponse.next()
+  }
+
   // Propagate or mint correlation ID
   const correlationId = request.headers.get("x-correlation-id") ?? genCorrelationId()
 
