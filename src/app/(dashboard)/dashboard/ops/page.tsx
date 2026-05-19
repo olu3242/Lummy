@@ -57,6 +57,18 @@ interface EcosystemData {
   commerceOps: { totalPendingOrders: number; totalOverdueOrders: number; platformAvgFulfillmentDays: number; creatorsWithOverdue: number } | null
 }
 
+interface StabilityData {
+  stabilityScore: number
+  ready: boolean
+  criticalIssues: string[]
+  warnings: string[]
+  readiness: { score: number; blockers: string[]; warnings: string[] } | null
+  launch: { score: number; blockers: string[]; warnings: string[] } | null
+  migrations: { score: number; missing: string[]; tablesChecked: number; tablesPresent: number } | null
+  security: { score: number | undefined; criticalIssues: string[] | undefined; warnings: string[] | undefined } | null
+  routeAuth: Array<{ path: string; authType: string; ok: boolean; note?: string }>
+}
+
 interface OutcomesData {
   firstSale: { medianDaysToFirstSale: number | null; creatorsWithFirstSale: number; creatorsPublishedNoSale: number; creatorsNoProduct: number } | null
   actions: { totalCompletions: number; topCompletedAction: string | null; creatorsWithActions: number } | null
@@ -183,6 +195,7 @@ export default function OpsPage() {
   const [recentJobs, setRecentJobs] = React.useState<Array<{ job_name: string; status: string; completed_at: string | null }>>([])
   const [ecosystem, setEcosystem] = React.useState<EcosystemData | null>(null)
   const [outcomes, setOutcomes] = React.useState<OutcomesData | null>(null)
+  const [stability, setStability] = React.useState<StabilityData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -301,6 +314,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchStability = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/stability", { cache: "no-store" })
+      if (res.ok) setStability(await res.json() as StabilityData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -319,17 +339,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1153,6 +1173,95 @@ export default function OpsPage() {
               </p>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* ── Platform Stability Command Center ─────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Shield className="h-4 w-4 text-white/40" />
+          <h2 className="font-semibold text-white text-sm">Platform Stability</h2>
+          {stability && (
+            <span className={cn(
+              "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+              stability.ready ? "bg-brand-green/15 text-brand-green" : "bg-red-500/15 text-red-400"
+            )}>
+              {stability.stabilityScore}% STABLE
+            </span>
+          )}
+        </div>
+
+        {/* Score grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { label: "Overall Stability", value: stability ? `${stability.stabilityScore}%` : "—", sub: stability?.ready ? "Ready" : "Issues found" },
+            { label: "Runtime Readiness", value: stability?.readiness ? `${stability.readiness.score}%` : "—", sub: stability?.readiness ? `${stability.readiness.blockers.length} blockers` : undefined },
+            { label: "Launch Readiness", value: stability?.launch ? `${stability.launch.score}%` : "—", sub: stability?.launch ? `${stability.launch.blockers.length} blockers` : undefined },
+            { label: "Schema Health", value: stability?.migrations ? `${stability.migrations.score}%` : "—", sub: stability?.migrations ? `${stability.migrations.tablesPresent}/${stability.migrations.tablesChecked} tables` : undefined },
+          ].map(stat => (
+            <div key={stat.label} className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-white/40 mt-0.5">{stat.label}</p>
+              {stat.sub && <p className="text-xs text-white/25 mt-1">{stat.sub}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Critical issues */}
+        {stability && stability.criticalIssues.length > 0 && (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertOctagon className="h-4 w-4 text-red-400" />
+              <h3 className="text-sm font-semibold text-red-300">Critical Issues ({stability.criticalIssues.length})</h3>
+            </div>
+            <div className="space-y-1">
+              {stability.criticalIssues.map((issue, i) => (
+                <p key={i} className="text-xs text-red-300/70 pl-2 border-l border-red-500/30">{issue}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Route auth audit */}
+        {stability && stability.routeAuth.length > 0 && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Route Authorization Audit</h3>
+            <div className="space-y-1">
+              {stability.routeAuth.map((r, i) => (
+                <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <StatusDot ok={r.ok} />
+                    <span className="text-xs text-white/60 font-mono">{r.path}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded">{r.authType}</span>
+                    {!r.ok && r.note && (
+                      <span className="text-[10px] text-amber-400 max-w-[140px] truncate">{r.note}</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Warnings */}
+        {stability && stability.warnings.length > 0 && (
+          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-medium text-amber-300">Warnings ({stability.warnings.length})</h3>
+            </div>
+            <div className="space-y-1">
+              {stability.warnings.slice(0, 6).map((w, i) => (
+                <p key={i} className="text-xs text-amber-300/60 pl-2 border-l border-amber-500/20">{w}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!stability && (
+          <div className="h-24 animate-pulse bg-white/5 rounded-2xl" />
         )}
       </div>
 
