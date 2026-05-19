@@ -57,6 +57,18 @@ interface EcosystemData {
   commerceOps: { totalPendingOrders: number; totalOverdueOrders: number; platformAvgFulfillmentDays: number; creatorsWithOverdue: number } | null
 }
 
+interface ContinuityData {
+  overallScore: number
+  ready: boolean
+  totalIssues: number
+  payments: { score: number; paystackConfigured: boolean; last24h: { total: number; paid: number; failed: number; stalePending: number; successRate: number }; webhookCoverage: number; deadWebhooks: number; issues: string[]; recommendations: string[] } | null
+  whatsapp: { score: number; whatsappConfigured: boolean; last7d: { totalClicks: number; attributedClicks: number; attributionRate: number; uniqueCreators: number }; conversionGapCreators: number; issues: string[]; recommendations: string[] } | null
+  cron: { score: number; cronSecretConfigured: boolean; jobs: Array<{ jobName: string; lastRunAt: string | null; lastStatus: string | null; hoursSinceRun: number | null; stale: boolean; failureStreak: number }>; staleJobs: number; failingJobs: number; issues: string[] } | null
+  notifications: { score: number; last24h: { total: number; unread: number; unreadRate: number }; staleUnread: number; recentDeliveryGap: boolean; issues: string[] } | null
+  storage: { score: number; buckets: Array<{ name: string; configured: boolean }>; issues: string[] } | null
+  journey: { score: number; stages: Array<{ stage: string; count: number; description: string }>; gaps: Array<{ from: string; to: string; droppedCount: number; dropRate: number }>; creatorsStuckOnboarding: number; fullyActivated: number; issues: string[] } | null
+}
+
 interface StabilityData {
   stabilityScore: number
   ready: boolean
@@ -196,6 +208,7 @@ export default function OpsPage() {
   const [ecosystem, setEcosystem] = React.useState<EcosystemData | null>(null)
   const [outcomes, setOutcomes] = React.useState<OutcomesData | null>(null)
   const [stability, setStability] = React.useState<StabilityData | null>(null)
+  const [continuity, setContinuity] = React.useState<ContinuityData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -321,6 +334,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchContinuity = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/continuity", { cache: "no-store" })
+      if (res.ok) setContinuity(await res.json() as ContinuityData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -339,17 +359,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1174,6 +1194,124 @@ export default function OpsPage() {
             </div>
           </div>
         )}
+      </div>
+
+      {/* ── Integration Continuity ────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-white/40" />
+          <h2 className="font-semibold text-white text-sm">Integration Continuity</h2>
+          {continuity && (
+            <span className={cn(
+              "ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full",
+              continuity.ready ? "bg-brand-green/15 text-brand-green" : "bg-amber-500/15 text-amber-400"
+            )}>
+              {continuity.overallScore}% · {continuity.totalIssues} issue{continuity.totalIssues !== 1 ? "s" : ""}
+            </span>
+          )}
+        </div>
+
+        {/* Subsystem score grid */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {[
+            { label: "Payments", score: continuity?.payments?.score, detail: continuity?.payments ? `${continuity.payments.last24h.successRate}% success rate` : undefined, warn: (continuity?.payments?.deadWebhooks ?? 0) > 0 || (continuity?.payments?.last24h.stalePending ?? 0) > 0 },
+            { label: "WhatsApp", score: continuity?.whatsapp?.score, detail: continuity?.whatsapp ? `${continuity.whatsapp.last7d.attributionRate}% attribution` : undefined, warn: (continuity?.whatsapp?.issues.length ?? 0) > 0 },
+            { label: "Cron Jobs", score: continuity?.cron?.score, detail: continuity?.cron ? `${continuity.cron.staleJobs} stale, ${continuity.cron.failingJobs} failing` : undefined, warn: (continuity?.cron?.staleJobs ?? 0) > 0 },
+            { label: "Notifications", score: continuity?.notifications?.score, detail: continuity?.notifications ? `${continuity.notifications.last24h.total} sent 24h` : undefined, warn: continuity?.notifications?.recentDeliveryGap },
+            { label: "Storage", score: continuity?.storage?.score, detail: continuity?.storage ? `${continuity.storage.buckets.filter(b => b.configured).length}/${continuity.storage.buckets.length} buckets` : undefined, warn: (continuity?.storage?.issues.length ?? 0) > 0 },
+            { label: "Creator Journey", score: continuity?.journey?.score, detail: continuity?.journey ? `${continuity.journey.fullyActivated} fully activated` : undefined, warn: (continuity?.journey?.creatorsStuckOnboarding ?? 0) > 0 },
+          ].map(item => (
+            <div key={item.label} className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-white/40">{item.label}</p>
+                {item.warn && <span className="text-[10px] text-amber-400">●</span>}
+              </div>
+              <p className={cn("text-2xl font-bold", item.score !== undefined ? (item.score >= 80 ? "text-brand-green" : item.score >= 50 ? "text-amber-400" : "text-red-400") : "text-white/20")}>
+                {item.score !== undefined ? `${item.score}%` : "—"}
+              </p>
+              {item.detail && <p className="text-[10px] text-white/30 mt-0.5">{item.detail}</p>}
+            </div>
+          ))}
+        </div>
+
+        {/* Cron job status table */}
+        {continuity?.cron && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Scheduled Job Status</h3>
+            <div className="space-y-1">
+              {continuity.cron.jobs.map(job => (
+                <div key={job.jobName} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <StatusDot ok={!job.stale && job.failureStreak === 0} />
+                    <span className="text-xs text-white/60 font-mono">{job.jobName.replace(/_/g, " ")}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    {job.hoursSinceRun !== null && (
+                      <span className={cn("text-[10px]", job.stale ? "text-amber-400" : "text-white/30")}>
+                        {job.hoursSinceRun}h ago
+                      </span>
+                    )}
+                    {job.failureStreak > 0 && (
+                      <span className="text-[10px] text-red-400">{job.failureStreak} fails</span>
+                    )}
+                    {!job.lastRunAt && <span className="text-[10px] text-white/20">never run</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Journey funnel */}
+        {continuity?.journey && (
+          <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+            <h3 className="text-sm font-semibold text-white mb-3">Creator Journey Funnel</h3>
+            <div className="space-y-1.5">
+              {continuity.journey.stages.map(stage => {
+                const base = continuity.journey!.stages[0].count || 1
+                const pct = Math.round(stage.count / base * 100)
+                return (
+                  <div key={stage.stage} className="flex items-center gap-3">
+                    <span className="text-[10px] text-white/30 w-28 capitalize flex-shrink-0">{stage.stage.replace(/_/g, " ")}</span>
+                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-brand-purple/50 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                    <span className="text-xs text-white/50 w-10 text-right">{stage.count}</span>
+                  </div>
+                )
+              })}
+            </div>
+            {continuity.journey.creatorsStuckOnboarding > 0 && (
+              <p className="text-xs text-amber-400 mt-3">
+                {continuity.journey.creatorsStuckOnboarding} creators stuck in onboarding {">"} 7 days
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Issues list */}
+        {continuity && continuity.totalIssues > 0 && (
+          <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <h3 className="text-sm font-medium text-amber-300">Integration Issues ({continuity.totalIssues})</h3>
+            </div>
+            <div className="space-y-1">
+              {[
+                ...(continuity.payments?.issues ?? []),
+                ...(continuity.whatsapp?.issues ?? []),
+                ...(continuity.cron?.issues ?? []),
+                ...(continuity.notifications?.issues ?? []),
+                ...(continuity.storage?.issues ?? []),
+                ...(continuity.journey?.issues ?? []),
+              ].map((issue, i) => (
+                <p key={i} className="text-xs text-amber-300/70 pl-2 border-l border-amber-500/20">{issue}</p>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!continuity && <div className="h-24 animate-pulse bg-white/5 rounded-2xl" />}
       </div>
 
       {/* ── Platform Stability Command Center ─────────────────────────────── */}
