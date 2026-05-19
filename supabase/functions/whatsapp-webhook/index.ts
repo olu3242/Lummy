@@ -86,7 +86,9 @@ serve(async (req: Request) => {
     const token     = url.searchParams.get("hub.verify_token")
     const challenge = url.searchParams.get("hub.challenge")
 
-    const verifyToken = Deno.env.get("META_VERIFY_TOKEN") ?? ""
+    // Accept either naming convention (META_VERIFY_TOKEN is canonical for edge functions;
+    // WHATSAPP_WEBHOOK_VERIFY_TOKEN is used in the Next.js env schema)
+    const verifyToken = Deno.env.get("META_VERIFY_TOKEN") ?? Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") ?? ""
 
     console.log(JSON.stringify({ cid, event: "verification_attempt", mode, tokenMatch: token === verifyToken }))
 
@@ -160,23 +162,48 @@ serve(async (req: Request) => {
                 senderName,
               }))
 
-              // Persist as a whatsapp_events row (conversation event)
-              // creator_id lookup requires matching phone_number_id → creator profile
-              const { data: creatorProfile } = await supabase
-                .from("creator_profiles")
-                .select("id")
-                // Assumes whatsapp_number stores the phone_number_id or formatted number
-                .ilike("whatsapp_number", `%${message.from.slice(-8)}%`)
-                .maybeSingle()
+              // Resolve creator by phone_number_id first, then fallback to suffix match
+              let creatorProfile: { id: string } | null = null
+
+              if (phoneNumberId) {
+                const { data } = await supabase
+                  .from("creator_profiles")
+                  .select("id")
+                  .eq("whatsapp_phone_number_id", phoneNumberId)
+                  .maybeSingle()
+                creatorProfile = data as { id: string } | null
+              }
+
+              if (!creatorProfile && message.from) {
+                // Fallback: load all creators with WhatsApp numbers and match suffix
+                const suffix = message.from.replace(/\D/g, "").slice(-8)
+                const { data: profiles } = await supabase
+                  .from("creator_profiles")
+                  .select("id, whatsapp_number")
+                  .not("whatsapp_number", "is", null)
+                  .limit(200)
+                const match = (profiles ?? []).find((p: { whatsapp_number: string }) =>
+                  String(p.whatsapp_number ?? "").replace(/\D/g, "").endsWith(suffix)
+                )
+                creatorProfile = match ? { id: (match as { id: string }).id } : null
+              }
 
               if (creatorProfile) {
                 const profileId = (creatorProfile as { id: string }).id
+                const messageBody = (message.text as { body?: string } | undefined)?.body ?? null
                 await supabase.from("whatsapp_events").insert({
                   creator_id: profileId,
                   event_type: "conversation",
                   platform: "whatsapp",
-                  // Store raw message in metadata via campaign_id field as surrogate
-                  // Full message persistence requires a separate messages table (future)
+                  metadata: {
+                    wa_message_id: message.id,
+                    from: message.from,
+                    sender_name: senderName,
+                    message_type: message.type,
+                    message_body: messageBody ? messageBody.slice(0, 500) : null,
+                    phone_number_id: phoneNumberId,
+                    wa_timestamp: message.timestamp,
+                  },
                 })
 
                 // Update daily metrics

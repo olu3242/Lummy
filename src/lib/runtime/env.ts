@@ -18,10 +18,13 @@ export const ENV_SCHEMA: EnvVar[] = [
   // App
   { key: "NEXT_PUBLIC_APP_URL",        required: false, description: "Canonical app URL" },
   { key: "NEXT_PUBLIC_APP_ENV",        required: false, description: "Runtime environment label" },
-  // WhatsApp
-  { key: "WHATSAPP_BUSINESS_TOKEN",    required: false, redact: true, description: "WhatsApp Business API token" },
-  { key: "WHATSAPP_PHONE_NUMBER_ID",   required: false, description: "WhatsApp phone number ID" },
-  { key: "WHATSAPP_WEBHOOK_VERIFY_TOKEN", required: false, redact: true, description: "WhatsApp webhook verify token" },
+  // WhatsApp / Meta
+  { key: "WHATSAPP_BUSINESS_TOKEN",       required: false, redact: true, description: "WhatsApp Business API token (for sending messages)" },
+  { key: "WHATSAPP_PHONE_NUMBER_ID",      required: false, description: "WhatsApp Cloud API phone number ID" },
+  { key: "WHATSAPP_WEBHOOK_VERIFY_TOKEN", required: false, redact: true, description: "Meta webhook verify token — set same value in Meta App Dashboard" },
+  { key: "META_APP_SECRET",               required: false, redact: true, description: "Meta App Secret — used for HMAC-SHA256 webhook signature validation" },
+  // Edge Functions (Supabase — set via: supabase secrets set KEY=value)
+  // META_VERIFY_TOKEN: alias of WHATSAPP_WEBHOOK_VERIFY_TOKEN for Supabase edge functions
   // Cron
   { key: "CRON_SECRET",                required: false, redact: true, description: "Secret for cron job authorization" },
 ]
