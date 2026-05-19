@@ -17,6 +17,9 @@ export interface InboxMessage {
   phoneNumberId: string | null
   campaignId: string | null
   attributionSource: string | null
+  // Payment link tracking
+  linkSentAt: string | null
+  linkProductTitle: string | null
 }
 
 function rowToMessage(row: Record<string, unknown>): InboxMessage {
@@ -37,6 +40,8 @@ function rowToMessage(row: Record<string, unknown>): InboxMessage {
     phoneNumberId: meta.phone_number_id as string | null ?? null,
     campaignId: row.campaign_id as string | null,
     attributionSource: (meta.attribution_source as string | null) ?? (row.campaign_id ? "campaign" : null),
+    linkSentAt: meta.link_sent_at as string | null ?? null,
+    linkProductTitle: meta.link_product_title as string | null ?? null,
   }
 }
 

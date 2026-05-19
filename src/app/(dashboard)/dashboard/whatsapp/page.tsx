@@ -4,7 +4,7 @@ import * as React from "react"
 import {
   MessageCircle, CheckCheck, Phone, User,
   RefreshCw, Filter, Zap, TrendingUp, Users, AlertTriangle,
-  ChevronDown, Copy, Smartphone, ExternalLink,
+  ChevronDown, Copy, Smartphone, ExternalLink, CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -47,6 +47,8 @@ function formatPhone(phone: string | null): string {
   return `+${digits.slice(0, 3)} *** ${digits.slice(-4)}`
 }
 
+type Product = { id: string; title: string; price: number; currency: string; image_url: string | null }
+
 const INTENT_LABELS: Record<string, string> = {
   pricing_inquiry:  "Pricing inquiry",
   purchase_intent:  "Purchase intent",
@@ -65,7 +67,12 @@ function QuickReplyPanel({
   message: InboxMessage
   creatorHandle: string
 }) {
-  const [copied, setCopied] = React.useState(false)
+  const [copied, setCopied]           = React.useState(false)
+  const [products, setProducts]       = React.useState<Product[] | null>(null)
+  const [loadingProducts, setLoadingProducts] = React.useState(false)
+  const [showPicker, setShowPicker]   = React.useState(false)
+  const [sendingLink, setSendingLink] = React.useState(false)
+  const [linkSent, setLinkSent]       = React.useState(!!message.linkSentAt)
 
   const { intent } = React.useMemo(
     () => (message.messageBody ? detectIntent(message.messageBody) : { intent: "low_intent" as const }),
@@ -93,6 +100,45 @@ function QuickReplyPanel({
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch { /* clipboard unavailable */ }
+  }
+
+  const handleLoadProducts = async () => {
+    if (products !== null) { setShowPicker(p => !p); return }
+    setLoadingProducts(true)
+    try {
+      const res = await fetch("/api/whatsapp/inbox/products")
+      const data = await res.json() as { products: Product[] }
+      setProducts(data.products ?? [])
+      setShowPicker(true)
+    } catch {
+      toast({ title: "Failed to load products", variant: "error" })
+    } finally {
+      setLoadingProducts(false)
+    }
+  }
+
+  const handleSendPaymentLink = async (product: Product) => {
+    setSendingLink(true)
+    try {
+      const res = await fetch("/api/whatsapp/inbox/send-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: message.id, productId: product.id }),
+      })
+      const data = await res.json() as { waLink?: string; productName?: string; error?: string }
+      if (!res.ok || !data.waLink) {
+        toast({ title: data.error ?? "Failed to generate link", variant: "error" })
+        return
+      }
+      window.open(data.waLink, "_blank", "noopener,noreferrer")
+      setLinkSent(true)
+      setShowPicker(false)
+      toast({ title: `Payment link sent for ${data.productName ?? product.title}`, variant: "success" })
+    } catch {
+      toast({ title: "Failed to generate link", variant: "error" })
+    } finally {
+      setSendingLink(false)
+    }
   }
 
   return (
@@ -141,7 +187,59 @@ function QuickReplyPanel({
             Send storefront link
           </a>
         )}
+        {/* Payment link — only when we have a sender phone */}
+        {message.senderPhone && (
+          <button
+            onClick={handleLoadProducts}
+            disabled={loadingProducts || sendingLink}
+            className={cn(
+              "flex items-center gap-1.5 text-[11px] px-2.5 py-1.5 rounded-lg transition-colors",
+              linkSent
+                ? "bg-brand-purple/10 text-brand-purple/60 cursor-default"
+                : "bg-brand-purple/15 text-brand-purple hover:bg-brand-purple/25"
+            )}
+          >
+            {loadingProducts
+              ? <RefreshCw className="h-3 w-3 animate-spin" />
+              : <CreditCard className="h-3 w-3" />
+            }
+            {linkSent ? "Link sent ✓" : "Send payment link"}
+          </button>
+        )}
       </div>
+
+      {/* Product picker */}
+      {showPicker && products && (
+        products.length === 0 ? (
+          <p className="text-[11px] text-white/30 pl-0.5">
+            No active products found — add products in the dashboard first.
+          </p>
+        ) : (
+          <div className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+            <p className="text-[10px] text-white/25 uppercase tracking-wider px-3 pt-2.5 pb-1.5">
+              Select product to send
+            </p>
+            {products.slice(0, 6).map(p => {
+              const displayPrice = new Intl.NumberFormat("en-NG", {
+                style: "currency",
+                currency: p.currency || "NGN",
+                maximumFractionDigits: 0,
+              }).format(p.price / 100)
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => handleSendPaymentLink(p)}
+                  disabled={sendingLink}
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/5 text-left transition-colors border-t border-white/5 disabled:opacity-50"
+                >
+                  <span className="text-xs text-white/70 truncate pr-2">{p.title}</span>
+                  <span className="text-[11px] text-white/40 font-mono flex-shrink-0">{displayPrice}</span>
+                </button>
+              )
+            })}
+          </div>
+        )
+      )}
     </div>
   )
 }
@@ -198,6 +296,11 @@ function InboxCard({
           )}
           {message.isFollowedUp && (
             <CheckCheck className="h-3.5 w-3.5 text-brand-green" />
+          )}
+          {message.linkSentAt && (
+            <span className="text-[10px] bg-brand-purple/10 text-brand-purple/60 px-1.5 py-0.5 rounded-full border border-brand-purple/15 leading-none">
+              link sent
+            </span>
           )}
           <span className="text-[11px] text-white/25">{timeAgo(message.createdAt)}</span>
         </div>
