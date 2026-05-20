@@ -1,8 +1,16 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 
 export default function StoreLoading() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto space-y-6">
+      <LummyLoader
+        mode="inline"
+        text="Loading your storefront..."
+        subtext="Preparing store settings and preview."
+        className="py-8"
+        logoClassName="h-12 w-12"
+      />
       <div className="space-y-2">
         <Skeleton className="h-7 w-40" />
         <Skeleton className="h-4 w-64" />

@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -37,7 +36,7 @@ import {
   MessageCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
+import { LummyLogo } from "@/components/brand/lummy-logo"
 
 interface NavItem {
   label: string
@@ -105,16 +104,14 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const currentPath = pathname ?? ""
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5 border-b border-white/5 flex-shrink-0">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-sm">
-            <Zap className="h-4 w-4 text-white fill-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">Lummy</span>
+        <Link href="/" className="text-white group">
+          <LummyLogo className="gap-2" markClassName="h-8 w-8" />
         </Link>
 
         {/* Mobile close */}
@@ -129,15 +126,15 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Store quick-info */}
       <div className="px-4 py-3 mx-3 mt-3 rounded-2xl bg-white/4 border border-white/6 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-xl overflow-hidden flex-shrink-0">
-            <Image src={mockCreatorProfile.avatar} alt="Store" fill className="object-cover" unoptimized />
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-purple/15 text-brand-purple flex-shrink-0">
+            <Store className="h-4 w-4" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.storeName}</p>
-              {mockCreatorProfile.verified && <BadgeCheck className="w-3 h-3 text-brand-purple flex-shrink-0" />}
+              <p className="text-white text-xs font-semibold truncate">Your store</p>
+              <BadgeCheck className="w-3 h-3 text-brand-purple flex-shrink-0" />
             </div>
-            <p className="text-white/40 text-[10px] truncate">{mockCreatorProfile.storeUrl}</p>
+            <p className="text-white/40 text-[10px] truncate">Manage storefront</p>
           </div>
           <Link href="/dashboard/store" className="flex-shrink-0 p-1 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
             <ChevronRight className="w-3.5 h-3.5" />
@@ -155,7 +152,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const Icon = item.icon
-                const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href))
+                const isActive = currentPath === item.href || (item.href !== "/dashboard" && currentPath.startsWith(item.href))
                 return (
                   <li key={item.label}>
                     <Link
@@ -192,12 +189,12 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Creator profile footer */}
       <div className="flex-shrink-0 border-t border-white/5 p-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-purple/15 text-brand-purple flex-shrink-0 ring-2 ring-brand-purple/20">
+            <Store className="w-4 h-4" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.name}</p>
-            <p className="text-white/40 text-[10px] truncate">@{mockCreatorProfile.handle}</p>
+            <p className="text-white text-xs font-semibold truncate">Creator workspace</p>
+            <p className="text-white/40 text-[10px] truncate">Account settings</p>
           </div>
           <Link href="/dashboard/settings" className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition-colors">
             <Settings className="w-3.5 h-3.5" />

@@ -213,9 +213,9 @@ export function PricingSection() {
         >
           <p className="text-sm text-muted-foreground">
             Running a large creator business or agency?{" "}
-            <button className="text-primary font-semibold hover:underline">
+            <a href="mailto:hello@lummy.co?subject=Lummy%20enterprise%20plan" className="text-primary font-semibold hover:underline">
               Talk to us about Enterprise →
-            </button>
+            </a>
           </p>
         </motion.div>
       </div>

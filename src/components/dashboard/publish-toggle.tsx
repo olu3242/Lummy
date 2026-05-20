@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Globe, EyeOff, Loader2, ExternalLink, AlertCircle } from "lucide-react"
+import { Globe, EyeOff, ExternalLink, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 
 interface PublishToggleProps {
   initialPublished?: boolean
@@ -78,7 +79,7 @@ export function PublishToggle({ initialPublished = false, handle, className }: P
           )}
         >
           {loading ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            <LummyLoader mode="button" text="Publishing storefront..." />
           ) : isPublished ? (
             <EyeOff className="h-3.5 w-3.5" />
           ) : (

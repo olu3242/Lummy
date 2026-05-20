@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronUp, CheckSquare, Square, X, Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -683,7 +684,13 @@ export default function OrdersPage() {
             {ordersLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
-                  Loading orders…
+                  <LummyLoader
+                    mode="inline"
+                    text="Loading orders..."
+                    subtext="Syncing payment and fulfillment activity."
+                    className="border-0 bg-transparent py-6 text-foreground"
+                    logoClassName="h-12 w-12"
+                  />
                 </TableCell>
               </TableRow>
             ) : filtered.length === 0 ? (

@@ -308,7 +308,7 @@ function ActivityFeed({ customerId }: { customerId: string }) {
 export default function CustomerProfilePage() {
   const params   = useParams()
   const router   = useRouter()
-  const customerId = params.customerId as string
+  const customerId = params?.customerId as string
   const customer   = mockCustomers.find((c) => c.id === customerId)
 
   const [note, setNote]           = React.useState("")

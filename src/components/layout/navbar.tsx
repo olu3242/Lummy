@@ -3,11 +3,12 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion, useScroll, useTransform } from "framer-motion"
-import { Menu, X, Zap } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/shared/theme-toggle"
 import { navItems } from "@/data/mock"
 import { cn } from "@/lib/utils"
+import { LummyLogo } from "@/components/brand/lummy-logo"
 
 export function Navbar() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
@@ -38,13 +39,8 @@ export function Navbar() {
       >
         <nav className="container flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="relative flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-sm group-hover:shadow-brand transition-shadow duration-300">
-              <Zap className="h-4 w-4 text-white fill-white" />
-            </div>
-            <span className="font-display text-xl font-bold text-white">
-              Lummy
-            </span>
+          <Link href="/" className="text-white group">
+            <LummyLogo />
           </Link>
 
           {/* Desktop nav */}

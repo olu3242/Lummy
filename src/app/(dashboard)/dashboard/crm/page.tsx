@@ -12,6 +12,7 @@ import {
   Sparkles, Heart, BarChart3,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
@@ -946,7 +947,15 @@ export default function CRMPage() {
               </div>
 
               {crmLoading ? (
-                <div className="py-16 text-center text-sm text-muted-foreground">Loading customers…</div>
+                <div className="p-6">
+                  <LummyLoader
+                    mode="inline"
+                    text="Loading customers..."
+                    subtext="Syncing relationship memory and customer history."
+                    className="border-0 bg-transparent py-10 text-foreground"
+                    logoClassName="h-12 w-12"
+                  />
+                </div>
               ) : filtered.length === 0 && (
                 <div className="py-16 text-center">
                   <Users className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />

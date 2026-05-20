@@ -27,10 +27,13 @@ import {
   ShieldCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { completeOnboarding } from "@/server/actions/onboarding"
+import { LummyLogo } from "@/components/brand/lummy-logo"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -438,7 +441,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
                   : "bg-brand-purple text-white hover:bg-brand-purple/90 disabled:opacity-40"
               )}
             >
-              {verifying ? <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Verifying…</span>
+              {verifying ? <span className="flex items-center gap-1.5"><LummyLoader mode="button" text="Verifying bank..." />Verifying…</span>
                 : verified ? <span className="flex items-center gap-1.5"><ShieldCheck className="h-4 w-4" />Verified</span>
                 : "Verify"}
             </button>
@@ -564,6 +567,7 @@ const slideVariants = {
 
 export default function OnboardingPage() {
   const router = useRouter()
+  const [checkingWorkspace, setCheckingWorkspace] = React.useState(true)
 
   // Redirect already-onboarded creators straight to dashboard
   React.useEffect(() => {
@@ -575,7 +579,8 @@ export default function OnboardingPage() {
         if (data?.onboarding_completed && data.organization_id) {
           router.replace("/dashboard")
         }
-      }, () => null)
+        setCheckingWorkspace(false)
+      }, () => setCheckingWorkspace(false))
   }, [router])
 
   const DRAFT_KEY = "lummy_onboarding_draft"
@@ -594,7 +599,6 @@ export default function OnboardingPage() {
   const draft = loadDraft()
   const [step, setStep] = React.useState(draft.step)
   const [dir, setDir] = React.useState(1)
-  const [submitting, setSubmitting] = React.useState(false)
   const [data, setData] = React.useState<WizardData>(draft.data)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
@@ -616,62 +620,8 @@ export default function OnboardingPage() {
     return true
   }
 
-  const persistOnboarding = async () => {
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const profileUpdate: Record<string, unknown> = {
-      business_name: data.storeName,
-      handle: data.handle,
-      whatsapp_number: data.whatsapp,
-      niche: data.niche,
-      location: data.location,
-      creator_type: data.creatorType || "product_seller",
-      onboarding_completed: true,
-      updated_at: new Date().toISOString(),
-    }
-    if (data.bankName) profileUpdate["metadata"] = { bank_name: data.bankName, account_number: data.accountNumber, account_name: data.accountName }
-
-    await supabase.from("creator_profiles").update(profileUpdate).eq("user_id", user.id)
-
-    if (data.addProduct && data.productName && data.productPrice) {
-      const { data: profile } = await supabase
-        .from("creator_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
-
-      if (profile?.id) {
-        const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
-        void Promise.resolve(supabase.from("products").insert({
-          creator_id: profile.id,
-          name: data.productName,
-          description: data.productDesc || null,
-          price: priceKobo,
-          currency: "NGN",
-          type: "physical",
-          category: data.productCategory || "Other",
-          is_published: true,
-        })).catch(console.error)
-      }
-    }
-  }
-
   const next = async () => {
     if (!canAdvance()) return
-    // Persist when leaving the bank setup step (step 4 → 5)
-    if (step === 4) {
-      setSubmitting(true)
-      try {
-        await persistOnboarding()
-      } catch (err) {
-        console.error("[onboarding persist]", err)
-        // Non-fatal: completeOnboarding() will upsert profile at final submission
-      } finally {
-        setSubmitting(false)
-      }
-    }
     setDir(1)
     setStep((s) => { const next = Math.min(s + 1, TOTAL_STEPS); saveDraft(next, data); return next })
   }
@@ -707,13 +657,27 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">
+      <AnimatePresence>
+        {isSubmitting ? (
+          <motion.div
+            className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <LummyLoader
+              mode="fullscreen"
+              text="Launching your creator OS..."
+              subtext="Creating your storefront, workspace, and dashboard access."
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       {/* Header */}
       <header className="flex h-16 items-center justify-between px-6 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-            <Zap className="h-4 w-4 text-white fill-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">Lummy</span>
+        <div className="text-white">
+          <LummyLogo className="gap-2" markClassName="h-8 w-8" />
         </div>
         <span className="text-xs text-white/20">Step {step} of {TOTAL_STEPS}</span>
       </header>
@@ -750,6 +714,14 @@ export default function OnboardingPage() {
       {/* Step content */}
       <div className="flex-1 px-6 overflow-y-auto">
         <div className="max-w-md mx-auto">
+          {checkingWorkspace ? (
+            <LummyLoader
+              mode="inline"
+              text="Syncing your workspace..."
+              subtext="Checking your onboarding status."
+              className="mt-10"
+            />
+          ) : (
           <AnimatePresence mode="wait" custom={dir}>
             <motion.div
               key={step}
@@ -767,6 +739,7 @@ export default function OnboardingPage() {
               {step === 5 && <StepPreview data={data} />}
             </motion.div>
           </AnimatePresence>
+          )}
         </div>
       </div>
 
@@ -784,27 +757,24 @@ export default function OnboardingPage() {
             <Button
               size="lg"
               onClick={() => void next()}
-              disabled={!canAdvance() || submitting}
-              className={cn("flex-1 gap-2", (!canAdvance() || submitting) && "opacity-40")}
+              disabled={!canAdvance()}
+              className={cn("flex-1 gap-2", !canAdvance() && "opacity-40")}
             >
-              {submitting ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving…
-                </>
-              ) : (
-                <>
-                  Continue
-                  <ArrowRight className="h-4 w-4" />
-                </>
-              )}
+              Continue
+              <ArrowRight className="h-4 w-4" />
             </Button>
           ) : (
             <div className="flex-1 flex flex-col gap-3">
-              <Button size="lg" className="w-full gap-2" onClick={submitOnboarding} disabled={isSubmitting}>
-                {isSubmitting ? "Completing setup..." : "Go to Dashboard"}
+              <LoadingButton
+                size="lg"
+                className="w-full gap-2"
+                onClick={submitOnboarding}
+                isLoading={isSubmitting}
+                loadingText="Creating dashboard..."
+              >
+                Go to Dashboard
                 <ArrowRight className="h-4 w-4" />
-              </Button>
+              </LoadingButton>
               <Button variant="whatsapp" size="lg" className="w-full gap-2">
                 <MessageCircle className="h-5 w-5 fill-white" />
                 Share Store on WhatsApp

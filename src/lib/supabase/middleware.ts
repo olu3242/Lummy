@@ -13,8 +13,6 @@ export const updateSession = async (request: NextRequest): Promise<{ response: N
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },

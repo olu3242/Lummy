@@ -28,6 +28,7 @@ const NOTIFICATION_BADGE: Record<string, string> = {
 
 export function MobileNav() {
   const pathname = usePathname()
+  const currentPath = pathname ?? ""
 
   return (
     <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden pb-safe">
@@ -37,8 +38,8 @@ export function MobileNav() {
       <div className="relative flex items-center justify-around px-2 h-16">
         {TAB_ITEMS.map((item) => {
           const isActive =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href))
+            currentPath === item.href ||
+            (item.href !== "/dashboard" && currentPath.startsWith(item.href))
           const badge = NOTIFICATION_BADGE[item.href]
 
           return (

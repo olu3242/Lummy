@@ -176,7 +176,7 @@ function StarRow({ rating, small }: { rating: number; small?: boolean }) {
 
 function PaymentBanner() {
   const params = useSearchParams()
-  const payment = params.get("payment")
+  const payment = params?.get("payment")
   const [visible, setVisible] = React.useState(true)
   if (!payment || !visible) return null
   const isSuccess = payment === "success"

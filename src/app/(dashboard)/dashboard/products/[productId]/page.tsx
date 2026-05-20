@@ -244,7 +244,7 @@ function PhotoGallery({ product }: { product: DashboardProduct }) {
 export default function ProductDetailPage() {
   const params  = useParams()
   const router  = useRouter()
-  const productId = params.productId as string
+  const productId = params?.productId as string
 
   const original = mockProducts.find((p) => p.id === productId)
   const [product,    setProduct]    = React.useState<DashboardProduct | null>(original ?? null)

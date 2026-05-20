@@ -8,9 +8,11 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   ArrowLeft, MessageCircle, ShieldCheck, CreditCard,
   Truck, MapPin, Phone, User, Check, ChevronRight,
-  Loader2, Zap, Lock,
+  Zap, Lock,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { LoadingButton } from "@/components/ui/loading-button"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { mockProducts } from "@/data/mock/dashboard"
@@ -445,6 +447,23 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-dvh bg-background flex flex-col">
+      <AnimatePresence>
+        {placing ? (
+          <motion.div
+            className="fixed inset-0 z-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            <LummyLoader
+              mode="fullscreen"
+              text={paymentMethod === "whatsapp" ? "Preparing WhatsApp order..." : "Initializing secure payment..."}
+              subtext="Confirming order details and payment state."
+            />
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
       {/* Header */}
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -521,20 +540,19 @@ export default function CheckoutPage() {
                   Continue to payment <ChevronRight className="h-4 w-4" />
                 </Button>
               ) : (
-                <Button
+                <LoadingButton
                   onClick={handlePlaceOrder}
-                  disabled={placing}
+                  isLoading={placing}
+                  loadingText={paymentMethod === "whatsapp" ? "Preparing order..." : "Initializing payment..."}
                   variant={paymentMethod === "whatsapp" ? "whatsapp" : "default"}
                   className="flex-1 gap-2"
                 >
-                  {placing ? (
-                    <><Loader2 className="h-4 w-4 animate-spin" />Processing…</>
-                  ) : paymentMethod === "whatsapp" ? (
+                  {paymentMethod === "whatsapp" ? (
                     <><MessageCircle className="h-4 w-4 fill-white" />Order via WhatsApp</>
                   ) : (
                     <><Lock className="h-4 w-4" />Pay ₦{total.toLocaleString()}</>
                   )}
-                </Button>
+                </LoadingButton>
               )}
             </div>
 

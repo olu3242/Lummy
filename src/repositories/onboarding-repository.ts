@@ -69,6 +69,25 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
     return org as unknown as { id: string; name: string; slug: string };
   }
 
+  const ownedOrg = await supabase
+    .from('organizations')
+    .select('*')
+    .eq('owner_id', input.userId)
+    .limit(1)
+    .maybeSingle();
+
+  if (ownedOrg.error) throw ownedOrg.error;
+  if (ownedOrg.data) {
+    const repairedMembership = await supabase
+      .from('organization_members')
+      .upsert(
+        { organization_id: ownedOrg.data.id, user_id: input.userId, role: 'owner' },
+        { onConflict: 'organization_id,user_id' },
+      );
+    if (repairedMembership.error) throw repairedMembership.error;
+    return ownedOrg.data as { id: string; name: string; slug: string };
+  }
+
   const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;
   const slugBase = RESERVED_ORG_SLUGS.has(base) ? `${base}-${input.userId.slice(0, 4)}` : base;
 
@@ -100,11 +119,16 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
 
   if (createdOrg.error) throw createdOrg.error;
 
-  const membership = await supabase.from('organization_members').insert({
-    organization_id: createdOrg.data.id,
-    user_id: input.userId,
-    role: 'owner',
-  });
+  const membership = await supabase
+    .from('organization_members')
+    .upsert(
+      {
+        organization_id: createdOrg.data.id,
+        user_id: input.userId,
+        role: 'owner',
+      },
+      { onConflict: 'organization_id,user_id' },
+    );
 
   if (membership.error) {
     await supabase.from('organizations').delete().eq('id', createdOrg.data.id);

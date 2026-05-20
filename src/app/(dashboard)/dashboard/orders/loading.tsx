@@ -1,8 +1,16 @@
 import { Skeleton } from "@/components/ui/skeleton"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 
 export default function OrdersLoading() {
   return (
     <div className="p-4 lg:p-6 space-y-5 max-w-[1400px] mx-auto">
+      <LummyLoader
+        mode="inline"
+        text="Syncing orders..."
+        subtext="Fetching payment and fulfillment activity."
+        className="py-8"
+        logoClassName="h-12 w-12"
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="space-y-1.5">

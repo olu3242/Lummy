@@ -2,13 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 
-import { Menu, Search } from "lucide-react"
+import { LogOut, Menu, Search, Store } from "lucide-react"
 import { ThemeToggle } from "@/components/shared/theme-toggle"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
-import { cn } from "@/lib/utils"
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
@@ -54,10 +51,21 @@ export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
         {/* Notifications — real-time from DB */}
         <NotificationCenter />
 
+        <form action="/api/auth/signout" method="post">
+          <button
+            type="submit"
+            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/40"
+            aria-label="Sign out"
+            title="Sign out"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </form>
+
         {/* Avatar */}
         <Link href="/dashboard/settings" className="flex items-center gap-2 group">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-brand-purple/40 transition-all">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-purple/10 text-brand-purple ring-2 ring-border group-hover:ring-brand-purple/40 transition-all">
+            <Store className="h-4 w-4" />
           </div>
         </Link>
       </div>

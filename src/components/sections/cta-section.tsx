@@ -77,9 +77,11 @@ export function CTASection() {
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Button size="xl" variant="outline-white">
-              <MessageCircle className="h-5 w-5" />
-              Talk to the Team
+            <Button size="xl" variant="outline-white" asChild>
+              <a href="mailto:hello@lummy.co?subject=Lummy%20MVP%20demo">
+                <MessageCircle className="h-5 w-5" />
+                Talk to the Team
+              </a>
             </Button>
           </div>
 

@@ -22,6 +22,7 @@ import { ThemeEditorPanel } from "@/store/editor/theme-editor-panel"
 import { SectionListEditor } from "@/store/editor/section-list-editor"
 import { SectionSettingsEditor } from "@/store/editor/section-settings-editor"
 import { SectionAddDialog } from "@/store/editor/section-add-dialog"
+import { LummyLoader } from "@/components/ui/lummy-loader"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -238,7 +239,7 @@ export default function StorePage() {
             className="flex items-center gap-2 rounded-xl bg-brand-purple px-4 py-2 text-xs font-bold text-white hover:bg-brand-purple/90 disabled:opacity-70 transition-all"
           >
             {saving ? (
-              <><span className="h-3.5 w-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</>
+              <><LummyLoader mode="button" text="Saving storefront..." />Saving…</>
             ) : "Save Changes"}
           </button>
         </div>
@@ -969,7 +970,7 @@ export default function StorePage() {
           disabled={saving}
           className="flex items-center gap-2 rounded-xl bg-brand-purple px-4 py-2 text-xs font-bold text-white hover:bg-brand-purple/90 disabled:opacity-70 transition-all"
         >
-          {saving ? <><span className="h-3 w-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</> : "Save Changes"}
+          {saving ? <><LummyLoader mode="button" text="Saving storefront..." />Saving…</> : "Save Changes"}
         </button>
       </div>
     </div>

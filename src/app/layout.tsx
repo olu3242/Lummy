@@ -18,6 +18,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
   title: "Lummy — Turn Followers Into Customers",
   description:
     "The creator commerce OS for Africa. Build your storefront, sell via WhatsApp, and grow with AI. Post. Chat. Get Paid.",
@@ -37,16 +38,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_NG",
     siteName: "Lummy",
+    images: [{ url: "/icon.png", width: 800, height: 800, alt: "Lummy" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Lummy — Turn Followers Into Customers",
     description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
     creator: "@lummyhq",
+    images: ["/icon.png"],
   },
   robots: {
     index: true,
     follow: true,
+  },
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "800x800", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "800x800", type: "image/png" }],
   },
 }
 

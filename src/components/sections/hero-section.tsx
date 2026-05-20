@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { mockHeroAvatars, mockStats } from "@/data/mock"
 import { images } from "@/config/images"
+import Link from "next/link"
 
 // Animated number counter
 function AnimatedStat({ value, label }: { value: string; label: string }) {
@@ -313,15 +314,19 @@ export function HeroSection() {
               {...fadeUp(0.5)}
               className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
             >
-              <Button size="xl" className="group">
-                Get Started Free
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <Button size="xl" className="group" asChild>
+                <Link href="/signup">
+                  Get Started Free
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </Link>
               </Button>
-              <Button variant="outline-white" size="xl" className="group">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
-                  <Play className="h-3 w-3 text-white fill-white ml-0.5" />
-                </div>
-                Watch Demo
+              <Button variant="outline-white" size="xl" className="group" asChild>
+                <Link href="#workflow">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
+                    <Play className="h-3 w-3 text-white fill-white ml-0.5" />
+                  </div>
+                  See How It Works
+                </Link>
               </Button>
             </motion.div>
 

@@ -17,6 +17,39 @@ const config: Config = {
       },
       // ── Brand palette ────────────────────────────────────
       colors: {
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
         brand: {
           violet: "#7c3aed",
           "violet-light": "#8b5cf6",
@@ -41,6 +74,9 @@ const config: Config = {
       },
       // ── Extended border radius ────────────────────────────
       borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
         "4xl": "2rem",
         "5xl": "2.5rem",
         "6xl": "3rem",
@@ -52,6 +88,8 @@ const config: Config = {
         violet: "0 10px 40px rgba(124,58,237,0.4)",
         "violet-lg": "0 20px 70px rgba(124,58,237,0.45)",
         card: "0 4px 24px rgba(0,0,0,0.3)",
+        brand: "0 12px 40px rgba(108,78,243,0.3)",
+        glass: "0 8px 32px rgba(0,0,0,0.3)",
         phone: "0 40px 100px rgba(124,58,237,0.35), 0 0 0 1px rgba(255,255,255,0.05)",
       },
       // ── Gradients via backgroundImage ─────────────────────

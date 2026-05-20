@@ -242,7 +242,7 @@ function RescheduleModal({ onSave, onClose }: { onSave: (date: string) => void; 
 export default function OrderDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const orderId = params.orderId as string
+  const orderId = params?.orderId as string
 
   const order = mockOrders.find(o => o.id === orderId || o.orderNumber === orderId)
     ?? mockOrders[0]
