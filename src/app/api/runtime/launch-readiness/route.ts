@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   };
   let dbCheck = false; let webhookTableCheck = false;
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     dbCheck = !(await supabase.from('profiles').select('id').limit(1)).error;
     webhookTableCheck = !(await supabase.from('provider_webhook_events').select('idempotency_key').limit(1)).error;
   } catch {}

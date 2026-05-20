@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBody, SheetFooter } from "@/components/ui/sheet"
-import { mockOrders, type OrderStatus, type DashboardOrder } from "@/data/mock/dashboard"
+import { type OrderStatus, type DashboardOrder } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
@@ -181,7 +181,7 @@ function OrderDetailDrawer({ order, onClose, onStatusChange }: {
   }
 
   return (
-    <Sheet open={!!order} onOpenChange={(v) => !v && onClose()}>
+    <Sheet open={!!order} onOpenChange={(v: boolean) => !v && onClose()}>
       <SheetContent side="right" className="sm:max-w-md">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
@@ -377,9 +377,32 @@ function exportCSV(orders: DashboardOrder[]) {
   const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = `lummy-orders-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url)
 }
 
+type ApiOrder = {
+  id: string; order_number: string; status: string; payment_status: string | null
+  total_amount: number; currency: string; created_at: string; notes: string | null
+  customer_name: string | null; customer_phone: string | null; customer_email: string | null
+  source: string | null
+}
+
+function apiOrderToDashboard(o: ApiOrder): DashboardOrder {
+  const validSources = ["whatsapp", "direct", "instagram", "tiktok"] as const
+  const src = (validSources as readonly string[]).includes(o.source ?? "") ? o.source as DashboardOrder["source"] : "direct"
+  return {
+    id: o.id,
+    orderNumber: o.order_number ?? `LMY-${o.id.slice(0, 6).toUpperCase()}`,
+    customer: { name: o.customer_name ?? o.customer_email ?? "Unknown", phone: o.customer_phone ?? "" },
+    product: { name: o.notes ?? "Order", image: "" },
+    amount: o.total_amount,
+    status: (o.status as OrderStatus) ?? "pending",
+    source: src,
+    createdAt: o.created_at,
+    deliveryAddress: "",
+  }
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function OrdersPage() {
-  const [orders, setOrders]           = React.useState<DashboardOrder[]>(mockOrders)
+  const [orders, setOrders]           = React.useState<DashboardOrder[]>([])
   const [tab, setTab]                 = React.useState<typeof tabValues[number]>("all")
   const [search, setSearch]           = React.useState("")
   const [selectedOrder, setSelectedOrder] = React.useState<DashboardOrder | null>(null)
@@ -390,6 +413,17 @@ export default function OrdersPage() {
   const [dateTo, setDateTo]           = React.useState("")
   const [showFilters, setShowFilters] = React.useState(false)
   const [showSourceChart, setShowSourceChart] = React.useState(false)
+  const [ordersLoading, setOrdersLoading] = React.useState(true)
+
+  React.useEffect(() => {
+    fetch("/api/orders")
+      .then(r => r.json())
+      .then(({ data }) => {
+        if (Array.isArray(data)) setOrders(data.map(apiOrderToDashboard))
+      })
+      .catch(() => null)
+      .finally(() => setOrdersLoading(false))
+  }, [])
 
   const handleStatusChange = (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
@@ -646,10 +680,16 @@ export default function OrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {ordersLoading ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
-                  No orders match your filter
+                  Loading orders…
+                </TableCell>
+              </TableRow>
+            ) : filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center py-16 text-muted-foreground">
+                  {orders.length === 0 ? "No orders yet — share your storefront to get started!" : "No orders match your filter"}
                 </TableCell>
               </TableRow>
             ) : (

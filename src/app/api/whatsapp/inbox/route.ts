@@ -15,6 +15,18 @@ async function getCreatorId(userId: string): Promise<string | null> {
   return (data as { id: string } | null)?.id ?? null
 }
 
+async function getCreatorProfile(creatorId: string): Promise<{ handle: string; whatsappNumber: string | null } | null> {
+  const supabase = createAdminClient()
+  const { data } = await supabase
+    .from("creator_profiles")
+    .select("handle, whatsapp_number")
+    .eq("id", creatorId)
+    .maybeSingle()
+  if (!data) return null
+  const row = data as { handle: string; whatsapp_number: string | null }
+  return { handle: row.handle, whatsappNumber: row.whatsapp_number }
+}
+
 // GET /api/whatsapp/inbox?filter=all|unread|followed_up&page=1
 export async function GET(request: NextRequest) {
   const supabase = createClient()
@@ -29,14 +41,16 @@ export async function GET(request: NextRequest) {
   const page    = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10))
   const withStats = searchParams.get("stats") === "true"
 
-  const [inbox, stats] = await Promise.allSettled([
+  const [inbox, stats, profile] = await Promise.allSettled([
     getCreatorInbox(creatorId, { filter, page }),
     withStats ? getInboxStats(creatorId) : Promise.resolve(null),
+    getCreatorProfile(creatorId),
   ])
 
   return NextResponse.json({
     ...(inbox.status === "fulfilled" ? inbox.value : { messages: [], total: 0, unreadCount: 0 }),
     stats: stats.status === "fulfilled" ? stats.value : null,
+    creatorProfile: profile.status === "fulfilled" ? profile.value : null,
   })
 }
 

@@ -25,7 +25,7 @@ type CreateOrderInput = {
 };
 
 export async function createPendingOrder(input: CreateOrderInput) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const product = await supabase.from('products').select('id,title,price,currency,organization_id,status').eq('id', input.productId).eq('organization_id', input.organizationId).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data || product.data.status !== 'active') throw new Error('Product unavailable');
@@ -43,7 +43,7 @@ export async function createPendingOrder(input: CreateOrderInput) {
 }
 
 export async function markPaymentCompleted(params: { orderId: string; paymentId: string; providerReference: string; providerEventId: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const paymentUpdate = await supabase.from('payments').update({ status: 'succeeded', provider_reference: params.providerReference, provider_event_id: params.providerEventId, paid_at: new Date().toISOString() }).eq('id', params.paymentId).eq('order_id', params.orderId).neq('status', 'succeeded').select('*').maybeSingle();
   if (paymentUpdate.error) throw paymentUpdate.error;
 
@@ -53,7 +53,7 @@ export async function markPaymentCompleted(params: { orderId: string; paymentId:
 }
 
 async function getCurrentOrgId() {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
   const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
@@ -184,7 +184,7 @@ function resolveLifecycle(input: { totalOrders: number; totalRevenue: number; la
 
 
 async function resolveOrganizationStorefrontId(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const storefront = await supabase
     .from('storefronts')
     .select('id')
@@ -197,7 +197,7 @@ async function resolveOrganizationStorefrontId(orgId: string) {
 }
 
 export async function upsertCustomerMemoryFromInteraction(input: { orgId: string; storefrontId?: string; customerIdentifier: string; email?: string; phone?: string; preferredChannel?: string; interactionId: string; correlationId?: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const now = new Date().toISOString();
   const existing = await supabase.from('customer_profiles').select('*').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();
   if (existing.error) throw existing.error;
@@ -212,7 +212,7 @@ export async function upsertCustomerMemoryFromInteraction(input: { orgId: string
 }
 
 export async function syncCustomerMemoryForOrder(input: { orgId: string; orderId: string; paymentId?: string; correlationId?: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const order = await supabase.from('orders').select('id,organization_id,customer_email,status,amount,created_at').eq('id', input.orderId).eq('organization_id', input.orgId).maybeSingle();
   if (order.error || !order.data) throw order.error || new Error('Order not found');
 
@@ -293,7 +293,7 @@ export async function upsertConversionAttribution(input: {
   conversionStatus: string;
   revenueAmount?: number;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   let customerId: string | null = null;
   if (input.customerIdentifier) {
     const profile = await supabase.from('customer_profiles').select('id').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();
@@ -373,7 +373,8 @@ export async function getGrowthIntelligenceSummary() {
     const isPaid = o.status === 'paid';
     for (const item of items) {
       const pid = item?.product_id;
-      const ptitle = item?.products?.title || 'Unknown product';
+      const productData = Array.isArray(item?.products) ? item.products[0] : item?.products;
+      const ptitle = productData?.title || 'Unknown product';
       if (!pid) continue;
       const row = productMap.get(pid) ?? { title: ptitle, revenue: 0, orders: 0, repeatOrders: 0, pending: 0 };
       row.orders += 1;

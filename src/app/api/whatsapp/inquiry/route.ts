@@ -17,13 +17,22 @@ export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createClient();
     const storefront = await supabase.from('storefronts').select('id,organization_id,handle,is_active').eq('handle', body.handle).maybeSingle();
     if (storefront.error || !storefront.data?.is_active) return errorResponse(404, 'STOREFRONT_NOT_FOUND', 'Storefront not found', correlationId);
 
     const orgId = storefront.data.organization_id;
     const message = String(body.message ?? '').slice(0, 240);
     const customerIdentifier = String(body.customerIdentifier ?? body.phone ?? body.customerEmail ?? 'unknown').slice(0, 120);
+
+    // Dedup: reuse existing interaction for same customer+message within 5 minutes
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const existing = await supabase.from('customer_interactions').select('*').eq('org_id', orgId).eq('customer_identifier', customerIdentifier).eq('source_channel', 'whatsapp').eq('message_excerpt', message).gte('created_at', fiveMinAgo).maybeSingle();
+    if (existing.data) {
+      const { intent: ei, confidence: ec } = detectIntent(message);
+      const suggestedReply = generateSuggestedReply({ intent: ei, productTitle: body.productTitle, handle: storefront.data.handle });
+      return NextResponse.json({ interactionId: existing.data.id, intent: ei, confidence: ec, suggestedReply, correlationId, duplicate: true }, { headers: { 'x-correlation-id': correlationId } });
+    }
 
     const interaction = await supabase.from('customer_interactions').insert({ org_id: orgId, storefront_id: storefront.data.id, customer_identifier: customerIdentifier, source_channel: 'whatsapp', interaction_type: body.interactionType || 'inquiry', message_excerpt: message, associated_product_id: body.productId ?? null, conversion_status: 'new' }).select('*').single();
     if (interaction.error) throw interaction.error;
@@ -33,7 +42,7 @@ export async function POST(req: Request) {
     await upsertConversionAttribution({ orgId, storefrontId: storefront.data.id, interactionId: interaction.data.id, customerIdentifier, sourcePlatform: body.sourcePlatform || 'WhatsApp', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'inquiry', conversionStatus: 'inquiry_captured' });
 
     const { intent, confidence } = detectIntent(message);
-    await supabase.from('customer_interactions').update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' }).eq('id', interaction.data.id);
+    await supabase.from('customer_interactions').update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' }).eq('id', interaction.data.id).eq('org_id', orgId);
 
     let checkoutUrl: string | undefined;
     if ((intent === 'purchase_intent' || intent === 'pricing_inquiry') && body.productId) {
@@ -44,7 +53,7 @@ export async function POST(req: Request) {
         ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) })
         : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) });
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
-      await supabase.from('customer_interactions').update({ associated_checkout_id: created.order.id, checkout_association: created.order.id, conversion_status: 'checkout_generated' }).eq('id', interaction.data.id);
+      await supabase.from('customer_interactions').update({ associated_checkout_id: created.order.id, checkout_association: created.order.id, conversion_status: 'checkout_generated' }).eq('id', interaction.data.id).eq('org_id', orgId);
       await supabase.from('conversion_recovery_queue').insert({ org_id: orgId, interaction_id: interaction.data.id, checkout_id: created.order.id, recovery_stage: 'initial', recovery_status: 'pending' });
       await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'checkout_created', aiAction: 'createCheckoutFromWhatsAppInquiry', correlationId, payload: { provider, orderId: created.order.id } });
       await upsertConversionAttribution({ orgId, storefrontId: storefront.data.id, interactionId: interaction.data.id, checkoutId: created.order.id, orderId: created.order.id, customerIdentifier, sourcePlatform: body.sourcePlatform || 'WhatsApp', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'checkout', conversionStatus: 'checkout_generated' });

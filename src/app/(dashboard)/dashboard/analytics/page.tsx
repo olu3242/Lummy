@@ -393,12 +393,24 @@ function DayOfWeekChart() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
+interface LiveSummary { whatsapp_clicks: number; storefront_views: number; orders: number; revenue_ngn: number; conversion_rate: number }
+
 export default function AnalyticsPage() {
   const [revPeriod, setRevPeriod] = React.useState<"3m" | "6m" | "12m">("12m")
   const [showComparison, setShowComparison] = React.useState(false)
   const [showInsights, setShowInsights] = React.useState(true)
   const [aovMetric, setAovMetric] = React.useState<"revenue" | "aov">("revenue")
   const [dismissedInsights, setDismissedInsights] = React.useState<Set<number>>(new Set())
+  const [liveSummary, setLiveSummary] = React.useState<LiveSummary | null>(null)
+
+  React.useEffect(() => {
+    fetch("/api/analytics")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { summary?: LiveSummary | null } | null) => {
+        if (data?.summary) setLiveSummary(data.summary)
+      })
+      .catch(() => {})
+  }, [])
 
   const revSlice = revPeriod === "3m" ? revenueData.slice(-3) : revPeriod === "6m" ? revenueData.slice(-6) : revenueData
   const peakHour = hourlyData.reduce((max, d) => d.orders > max.orders ? d : max, hourlyData[0])
@@ -482,7 +494,12 @@ export default function AnalyticsPage() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpiStats.map((stat, i) => (
+        {(liveSummary ? [
+          { label: "Revenue (30d)",    value: `₦${(liveSummary.revenue_ngn / 100).toLocaleString("en-NG")}`, icon: TrendingUp,    color: "text-brand-purple" },
+          { label: "Orders (30d)",     value: liveSummary.orders.toLocaleString(),                            icon: ShoppingBag,   color: "text-brand-green"  },
+          { label: "Store Views (30d)", value: liveSummary.storefront_views.toLocaleString(),                 icon: Eye,           color: "text-brand-coral"  },
+          { label: "WA Clicks (30d)",  value: liveSummary.whatsapp_clicks.toLocaleString(),                   icon: MessageCircle, color: "text-amber-500"    },
+        ] : kpiStats).map((stat, i) => (
           <motion.div key={stat.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center justify-between mb-3">
@@ -490,11 +507,17 @@ export default function AnalyticsPage() {
               <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
             </div>
             <p className="font-display text-xl font-extrabold">{stat.value}</p>
-            <div className={cn("flex items-center gap-1 mt-1 text-xs font-semibold", stat.up ? "text-brand-green" : "text-brand-coral")}>
-              {stat.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-              {stat.change} vs last year
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-0.5">Prev: {stat.prevValue}</p>
+            {"change" in stat ? (
+              <>
+                <div className={cn("flex items-center gap-1 mt-1 text-xs font-semibold", stat.up ? "text-brand-green" : "text-brand-coral")}>
+                  {stat.up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                  {stat.change} vs last year
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Prev: {stat.prevValue}</p>
+              </>
+            ) : (
+              <p className="text-[10px] text-muted-foreground mt-1.5">Last 30 days · live</p>
+            )}
           </motion.div>
         ))}
       </div>

@@ -13,15 +13,16 @@ import { logApiEvent } from '@/lib/ops-observability'
 
 export default async function DashboardPage() {
   const correlationId = crypto.randomUUID()
-  const supabase = await createClient()
+  const supabase = createClient()
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) redirect('/login')
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRaw, error: profileError } = await supabase
     .from('profiles')
     .select('full_name,onboarding_completed,organization_id')
     .eq('id', auth.user.id)
     .maybeSingle()
+  const profile = profileRaw as { full_name: string | null; onboarding_completed: boolean; organization_id: string | null } | null
 
   if (profileError) {
     logApiEvent('error', 'dashboard.profile_query_failed', { correlationId, message: profileError.message, userId: auth.user.id })

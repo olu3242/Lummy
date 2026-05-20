@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     validatePublicRuntimeEnv();
     validatePaymentRuntimeEnv();
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createClient();
 
     const storefront = await supabase.from('storefronts').select('organization_id,is_active,handle').eq('handle', body.handle).maybeSingle();
     if (storefront.error || !storefront.data?.is_active) {

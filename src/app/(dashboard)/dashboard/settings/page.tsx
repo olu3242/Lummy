@@ -171,7 +171,7 @@ function StoreSection() {
       toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save storefront settings'
-      toast({ title: 'Store save failed', description: message, variant: 'destructive' })
+      toast({ title: 'Store save failed', description: message, variant: 'error' })
     }
   }
 

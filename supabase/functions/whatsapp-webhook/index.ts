@@ -1,3 +1,6 @@
+// BACKUP ENDPOINT — canonical ingress is src/app/api/webhooks/whatsapp/route.ts (lummy.co).
+// Only register THIS URL in Meta's dashboard when the Next.js app is unavailable.
+// Never register both URLs simultaneously — doing so causes duplicate whatsapp_events inserts.
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
@@ -89,6 +92,12 @@ serve(async (req: Request) => {
     // Accept either naming convention (META_VERIFY_TOKEN is canonical for edge functions;
     // WHATSAPP_WEBHOOK_VERIFY_TOKEN is used in the Next.js env schema)
     const verifyToken = Deno.env.get("META_VERIFY_TOKEN") ?? Deno.env.get("WHATSAPP_WEBHOOK_VERIFY_TOKEN") ?? ""
+
+    // Fail closed: if neither env var is set, never accept verification
+    if (!verifyToken) {
+      console.error(JSON.stringify({ cid, event: "verification_blocked", reason: "verify_token_not_configured" }))
+      return new Response("Forbidden", { status: 403, headers: CORS })
+    }
 
     console.log(JSON.stringify({ cid, event: "verification_attempt", mode, tokenMatch: token === verifyToken }))
 

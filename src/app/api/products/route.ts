@@ -1,6 +1,35 @@
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 import { createProductForCurrentUser } from '@/repositories/product-repository';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
+
+export async function GET(req: Request) {
+  const correlationId = getCorrelationId(req);
+  try {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return errorResponse(401, 'UNAUTHORIZED', 'Unauthorized', correlationId);
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .maybeSingle();
+
+    if (!profile?.organization_id) return NextResponse.json({ products: [] });
+
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('organization_id', profile.organization_id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json({ products: products ?? [] });
+  } catch (error) {
+    return errorResponse(500, 'PRODUCTS_FETCH_FAILED', 'Failed to fetch products', correlationId);
+  }
+}
 
 export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);

@@ -21,7 +21,7 @@ export async function completeOnboarding(input: {
   productPrice?: number;
   productDescription?: string;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
@@ -31,9 +31,21 @@ export async function completeOnboarding(input: {
   const storefront = await upsertStorefront(organization.id, { handle: input.handle });
   if (storefront.error) throw storefront.error;
 
+  // Publish storefront immediately so it's accessible at /{handle}
+  await supabase.from('storefronts').update({ is_active: true }).eq('organization_id', organization.id);
+
   if (input.productTitle && input.productPrice && input.productPrice > 0) {
-    const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription });
-    if (product.error) throw product.error;
+    // Skip if a product with this title already exists (prevents duplicate on double-submit)
+    const { data: existing } = await supabase
+      .from('products')
+      .select('id')
+      .eq('organization_id', organization.id)
+      .eq('title', input.productTitle)
+      .maybeSingle();
+    if (!existing) {
+      const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription });
+      if (product.error) throw product.error;
+    }
   }
 
   const profileUpdate = await supabase.from('profiles').update({ onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id }).eq('id', auth.user.id);

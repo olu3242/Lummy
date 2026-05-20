@@ -10,8 +10,7 @@ function formatRevenue(v: number) {
   return `₦${v}`
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ value?: number }>; label?: string }) {
   if (active && payload && payload.length) {
     return <div className="rounded-xl border border-border bg-card shadow-brand-sm px-3 py-2.5 text-sm"><p className="font-semibold mb-1">{label}</p><p className="text-brand-green font-bold">{formatRevenue(payload[0]?.value ?? 0)}</p><p className="text-muted-foreground text-xs">{payload[1]?.value ?? 0} orders</p></div>
   }

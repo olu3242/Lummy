@@ -611,9 +611,45 @@ function exportCustomersCSV(customers: Customer[]) {
   URL.revokeObjectURL(url)
 }
 
+type ApiCustomer = {
+  id: string; customer_identifier: string | null; email: string | null; phone: string | null
+  total_orders: number; total_revenue: number; lifecycle_stage: string | null
+  ai_summary: string | null; last_interaction_at: string | null
+}
+
+const LIFECYCLE_TO_SEGMENT: Record<string, Customer["segment"]> = {
+  vip: "vip", loyal: "vip", repeat: "repeat", active: "repeat",
+  new: "new", "at-risk": "at-risk", churned: "at-risk",
+}
+
+function apiCustomerToCRM(c: ApiCustomer, index: number): Customer {
+  const daysSince = c.last_interaction_at
+    ? Math.round((Date.now() - new Date(c.last_interaction_at).getTime()) / 86_400_000)
+    : 999
+  const seg = LIFECYCLE_TO_SEGMENT[c.lifecycle_stage ?? ""] ?? "new"
+  return {
+    id: c.id,
+    name: c.customer_identifier ?? c.email ?? c.phone ?? `Customer ${index + 1}`,
+    phone: c.phone ?? "",
+    location: "",
+    totalOrders: c.total_orders ?? 0,
+    totalSpend: c.total_revenue ?? 0,
+    lastOrderDate: c.last_interaction_at ? `${daysSince}d ago` : "Never",
+    lastOrderDays: daysSince,
+    lastProduct: "",
+    segment: seg,
+    isOnWhatsApp: !!(c.phone),
+    email: c.email ?? undefined,
+    notes: c.ai_summary ?? undefined,
+    ltv: Math.min(100, Math.round((c.total_revenue ?? 0) / 1000)),
+    joinedDate: "",
+  }
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function CRMPage() {
-  const [customers, setCustomers] = React.useState<Customer[]>(mockCustomers)
+  const [customers, setCustomers] = React.useState<Customer[]>([])
+  const [crmLoading, setCrmLoading] = React.useState(true)
   const [search, setSearch]       = React.useState("")
   const [activeSegment, setActiveSegment] = React.useState("All")
   const [selectedCustomer, setSelectedCustomer] = React.useState<Customer | null>(null)
@@ -623,6 +659,18 @@ export default function CRMPage() {
   const [sortOpen, setSortOpen]   = React.useState(false)
   const [showAddModal, setShowAddModal] = React.useState(false)
   const [showSidePanels, setShowSidePanels] = React.useState(true)
+
+  React.useEffect(() => {
+    fetch("/api/customers/memory")
+      .then(r => r.json())
+      .then(({ customers: apiList }) => {
+        if (Array.isArray(apiList) && apiList.length > 0) {
+          setCustomers(apiList.map((c: ApiCustomer, i: number) => apiCustomerToCRM(c, i)))
+        }
+      })
+      .catch(() => null)
+      .finally(() => setCrmLoading(false))
+  }, [])
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase()
@@ -897,11 +945,17 @@ export default function CRMPage() {
                 })}
               </div>
 
-              {filtered.length === 0 && (
+              {crmLoading ? (
+                <div className="py-16 text-center text-sm text-muted-foreground">Loading customers…</div>
+              ) : filtered.length === 0 && (
                 <div className="py-16 text-center">
                   <Users className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm font-semibold">No customers found</p>
-                  <p className="text-xs text-muted-foreground mt-1">Try a different search or filter</p>
+                  <p className="text-sm font-semibold">
+                    {customers.length === 0 ? "No customers yet" : "No customers found"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {customers.length === 0 ? "Customers appear here after their first order" : "Try a different search or filter"}
+                  </p>
                 </div>
               )}
             </div>

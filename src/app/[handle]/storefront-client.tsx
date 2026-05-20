@@ -5,10 +5,11 @@ import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { AnimatePresence } from "framer-motion"
+import { useSearchParams } from "next/navigation"
 import {
   MessageCircle, Share2, Instagram, Twitter, MapPin, Star,
   ShoppingBag, BadgeCheck, CheckCheck, ExternalLink, Search,
-  Eye, X, ArrowRight,
+  Eye, X, ArrowRight, AlertTriangle, CheckCircle2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -23,6 +24,26 @@ import { migrateToStoreSchema } from "@/store/schema/migrate"
 import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
 import type { StoreSchema } from "@/store/schema/types"
 import type { Json } from "@/lib/supabase/types"
+
+type DbProduct = { id: string; title: string; description: string | null; price: number; currency: string; image_url: string | null; status: string; created_at: string }
+
+function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
+  return dbProducts.map(p => ({
+    id: p.id,
+    name: p.title,
+    description: p.description ?? "",
+    price: p.price,
+    image: p.image_url ?? "/placeholder-product.jpg",
+    category: "General",
+    status: p.status === "active" ? "active" : "draft",
+    sales: 0,
+    views: 0,
+    revenue: 0,
+    stock: null,
+    whatsappEnabled: true,
+    createdAt: p.created_at,
+  }))
+}
 
 const SCHEMA_KEY = "lummy_store_schema_v2"
 const OLD_KEY = "lummy_store_settings"
@@ -153,15 +174,57 @@ function StarRow({ rating, small }: { rating: number; small?: boolean }) {
   )
 }
 
-export function StorefrontClient({ handle, storeName, bio }: { handle: string; storeName: string; bio: string }) {
-  const creator = { ...storefrontCreator, handle, storeName, bio: bio || storefrontCreator.bio }
+function PaymentBanner() {
+  const params = useSearchParams()
+  const payment = params.get("payment")
+  const [visible, setVisible] = React.useState(true)
+  if (!payment || !visible) return null
+  const isSuccess = payment === "success"
+  const isFailed = payment === "failed"
+  if (!isSuccess && !isFailed) return null
+  return (
+    <div className={cn(
+      "flex items-center gap-3 px-4 py-3 text-sm font-medium",
+      isSuccess ? "bg-brand-green/10 text-brand-green border-b border-brand-green/20" : "bg-brand-coral/10 text-brand-coral border-b border-brand-coral/20"
+    )}>
+      {isSuccess ? <CheckCircle2 className="h-4 w-4 flex-shrink-0" /> : <AlertTriangle className="h-4 w-4 flex-shrink-0" />}
+      <span className="flex-1">
+        {isSuccess ? "Payment successful! Your order has been confirmed." : "Payment was not completed. Please try again."}
+      </span>
+      <button onClick={() => setVisible(false)} className="ml-auto opacity-60 hover:opacity-100 transition-opacity">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
+export function StorefrontClient({
+  handle, storeName, bio,
+  products: dbProducts = [],
+  storeSchema = null,
+}: {
+  handle: string
+  storeName: string
+  bio: string
+  products?: DbProduct[]
+  storeSchema?: Json | null
+}) {
+  const realProducts = dbProducts.length > 0 ? dbProductsToStorefront(dbProducts) : storefrontCreator.publicProducts
+  const creator = {
+    ...storefrontCreator,
+    handle,
+    storeName,
+    bio: bio || storefrontCreator.bio,
+    publicProducts: realProducts,
+    categories: ["All", ...Array.from(new Set(realProducts.map(p => p.category)))],
+  }
   const [schema, setSchema] = React.useState<StoreSchema | null>(null)
 
   const storeUrl = `https://lummy.co/${creator.handle}`
 
   React.useEffect(() => {
-    setSchema(loadPublicSchema(dbStoreSchema ?? null))
-  }, [dbStoreSchema])
+    setSchema(loadPublicSchema(storeSchema ?? null))
+  }, [storeSchema])
 
   if (!schema) {
     return (
@@ -194,6 +257,11 @@ export function StorefrontClient({ handle, storeName, bio }: { handle: string; s
           </a>
         </div>
       </header>
+
+      {/* Payment status banner */}
+      <React.Suspense fallback={null}>
+        <PaymentBanner />
+      </React.Suspense>
 
       {/* Schema-driven sections */}
       <div className="pb-28 lg:pb-8">

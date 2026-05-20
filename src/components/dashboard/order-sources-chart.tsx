@@ -4,8 +4,7 @@ import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts"
 
 type SourcePoint = { name: string; value: number; color: string }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload }: any) {
+function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<{ name: string; value: number }> }) {
   if (active && payload && payload.length) {
     return <div className="rounded-xl border border-border bg-card shadow-brand-sm px-3 py-2 text-sm"><p className="font-semibold">{payload[0].name}</p><p className="text-muted-foreground">{payload[0].value}% of payments</p></div>
   }

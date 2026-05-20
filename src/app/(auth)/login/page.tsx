@@ -37,9 +37,11 @@ export default function LoginPage() {
         setShakeKey(k => k + 1)
         return
       }
-      // Read ?next= param for post-login redirect
+      // Read ?next= param for post-login redirect — validate to prevent open redirect
       const params = new URLSearchParams(window.location.search)
-      window.location.href = params.get("next") ?? "/dashboard"
+      const next = params.get("next") ?? ""
+      const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+      window.location.href = safeNext
     } catch {
       setError("Something went wrong. Please try again.")
       setShakeKey(k => k + 1)

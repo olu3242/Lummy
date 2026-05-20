@@ -81,8 +81,6 @@ export default function SignupPage() {
   const [fullName, setFullName] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
-  const [email, setEmail] = React.useState("")
-  const [fullName, setFullName] = React.useState("")
   const [handle, setHandle] = React.useState("")
   const [handleStatus, setHandleStatus] = React.useState<HandleStatus>("idle")
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)

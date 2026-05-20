@@ -73,7 +73,7 @@ export async function POST(req: Request) {
       return errorResponse(400, 'MISSING_WEBHOOK_METADATA', 'Missing metadata linkage', correlationId);
     }
 
-    const supabase = await createClient();
+    const supabase = createClient();
     const webhookInsert = await supabase.from('provider_webhook_events').insert({
       tenant_id: parsed.metadata.organizationId,
       idempotency_key: parsed.eventId,
@@ -109,7 +109,7 @@ export async function POST(req: Request) {
       correlationId,
       message: error instanceof Error ? error.message : 'Webhook processing failed',
     });
-    const supabase = await createClient();
+    const supabase = createClient();
     await supabase.from('messaging_failures').insert({
       tenant_id: 'unknown',
       reason: error instanceof Error ? error.message : 'Webhook processing failed',

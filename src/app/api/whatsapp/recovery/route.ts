@@ -6,7 +6,7 @@ export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createClient();
 
     const interaction = await supabase.from('customer_interactions').select('id,org_id,source_channel,associated_checkout_id').eq('id', body.interactionId).eq('source_channel', 'whatsapp').maybeSingle();
     if (interaction.error || !interaction.data) return errorResponse(404, 'INTERACTION_NOT_FOUND', 'WhatsApp interaction not found', correlationId);
