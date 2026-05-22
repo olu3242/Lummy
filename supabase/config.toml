@@ -1,9 +1,6 @@
 # Supabase project configuration
 # https://supabase.com/docs/reference/cli/config
 
-[project]
-project_id = "llbuddtdsdbljnsvzide"
-
 [api]
 enabled = true
 port = 54321
