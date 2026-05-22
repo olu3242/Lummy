@@ -44,7 +44,29 @@ export default async function DashboardPage() {
     logApiEvent('error', 'dashboard.membership_query_failed', { correlationId, message: membership.error.message, userId: auth.user.id })
     redirect('/onboarding?error=membership-load')
   }
-  if (!membership.data) redirect('/onboarding')
+
+  // Self-heal: profile.organization_id is set but membership row is missing.
+  // This can happen if the membership was deleted or the migration ran after onboarding.
+  // Verify the org exists and re-create the membership rather than looping back to onboarding.
+  if (!membership.data) {
+    const orgExists = await supabase
+      .from('organizations')
+      .select('id')
+      .eq('id', profile.organization_id)
+      .maybeSingle()
+
+    if (orgExists.data?.id) {
+      // Org exists — recreate the missing membership silently
+      await supabase
+        .from('organization_members')
+        .upsert({ organization_id: profile.organization_id, user_id: auth.user.id, role: 'owner' }, { onConflict: 'organization_id,user_id' })
+      logApiEvent('warn', 'dashboard.membership_self_healed', { correlationId, orgId: profile.organization_id, userId: auth.user.id })
+    } else {
+      // Org is gone — clear the stale FK and send back to onboarding
+      await supabase.from('profiles').update({ organization_id: null, onboarding_completed: false }).eq('id', auth.user.id)
+      redirect('/onboarding')
+    }
+  }
 
   const firstName = (profile.full_name || auth.user.email || 'Creator').split(' ')[0]
   const storefront = await supabase
@@ -52,6 +74,9 @@ export default async function DashboardPage() {
     .select('handle')
     .eq('organization_id', profile.organization_id)
     .maybeSingle()
+  if (storefront.error) {
+    logApiEvent('warn', 'dashboard.storefront_query_failed', { correlationId, message: storefront.error.message, orgId: profile.organization_id })
+  }
   const resolvedTopActions = resolveTopActions(topActions, storefront.data?.handle ?? 'dashboard')
 
   return (

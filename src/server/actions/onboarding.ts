@@ -51,5 +51,12 @@ export async function completeOnboarding(input: {
   const profileUpdate = await supabase.from('profiles').update({ onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id }).eq('id', auth.user.id);
   if (profileUpdate.error) throw profileUpdate.error;
 
+  // Write canonical onboarding_states record for future continuity bootstrap.
+  // Uses upsert so re-running completeOnboarding is idempotent.
+  await supabase.from('onboarding_states').upsert(
+    { user_id: auth.user.id, organization_id: organization.id, current_step: 'completed', completed: true },
+    { onConflict: 'user_id' },
+  );
+
   return { organizationId: organization.id };
 }
