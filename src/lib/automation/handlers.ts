@@ -2,6 +2,8 @@ import { createAdminClient } from "@/lib/supabase/server"
 import { logger } from "@/lib/observability/logger"
 import type { AutomationEventName } from "./events"
 import { recordMilestone } from "@/lib/growth/scoring"
+import { sendCreatorWelcome } from "@/lib/automation/sdk"
+import { isEnabled } from "@/lib/flags/feature-flags"
 
 interface HandlerContext {
   creatorId: string
@@ -31,15 +33,43 @@ async function resolveUserId(creatorId: string): Promise<string | null> {
 }
 
 const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<void>> = {
-  onboarding_completed: async ({ creatorId }) => {
+  onboarding_completed: async ({ creatorId, payload }) => {
     const userId = await resolveUserId(creatorId)
-    if (!userId) return
-    await notify(userId,
-      "Welcome to Lummy! 🎉",
-      "Your store is set up. Add your first product and go live to start selling.",
-      "/dashboard/products"
-    )
+    if (userId) {
+      await notify(userId,
+        "Welcome to Lummy! 🎉",
+        "Your store is set up. Add your first product and go live to start selling.",
+        "/dashboard/products"
+      )
+    }
     await recordMilestone(creatorId, "onboarding_completed")
+
+    // OB-01: welcome email + WhatsApp when flag is enabled
+    const welcomeEnabled = await isEnabled("creator_welcome_email", creatorId)
+    if (welcomeEnabled) {
+      const email      = payload.creatorEmail   as string | undefined
+      const phone      = payload.creatorPhone   as string | undefined
+      const name       = payload.creatorName    as string | undefined
+      const handle     = payload.storeHandle    as string | undefined
+      const storeName  = payload.storeName      as string | undefined
+      const tenantId   = payload.tenantId       as string | undefined
+
+      if (email && name && handle) {
+        const result = await sendCreatorWelcome({
+          creatorEmail: email,
+          creatorPhone: phone,
+          creatorName:  name,
+          storeHandle:  handle,
+          storeName:    storeName ?? name,
+          ctx: { tenantId: tenantId ?? creatorId, creatorId },
+        })
+        logger.info("[automation] OB-01 welcome sent", {
+          creatorId,
+          email: result.email.ok,
+          whatsapp: result.whatsapp.ok,
+        })
+      }
+    }
   },
 
   storefront_published: async ({ creatorId, payload }) => {

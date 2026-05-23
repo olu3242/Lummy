@@ -1,7 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk"
 import { logger } from "@/lib/observability/logger"
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+import { generateText } from "@/lib/ai/gateway"
 
 export interface StorefrontSuggestion {
   type: "headline" | "bio" | "cta" | "pricing" | "product_description"
@@ -18,21 +16,14 @@ export async function generateStorefrontSuggestions(opts: {
   currency?: string
 }): Promise<StorefrontSuggestion[]> {
   try {
-    const prompt = `You are a conversion expert for African creator commerce.
-Creator: ${opts.creatorName}, niche: ${opts.niche}, currency: ${opts.currency ?? "NGN"}.
+    const prompt = `Creator: ${opts.creatorName}, niche: ${opts.niche}, currency: ${opts.currency ?? "NGN"}.
 Current bio: "${opts.currentBio ?? "None"}"
 Products: ${opts.productNames?.slice(0, 5).join(", ") ?? "None listed"}
 
 Return a JSON array of 3 suggestions. Each: { "type": "bio"|"cta"|"headline", "original": "<current or empty>", "suggestion": "<improved text>", "reason": "<1 sentence why>" }.
 Be concise, mobile-friendly, and Africa-native. No markdown outside JSON.`
 
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 600,
-      messages: [{ role: "user", content: prompt }],
-    })
-
-    const text = (msg.content[0] as { type: string; text?: string }).text ?? "[]"
+    const text = await generateText("adaeze", "storefront_suggestion", prompt, {}, { maxTokens: 600 })
     const match = text.match(/\[[\s\S]*\]/)
     if (!match) return []
     return JSON.parse(match[0]) as StorefrontSuggestion[]
@@ -77,8 +68,8 @@ export function generatePricingSuggestion(opts: {
   }
 
   return {
-    productName: opts.productName,
-    currentPrice: opts.currentPriceKobo,
+    productName:    opts.productName,
+    currentPrice:   opts.currentPriceKobo,
     suggestedPrice: Math.round(opts.currentPriceKobo * multiplier),
     reasoning,
     confidence,
@@ -91,15 +82,14 @@ export async function generateProductDescription(opts: {
   currentDescription?: string
 }): Promise<string> {
   try {
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 200,
-      messages: [{
-        role: "user",
-        content: `Write a short, compelling product description (2-3 sentences) for "${opts.productName}" in the ${opts.niche} niche. Target: Nigerian/African buyers. Mobile-first copy. Current description: "${opts.currentDescription ?? "none"}". Return only the description text.`,
-      }],
-    })
-    return (msg.content[0] as { type: string; text?: string }).text?.trim() ?? opts.currentDescription ?? ""
+    const text = await generateText(
+      "ngozi",
+      "description",
+      `Write a short, compelling product description (2-3 sentences) for "${opts.productName}" in the ${opts.niche} niche. Target: Nigerian/African buyers. Mobile-first copy. Current description: "${opts.currentDescription ?? "none"}". Return only the description text.`,
+      {},
+      { maxTokens: 200 },
+    )
+    return text.trim() || (opts.currentDescription ?? "")
   } catch (err) {
     logger.warn("[ai/commerce] product description failed", { error: String(err) })
     return opts.currentDescription ?? ""

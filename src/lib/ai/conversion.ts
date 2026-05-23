@@ -1,7 +1,5 @@
-import Anthropic from "@anthropic-ai/sdk"
 import { logger } from "@/lib/observability/logger"
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+import { generateText } from "@/lib/ai/gateway"
 
 export interface CTASuggestion {
   label: string
@@ -18,18 +16,18 @@ export function generateCTASuggestions(opts: {
   const suggestions: CTASuggestion[] = []
 
   if (opts.hasWhatsApp) {
-    suggestions.push({ label: "Order on WhatsApp", style: "primary", placement: "product" })
-    suggestions.push({ label: "Chat to buy", style: "primary", placement: "hero" })
+    suggestions.push({ label: "Order on WhatsApp", style: "primary",    placement: "product" })
+    suggestions.push({ label: "Chat to buy",        style: "primary",    placement: "hero" })
   } else {
-    suggestions.push({ label: "Buy Now", style: "primary", placement: "product" })
-    suggestions.push({ label: "Shop Now", style: "primary", placement: "hero" })
+    suggestions.push({ label: "Buy Now",            style: "primary",    placement: "product" })
+    suggestions.push({ label: "Shop Now",           style: "primary",    placement: "hero" })
   }
 
   if (opts.productCount > 3) {
-    suggestions.push({ label: "Shop All", style: "secondary", placement: "hero" })
+    suggestions.push({ label: "Shop All",           style: "secondary",  placement: "hero" })
   }
 
-  suggestions.push({ label: "See Full Collection", style: "ghost", placement: "hero" })
+  suggestions.push({ label: "See Full Collection",  style: "ghost",      placement: "hero" })
   return suggestions
 }
 
@@ -63,15 +61,13 @@ export async function generateWhatsAppEngagementPrompt(opts: {
 
   // AI-assisted re-engagement
   try {
-    const msg = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 150,
-      messages: [{
-        role: "user",
-        content: `Write a friendly WhatsApp re-engagement message from "${opts.creatorName}" to a past buyer. 1-2 sentences max. Warm, African-friendly tone. No emoji spam. Return only the message text.`,
-      }],
-    })
-    const text = (msg.content[0] as { type: string; text?: string }).text?.trim() ?? ""
+    const text = await generateText(
+      "emeka",
+      "reengagement_prompt",
+      `Write a friendly WhatsApp re-engagement message from "${opts.creatorName}" to a past buyer. 1-2 sentences max. Warm, African-friendly tone. No emoji spam. Return only the message text.`,
+      {},
+      { maxTokens: 150 },
+    )
     return { message: text, timing: "24h", trigger: opts.trigger }
   } catch (err) {
     logger.warn("[ai/conversion] whatsapp prompt failed", { error: String(err) })
@@ -99,18 +95,18 @@ export function auditConversionReadiness(opts: {
   hasCustomDomain: boolean
 }): ConversionAudit {
   const checks: Array<{ label: string; passed: boolean; weight: number }> = [
-    { label: "WhatsApp connected",  passed: opts.hasWhatsApp,          weight: 25 },
-    { label: "Store published",     passed: opts.isPublished,           weight: 20 },
-    { label: "3+ products listed",  passed: opts.productCount >= 3,     weight: 20 },
-    { label: "Bio completed",       passed: opts.hasBio,                weight: 15 },
-    { label: "Avatar uploaded",     passed: opts.hasAvatar,             weight: 10 },
-    { label: "Custom domain set",   passed: opts.hasCustomDomain,       weight: 10 },
+    { label: "WhatsApp connected", passed: opts.hasWhatsApp,        weight: 25 },
+    { label: "Store published",    passed: opts.isPublished,         weight: 20 },
+    { label: "3+ products listed", passed: opts.productCount >= 3,   weight: 20 },
+    { label: "Bio completed",      passed: opts.hasBio,              weight: 15 },
+    { label: "Avatar uploaded",    passed: opts.hasAvatar,           weight: 10 },
+    { label: "Custom domain set",  passed: opts.hasCustomDomain,     weight: 10 },
   ]
 
-  const score = checks.reduce((s, c) => s + (c.passed ? c.weight : 0), 0)
-  const passed = checks.filter(c => c.passed).map(c => c.label)
-  const failed = checks.filter(c => !c.passed).map(c => c.label)
-  const topFailed = checks.filter(c => !c.passed).sort((a, b) => b.weight - a.weight)[0]
+  const score          = checks.reduce((s, c) => s + (c.passed ? c.weight : 0), 0)
+  const passed         = checks.filter(c =>  c.passed).map(c => c.label)
+  const failed         = checks.filter(c => !c.passed).map(c => c.label)
+  const topFailed      = checks.filter(c => !c.passed).sort((a, b) => b.weight - a.weight)[0]
   const topRecommendation = topFailed
     ? `Focus on: ${topFailed.label} (+${topFailed.weight} pts)`
     : "Your store is fully optimized!"

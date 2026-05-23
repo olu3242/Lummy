@@ -1,63 +1,62 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
-import Anthropic from "@anthropic-ai/sdk"
 import { createClient } from "@/lib/supabase/server"
 import { checkRateLimit, getRateLimitKey, rateLimitHeaders } from "@/lib/security/rate-limit"
 import { trackError } from "@/lib/observability/events"
+import { callAgent, type AgentName, type GenerationType } from "@/lib/ai/gateway"
 
 const generateSchema = z.object({
   type: z.enum(["caption", "cta", "reply", "description", "campaign"]),
   context: z.object({
-    productName:    z.string().optional(),
-    productPrice:   z.number().optional(),
-    platform:       z.enum(["instagram", "tiktok", "whatsapp", "twitter", "general"]).default("general"),
-    tone:           z.enum(["professional", "casual", "exciting", "luxury"]).default("casual"),
-    customerMessage: z.string().optional(),  // for reply type
+    productName:      z.string().optional(),
+    productPrice:     z.number().optional(),
+    platform:         z.enum(["instagram", "tiktok", "whatsapp", "twitter", "general"]).default("general"),
+    tone:             z.enum(["professional", "casual", "exciting", "luxury"]).default("casual"),
+    customerMessage:  z.string().optional(),
     additionalContext: z.string().max(500).optional(),
   }),
 })
 
-const SYSTEM_PROMPT = `You are an AI assistant for Lummy, a creator commerce platform for African creators and social sellers.
-You help creators write high-converting content for their products.
-You understand African markets, Nigerian consumers, and social commerce.
-Keep responses concise, authentic, and culturally relevant.
-Use ₦ for Nigerian Naira. Write naturally — avoid sounding robotic.`
+type GenerationTypeInput = z.infer<typeof generateSchema>["type"]
+type ContextInput        = z.infer<typeof generateSchema>["context"]
 
-const PROMPTS: Record<string, (ctx: z.infer<typeof generateSchema>["context"]) => string> = {
-  caption: (ctx) =>
-    `Write a high-converting ${ctx.platform} caption for "${ctx.productName}" priced at ₦${ctx.productPrice?.toLocaleString() ?? "N/A"}.
-Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""}
-Requirements: Include a clear CTA, 3-5 relevant hashtags, emojis, max 280 chars for Twitter or 2200 for Instagram.`,
-
-  cta: (ctx) =>
-    `Write 3 short WhatsApp CTA button labels for "${ctx.productName}" at ₦${ctx.productPrice?.toLocaleString() ?? "N/A"}.
-Each label max 20 characters. Make them action-oriented. Tone: ${ctx.tone}.`,
-
-  reply: (ctx) =>
-    `You are a customer service AI for an African creator store. Reply professionally to this customer message:
-"${ctx.customerMessage}"
-Be helpful, warm, and concise. If about a product, offer to help with the purchase. Max 3 sentences.`,
-
-  description: (ctx) =>
-    `Write a compelling product description for "${ctx.productName}" at ₦${ctx.productPrice?.toLocaleString() ?? "N/A"}.
-Tone: ${ctx.tone}. Platform: ${ctx.platform}. ${ctx.additionalContext ?? ""}
-Max 200 words. Include key benefits, materials/features, and a closing CTA.`,
-
-  campaign: (ctx) =>
-    `Create a 3-part content campaign for "${ctx.productName}" targeting African social media.
-Platforms: Instagram + WhatsApp + TikTok.
-Include: launch post, mid-campaign engagement post, final urgency post.
-Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""}`,
+const AGENT_MAP: Record<GenerationTypeInput, AgentName> = {
+  caption:     "ngozi",
+  cta:         "taiwo",
+  reply:       "emeka",
+  description: "ngozi",
+  campaign:    "taiwo",
 }
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+const TYPE_MAP: Record<GenerationTypeInput, GenerationType> = {
+  caption:     "caption",
+  cta:         "cta",
+  reply:       "reply",
+  description: "description",
+  campaign:    "campaign",
+}
+
+function buildPrompt(type: GenerationTypeInput, ctx: ContextInput): string {
+  const price = ctx.productPrice?.toLocaleString() ?? "N/A"
+  switch (type) {
+    case "caption":
+      return `Write a high-converting ${ctx.platform} caption for "${ctx.productName}" priced at ₦${price}. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""} Include a clear CTA, 3-5 relevant hashtags, emojis, max 280 chars for Twitter or 2200 for Instagram.`
+    case "cta":
+      return `Write 3 short WhatsApp CTA button labels for "${ctx.productName}" at ₦${price}. Each label max 20 characters. Make them action-oriented. Tone: ${ctx.tone}.`
+    case "reply":
+      return `Reply professionally to this customer message: "${ctx.customerMessage}". Be helpful, warm, and concise. If about a product, offer to help with the purchase. Max 3 sentences.`
+    case "description":
+      return `Write a compelling product description for "${ctx.productName}" at ₦${price}. Tone: ${ctx.tone}. Platform: ${ctx.platform}. ${ctx.additionalContext ?? ""} Max 200 words. Include key benefits, materials/features, and a closing CTA.`
+    case "campaign":
+      return `Create a 3-part content campaign for "${ctx.productName}" targeting African social media. Platforms: Instagram + WhatsApp + TikTok. Include: launch post, mid-campaign engagement post, final urgency post. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""}`
+  }
+}
 
 export async function POST(request: NextRequest) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // 20 AI generations per minute per creator
   const rlKey = getRateLimitKey("ai:generate", request, user.id)
   const rl = checkRateLimit(rlKey, 20)
   if (!rl.allowed) {
@@ -74,38 +73,23 @@ export async function POST(request: NextRequest) {
   }
 
   const { type, context } = parsed.data
-  const promptFn = PROMPTS[type]
-  if (!promptFn) return NextResponse.json({ error: "Unknown generation type" }, { status: 400 })
-
-  const promptText = promptFn(context)
+  const promptText = buildPrompt(type, context)
 
   try {
-    const message = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: promptText }],
+    const result = await callAgent({
+      agent:   AGENT_MAP[type],
+      type:    TYPE_MAP[type],
+      prompt:  promptText,
+      context: { userId: user.id },
+      options: { maxTokens: 1024, logToDb: true },
     })
 
-    const output = message.content[0].type === "text" ? message.content[0].text : ""
-    const tokensUsed = (message.usage?.input_tokens ?? 0) + (message.usage?.output_tokens ?? 0)
-
-    // Log generation asynchronously — void to suppress PromiseLike warning
-    void Promise.resolve(supabase.from("ai_generations").insert({
-      creator_id: user.id,
-      generation_type: type,
-      prompt_input: context,
-      output,
-      model: "claude-sonnet-4-20250514",
-      tokens_used: tokensUsed,
-      was_used: false,
-    })).catch(console.error)
-
     return NextResponse.json({
-      output,
+      output:      result.output,
       type,
-      tokens_used: tokensUsed,
-      model: "claude-sonnet-4-20250514",
+      tokens_used: result.tokensUsed.input + result.tokensUsed.output,
+      model:       result.model,
+      cost_usd:    result.costUsd,
     })
   } catch (err) {
     trackError("ai.generation", err, { userId: user.id, type })

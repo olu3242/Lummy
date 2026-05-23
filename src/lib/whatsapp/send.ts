@@ -8,6 +8,7 @@
  */
 
 import { logger } from "@/lib/observability/logger"
+import { isEnabled } from "@/lib/flags/feature-flags"
 
 const META_API_VERSION = "v21.0"
 const META_API_BASE = "https://graph.facebook.com"
@@ -109,6 +110,12 @@ async function postToMeta(body: Record<string, unknown>): Promise<WhatsAppSendRe
 
 /** Send a plain text message */
 export async function sendTextMessage(payload: TextMessagePayload): Promise<WhatsAppSendResult> {
+  const flagEnabled = await isEnabled("whatsapp_outbound_enabled")
+  if (!flagEnabled) {
+    logger.info("[whatsapp/send] outbound disabled by feature flag", { to: payload.to })
+    return { success: true, to: payload.to }  // silently skip, not an error
+  }
+
   return postToMeta({
     to: payload.to,
     type: "text",
