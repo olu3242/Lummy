@@ -147,10 +147,52 @@ export async function runChurnScoringJobWorker(): Promise<JobResult> {
   }
 }
 
+/**
+ * Self-healing: unstick events that have been locked in processing=true for > 5 minutes.
+ * Guards against worker crashes that leave events perpetually in-flight.
+ */
+export async function runStuckQueueRecoveryJob(): Promise<JobResult> {
+  const start = Date.now()
+  const supabase = createAdminClient()
+
+  try {
+    const cutoff = new Date(Date.now() - 5 * 60_000).toISOString()
+
+    // Find events stuck in processing=true for more than 5 minutes
+    const { data: stuckEvents } = await supabase
+      .from("automation_events")
+      .select("id, event_name, attempt_count")
+      .eq("processed", false)
+      .eq("processing", true)
+      .lt("updated_at", cutoff)
+      .limit(50)
+
+    if (!stuckEvents?.length) {
+      return { jobName: "stuck_queue_recovery", ok: true, durationMs: Date.now() - start, processed: 0 }
+    }
+
+    let recovered = 0
+    for (const ev of stuckEvents as { id: string; event_name: string; attempt_count: number }[]) {
+      await supabase.from("automation_events").update({
+        processing:    false,
+        last_error:    "Recovered by self-healing job (processing timeout > 5 min)",
+        attempt_count: ev.attempt_count,  // preserve existing count
+      }).eq("id", ev.id)
+      recovered++
+    }
+
+    logger.info("[job] stuck_queue_recovery complete", { recovered })
+    return { jobName: "stuck_queue_recovery", ok: true, durationMs: Date.now() - start, processed: recovered }
+  } catch (err) {
+    return { jobName: "stuck_queue_recovery", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:        runHealthScoringJob,
   churn_scoring:         runChurnScoringJobWorker,
   automation_processor:  runAutomationProcessorJob,
   webhook_retry:         runWebhookRetryJob,
   notification_cleanup:  runNotificationCleanupJob,
+  stuck_queue_recovery:  runStuckQueueRecoveryJob,
 }
