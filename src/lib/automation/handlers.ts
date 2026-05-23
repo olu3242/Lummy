@@ -150,6 +150,16 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
 
   ai_generation_completed: async () => { /* no-op — tracking only */ },
   storefront_unpublished: async () => { /* no-op — state change tracked elsewhere */ },
+  store_schema_updated: async () => { /* no-op — triggers live preview refresh if needed */ },
+  weekly_digest_requested: async ({ creatorId }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "Your weekly performance digest is ready 📊",
+      "Check your store analytics for this week's highlights.",
+      "/dashboard/analytics"
+    )
+  },
   low_product_count: async ({ creatorId }) => {
     const userId = await resolveUserId(creatorId)
     if (!userId) return

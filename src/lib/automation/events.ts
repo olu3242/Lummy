@@ -12,6 +12,8 @@ export type AutomationEventName =
   | "storefront_unpublished"
   | "low_product_count"
   | "whatsapp_message_received"
+  | "store_schema_updated"
+  | "weekly_digest_requested"
 
 export interface AutomationEvent {
   name: AutomationEventName
