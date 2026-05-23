@@ -3,6 +3,7 @@ import { logger } from "@/lib/observability/logger"
 import { recomputeAllHealthScores } from "@/lib/growth/health"
 import { processAutomationEvent } from "@/lib/automation/handlers"
 import { runChurnScoringJob } from "@/lib/creator/churn"
+import { computeViralityScores, snapshotCreatorPerformance } from "@/lib/analytics/marketplace"
 import type { AutomationEventName } from "@/lib/automation/events"
 
 export interface JobResult {
@@ -188,11 +189,33 @@ export async function runStuckQueueRecoveryJob(): Promise<JobResult> {
   }
 }
 
+/** Daily: compute virality scores + creator performance snapshots */
+export async function runMarketplaceIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const [viralResult, snapResult] = await Promise.all([
+      computeViralityScores(),
+      snapshotCreatorPerformance(),
+    ])
+    logger.info("[job] marketplace_intelligence complete", { viralResult, snapResult })
+    return {
+      jobName: "marketplace_intelligence",
+      ok: true,
+      durationMs: Date.now() - start,
+      processed: viralResult.computed + snapResult.snapped,
+      failed: viralResult.failed,
+    }
+  } catch (err) {
+    return { jobName: "marketplace_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
-  health_scoring:        runHealthScoringJob,
-  churn_scoring:         runChurnScoringJobWorker,
-  automation_processor:  runAutomationProcessorJob,
-  webhook_retry:         runWebhookRetryJob,
-  notification_cleanup:  runNotificationCleanupJob,
-  stuck_queue_recovery:  runStuckQueueRecoveryJob,
+  health_scoring:           runHealthScoringJob,
+  churn_scoring:            runChurnScoringJobWorker,
+  automation_processor:     runAutomationProcessorJob,
+  webhook_retry:            runWebhookRetryJob,
+  notification_cleanup:     runNotificationCleanupJob,
+  stuck_queue_recovery:     runStuckQueueRecoveryJob,
+  marketplace_intelligence: runMarketplaceIntelligenceJob,
 }
