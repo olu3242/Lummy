@@ -4,6 +4,7 @@ import { recomputeAllHealthScores } from "@/lib/growth/health"
 import { processAutomationEvent } from "@/lib/automation/handlers"
 import { runChurnScoringJob } from "@/lib/creator/churn"
 import { computeViralityScores, snapshotCreatorPerformance } from "@/lib/analytics/marketplace"
+import { startSLARecord, completeSLARecord } from "@/lib/automation/sla"
 import type { AutomationEventName } from "@/lib/automation/events"
 
 export interface JobResult {
@@ -50,6 +51,15 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
       // Optimistic lock: mark processing=true before handler runs
       await supabase.from("automation_events").update({ processing: true }).eq("id", ev.id).match({}).then(null, () => {})
 
+      // Resolve workflow_id from event name (WA-01 pattern stored in payload or mapped by convention)
+      const workflowId = (ev.payload.workflowId as string | undefined) ?? ev.event_name
+      const slaRecord = await startSLARecord(
+        workflowId,
+        ev.payload.tenantId as string | undefined,
+        ev.payload.correlationId as string | undefined,
+        ev.id,
+      )
+
       const result = await processAutomationEvent(ev.id, ev.event_name as AutomationEventName, ev.creator_id, ev.payload)
 
       if (result.ok) {
@@ -59,6 +69,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
           processing: false,
           processed_at: new Date().toISOString(),
         }).eq("id", ev.id)
+        await completeSLARecord(slaRecord, "completed")
         processed++
       } else {
         // Failure — record error, increment attempt count; do NOT mark processed=true
@@ -87,6 +98,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
             creatorId: ev.creator_id,
           })
         }
+        await completeSLARecord(slaRecord, "failed", result.error)
         failed++
       }
     }
