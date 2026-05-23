@@ -167,6 +167,79 @@ async function withRetry<T>(fn: () => Promise<T>, maxAttempts = 3): Promise<T> {
   throw lastErr
 }
 
+// ── AI budget enforcement ──────────────────────────────────────
+
+async function checkBudget(tenantId: string | undefined, estimatedCostUsd: number): Promise<{ allowed: boolean; reason?: string }> {
+  if (!tenantId) return { allowed: true }
+  try {
+    const supabase = createAdminClient()
+    const today = new Date()
+    const periodStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10)
+
+    const { data: budget } = await supabase
+      .from("ai_usage_budgets")
+      .select("budget_usd, used_usd, alert_threshold, hard_cap")
+      .eq("period_start", periodStart)
+      .maybeSingle()
+
+    if (!budget) return { allowed: true }
+
+    const b = budget as { budget_usd: number; used_usd: number; alert_threshold: number; hard_cap: boolean }
+    const projectedUsed = Number(b.used_usd) + estimatedCostUsd
+    const pct = (projectedUsed / Number(b.budget_usd)) * 100
+
+    if (b.hard_cap && projectedUsed > Number(b.budget_usd)) {
+      logger.warn("[ai/gateway] budget hard cap exceeded", { tenantId, budgetUsd: b.budget_usd, usedUsd: b.used_usd })
+      return { allowed: false, reason: "AI budget hard cap reached for this period" }
+    }
+
+    if (pct >= Number(b.alert_threshold)) {
+      logger.warn("[ai/gateway] budget threshold approaching", { tenantId, pct: pct.toFixed(1), budgetUsd: b.budget_usd })
+    }
+
+    return { allowed: true }
+  } catch {
+    return { allowed: true }  // Never block on budget check failure
+  }
+}
+
+async function recordCost(
+  req: GatewayRequest,
+  result: GatewayResult,
+): Promise<void> {
+  if (!req.context.tenantId) return
+  try {
+    const supabase = createAdminClient()
+    const today = new Date()
+    const periodStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10)
+
+    // Record cost event
+    await supabase.from("ai_cost_events").insert({
+      organization_id:     req.context.tenantId,
+      creator_id:          req.context.creatorId ?? null,
+      agent_name:          req.agent,
+      generation_type:     req.type,
+      model:               result.model,
+      input_tokens:        result.tokensUsed.input,
+      output_tokens:       result.tokensUsed.output,
+      cache_read_tokens:   result.tokensUsed.cacheRead,
+      cache_write_tokens:  result.tokensUsed.cacheWrite,
+      cost_usd:            result.costUsd,
+      latency_ms:          result.latencyMs,
+      correlation_id:      req.context.correlationId ?? null,
+    })
+
+    // Atomically increment used_usd on the budget row if it exists
+    await supabase.rpc("increment_ai_budget_used", {
+      p_org_id:       req.context.tenantId,
+      p_period_start: periodStart,
+      p_cost_usd:     result.costUsd,
+    }).throwOnError()
+  } catch {
+    // Best-effort — never block on cost tracking
+  }
+}
+
 // ── Audit log ─────────────────────────────────────────────────
 
 async function logToDb(
@@ -210,6 +283,13 @@ export async function callAgent(req: GatewayRequest): Promise<GatewayResult> {
 
   const systemPrompt = req.systemOverride ?? agentConfig.persona
   const enableCaching = req.options?.enablePromptCaching ?? false
+
+  // Budget enforcement (non-blocking on failure)
+  const estimatedCost = calcCostUsd(model, 500, 600, 0, 0)  // conservative pre-call estimate
+  const budget = await checkBudget(req.context.tenantId, estimatedCost)
+  if (!budget.allowed) {
+    throw new Error(budget.reason ?? "AI budget exceeded")
+  }
 
   logger.info("[ai/gateway] request", {
     agent: req.agent,
@@ -296,6 +376,7 @@ export async function callAgent(req: GatewayRequest): Promise<GatewayResult> {
 
   if (logToDatabase) {
     void logToDb(req, result).catch(() => {})
+    void recordCost(req, result).catch(() => {})
   }
 
   return result

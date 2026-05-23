@@ -134,6 +134,51 @@ interface FeatureFlag {
   description?: string
 }
 
+interface DLQEvent {
+  id: string
+  event_name: string
+  creator_id: string
+  attempt_count: number
+  last_error: string | null
+  failed_at: string | null
+  created_at: string
+}
+
+interface WorkflowEntry {
+  workflow_id: string
+  name: string
+  status: string
+  queue_name: string | null
+  sla_max_ms: number | null
+  rollout_pct: number
+  updated_at: string
+}
+
+interface AIAgentCost {
+  calls: number
+  costUsd: number
+  inputTokens: number
+  outputTokens: number
+}
+
+interface HumanQueueItem {
+  id: string
+  workflow_id: string | null
+  event_type: string
+  severity: string
+  title: string
+  status: string
+  created_at: string
+}
+
+interface EnterpriseData {
+  dlq: DLQEvent[]
+  workflows: WorkflowEntry[]
+  aiCostByAgent: Record<string, AIAgentCost>
+  aiTotalCostUsd: number
+  humanQueue: HumanQueueItem[]
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusDot({ ok, className }: { ok: boolean; className?: string }) {
@@ -226,6 +271,7 @@ export default function OpsPage() {
   const [stability, setStability] = React.useState<StabilityData | null>(null)
   const [continuity, setContinuity] = React.useState<ContinuityData | null>(null)
   const [waComms, setWaComms] = React.useState<WhatsAppCommsData | null>(null)
+  const [enterprise, setEnterprise] = React.useState<EnterpriseData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -365,6 +411,13 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchEnterprise = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/enterprise", { cache: "no-store" })
+      if (res.ok) setEnterprise(await res.json() as EnterpriseData)
+    } catch {}
+  }, [])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -383,17 +436,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1464,6 +1517,121 @@ export default function OpsPage() {
           <div className="h-24 animate-pulse bg-white/5 rounded-2xl" />
         )}
       </div>
+
+      {/* ── Enterprise: Workflow Registry ── */}
+      {enterprise && enterprise.workflows.length > 0 && (
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Layers className="h-4 w-4 text-brand-purple" />
+            <h3 className="text-sm font-medium text-white">Workflow Registry</h3>
+            <span className="ml-auto text-xs text-white/30">{enterprise.workflows.length} workflows</span>
+          </div>
+          <div className="space-y-1">
+            {enterprise.workflows.map(wf => (
+              <div key={wf.workflow_id} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                <div className="flex items-center gap-2">
+                  <StatusDot ok={wf.status === "active"} />
+                  <span className="text-xs text-white/70 font-mono">{wf.workflow_id}</span>
+                  <span className="text-xs text-white/40">{wf.name}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {wf.queue_name && (
+                    <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded">{wf.queue_name}</span>
+                  )}
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded",
+                    wf.status === "active"  ? "bg-brand-green/10 text-brand-green" :
+                    wf.status === "paused"  ? "bg-amber-500/10 text-amber-400" :
+                    wf.status === "canary"  ? "bg-blue-500/10 text-blue-400" : "bg-white/5 text-white/30"
+                  )}>{wf.status}</span>
+                  {wf.rollout_pct < 100 && (
+                    <span className="text-[10px] text-amber-400">{wf.rollout_pct}%</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Enterprise: DLQ Events ── */}
+      {enterprise && enterprise.dlq.length > 0 && (
+        <div className="rounded-2xl border border-red-500/15 bg-red-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertOctagon className="h-4 w-4 text-red-400" />
+            <h3 className="text-sm font-medium text-red-300">Dead-Letter Queue ({enterprise.dlq.length})</h3>
+          </div>
+          <div className="space-y-1">
+            {enterprise.dlq.map(ev => (
+              <div key={ev.id} className="py-1.5 border-b border-red-500/10 last:border-0">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-red-300 font-mono">{ev.event_name}</span>
+                  <span className="text-[10px] text-red-400/60">{ev.attempt_count} attempts</span>
+                </div>
+                {ev.last_error && (
+                  <p className="text-[10px] text-red-300/40 mt-0.5 truncate">{ev.last_error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Enterprise: AI Cost Summary ── */}
+      {enterprise && Object.keys(enterprise.aiCostByAgent).length > 0 && (
+        <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Zap className="h-4 w-4 text-brand-purple" />
+            <h3 className="text-sm font-medium text-white">AI Token Cost (7d)</h3>
+            <span className="ml-auto text-sm text-white/60 font-mono">
+              ${enterprise.aiTotalCostUsd.toFixed(4)}
+            </span>
+          </div>
+          <div className="space-y-1">
+            {Object.entries(enterprise.aiCostByAgent)
+              .sort((a, b) => b[1].costUsd - a[1].costUsd)
+              .map(([agent, stats]) => (
+                <div key={agent} className="flex items-center justify-between py-1 border-b border-white/5 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-white/60 capitalize">{agent}</span>
+                    <span className="text-[10px] text-white/30">{stats.calls} calls</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-[10px] text-white/30">
+                      {((stats.inputTokens + stats.outputTokens) / 1000).toFixed(1)}k tokens
+                    </span>
+                    <span className="text-xs text-white/60 font-mono">${stats.costUsd.toFixed(4)}</span>
+                  </div>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Enterprise: Human Intervention Queue ── */}
+      {enterprise && enterprise.humanQueue.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-medium text-amber-300">Human Review Queue ({enterprise.humanQueue.length})</h3>
+          </div>
+          <div className="space-y-1">
+            {enterprise.humanQueue.map(item => (
+              <div key={item.id} className="flex items-center justify-between py-1.5 border-b border-amber-500/10 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-[10px] px-1.5 py-0.5 rounded",
+                    item.severity === "critical" ? "bg-red-500/20 text-red-400" :
+                    item.severity === "high"     ? "bg-orange-500/20 text-orange-400" : "bg-amber-500/10 text-amber-400"
+                  )}>{item.severity}</span>
+                  <span className="text-xs text-amber-300/70">{item.title}</span>
+                </div>
+                <span className="text-[10px] text-amber-300/30">{item.event_type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick links */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
