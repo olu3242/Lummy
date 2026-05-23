@@ -10,6 +10,7 @@ export interface JobResult {
   ok: boolean
   durationMs: number
   processed?: number
+  failed?: number
   error?: string
 }
 
@@ -43,17 +44,53 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
     }
 
     let processed = 0
+    let failed = 0
     for (const ev of events as { id: string; event_name: string; creator_id: string; payload: Record<string, unknown> }[]) {
+      // Optimistic lock: mark processing=true before handler runs
+      await supabase.from("automation_events").update({ processing: true }).eq("id", ev.id).match({}).then(null, () => {})
+
       const result = await processAutomationEvent(ev.id, ev.event_name as AutomationEventName, ev.creator_id, ev.payload)
-      // Mark processed regardless of handler success (prevents infinite retry on bad data)
-      await supabase.from("automation_events").update({
-        processed: true,
-        processed_at: new Date().toISOString(),
-      }).eq("id", ev.id)
-      if (result.ok) processed++
+
+      if (result.ok) {
+        // Success — mark fully processed
+        await supabase.from("automation_events").update({
+          processed: true,
+          processing: false,
+          processed_at: new Date().toISOString(),
+        }).eq("id", ev.id)
+        processed++
+      } else {
+        // Failure — record error, increment attempt count; do NOT mark processed=true
+        const { data: current } = await supabase
+          .from("automation_events")
+          .select("attempt_count")
+          .eq("id", ev.id)
+          .single()
+
+        const attempts = ((current as { attempt_count?: number } | null)?.attempt_count ?? 0) + 1
+        const isDead = attempts >= 5
+
+        await supabase.from("automation_events").update({
+          processing: false,
+          processed: isDead,          // move to DLQ state after 5 attempts
+          processed_at: isDead ? new Date().toISOString() : null,
+          attempt_count: attempts,
+          last_error: result.error ?? "unknown error",
+          failed_at: new Date().toISOString(),
+        }).eq("id", ev.id)
+
+        if (isDead) {
+          logger.error("[automation] event moved to DLQ after 5 attempts", {
+            eventId: ev.id,
+            eventName: ev.event_name,
+            creatorId: ev.creator_id,
+          })
+        }
+        failed++
+      }
     }
 
-    return { jobName: "automation_processor", ok: true, durationMs: Date.now() - start, processed }
+    return { jobName: "automation_processor", ok: true, durationMs: Date.now() - start, processed, failed } as JobResult
   } catch (err) {
     return { jobName: "automation_processor", ok: false, durationMs: Date.now() - start, error: String(err) }
   }
