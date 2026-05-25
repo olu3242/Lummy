@@ -6,9 +6,11 @@ import { sendCreatorWelcome } from "@/lib/automation/sdk"
 import { isEnabled } from "@/lib/flags/feature-flags"
 
 interface HandlerContext {
-  creatorId: string
-  payload: Record<string, unknown>
-  eventId: string
+  creatorId:     string
+  payload:       Record<string, unknown>
+  eventId:       string
+  correlationId: string | undefined
+  workflowId:    string | undefined
 }
 
 async function notify(userId: string, title: string, body: string, actionUrl?: string) {
@@ -181,14 +183,23 @@ export async function processAutomationEvent(
   const handler = HANDLERS[eventName]
   if (!handler) {
     logger.warn("[automation] no handler for event", { eventName })
-    return { ok: true } // not an error — just unhandled
+    return { ok: true } // not an error — unregistered events are silently skipped
   }
 
+  const correlationId = payload.correlationId as string | undefined
+  const workflowId    = payload.workflowId    as string | undefined
+
   try {
-    await handler({ creatorId, payload, eventId })
+    await handler({ creatorId, payload, eventId, correlationId, workflowId })
     return { ok: true }
   } catch (err) {
-    logger.error("[automation] handler failed", { eventName, creatorId, error: String(err) })
+    logger.error("[automation] handler failed", {
+      eventName,
+      creatorId,
+      correlationId,
+      workflowId,
+      error: String(err),
+    })
     return { ok: false, error: String(err) }
   }
 }

@@ -7,17 +7,12 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createAdminClient } from "@/lib/supabase/server"
 import { logger } from "@/lib/observability/logger"
+import { verifyCronSecret } from "@/lib/runtime/cron"
 import { isEnabled } from "@/lib/flags/feature-flags"
 import { dispatchAutomation } from "@/lib/automation/triggers"
 
 export const maxDuration = 300
 
-function verifyCronSecret(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-  const auth = request.headers.get("authorization")
-  return auth === `Bearer ${secret}`
-}
 
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request)) {

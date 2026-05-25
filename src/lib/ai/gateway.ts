@@ -17,7 +17,9 @@ import { logger } from "@/lib/observability/logger"
 
 // ── Model registry ────────────────────────────────────────────
 
-const MODELS = {
+// DO NOT instantiate Anthropic outside this file.
+// All AI inference must route through callAgent() below.
+export const MODELS = {
   primary:   "claude-sonnet-4-20250514",
   fast:      "claude-haiku-4-5-20251001",
   advanced:  "claude-opus-4-7",

@@ -48,3 +48,9 @@ export function startAIWorker(): Worker<AIJobPayload> {
   logger.info("[ai-worker] started")
   return worker
 }
+
+// ── RUNTIME STATUS: DISCONNECTED ─────────────────────────────────────────────
+// This BullMQ worker has no entry point. startAIWorker() is never called.
+// REDIS_URL is also not provisioned. For MVP, AI calls route synchronously
+// through sdk.queueAIJob() → gateway.ts without a queue transport.
+// To activate: provision Upstash Redis, set REDIS_URL, create scripts/start-workers.ts.

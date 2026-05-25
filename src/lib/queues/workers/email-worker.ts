@@ -62,3 +62,6 @@ export function startEmailWorker(): Worker<EmailJobPayload> {
   logger.info("[email-worker] started")
   return worker
 }
+
+// ── RUNTIME STATUS: DISCONNECTED ─────────────────────────────────────────────
+// startXWorker() is not called anywhere. Requires REDIS_URL + a worker entry point.

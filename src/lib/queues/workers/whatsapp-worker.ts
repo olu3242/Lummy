@@ -44,3 +44,6 @@ export function startWhatsAppWorker(): Worker<WhatsAppJobPayload> {
   logger.info("[wa-worker] started")
   return worker
 }
+
+// ── RUNTIME STATUS: DISCONNECTED ─────────────────────────────────────────────
+// startXWorker() is not called anywhere. Requires REDIS_URL + a worker entry point.

@@ -26,7 +26,7 @@ export const ENV_SCHEMA: EnvVar[] = [
   // Edge Functions (Supabase — set via: supabase secrets set KEY=value)
   // META_VERIFY_TOKEN: alias of WHATSAPP_WEBHOOK_VERIFY_TOKEN for Supabase edge functions
   // Cron
-  { key: "CRON_SECRET",                required: false, redact: true, description: "Secret for cron job authorization" },
+  { key: "CRON_SECRET",                required: true,  redact: true, description: "Secret for Vercel cron job authorization (fail-closed guard)" },
 ]
 
 export interface EnvValidationResult {

@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/automation-processor",
+      "schedule": "*/2 * * * *"
+    },
+    {
       "path": "/api/cron/analytics-rollup",
       "schedule": "0 1 * * *"
     },

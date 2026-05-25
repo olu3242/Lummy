@@ -5,6 +5,9 @@ import { processAutomationEvent } from "@/lib/automation/handlers"
 import { runChurnScoringJob } from "@/lib/creator/churn"
 import { computeViralityScores, snapshotCreatorPerformance } from "@/lib/analytics/marketplace"
 import { startSLARecord, completeSLARecord } from "@/lib/automation/sla"
+import { getWorkflowByEventName } from "@/runtime/registry/workflow-registry-service"
+import { logAutomation } from "@/lib/automation/sdk"
+import { generateCorrelationId } from "@/lib/observability/correlation"
 import type { AutomationEventName } from "@/lib/automation/events"
 
 export interface JobResult {
@@ -28,16 +31,30 @@ export async function runHealthScoringJob(): Promise<JobResult> {
   }
 }
 
-/** Process pending automation events (up to batchSize at a time) */
+/**
+ * Process pending automation_events (up to batchSize at a time).
+ *
+ * Lifecycle per event:
+ *   pending → processing (optimistic lock)
+ *   → workflow_registry lookup (resolves workflowId + SLA config)
+ *   → handler dispatch (handlers.ts)
+ *   → completed / failed
+ *   → automation_logs persisted with workflow_id + correlationId
+ *   → workflow_sla_records updated
+ *   → DLQ after 5 attempts
+ */
 export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResult> {
   const start = Date.now()
   const supabase = createAdminClient()
+  const now = new Date().toISOString()
 
   try {
     const { data: events } = await supabase
       .from("automation_events")
-      .select("id, event_name, creator_id, payload")
+      .select("id, event_name, creator_id, payload, attempt_count, idempotency_key")
       .eq("processed", false)
+      .eq("processing", false)
+      .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
       .order("created_at", { ascending: true })
       .limit(batchSize)
 
@@ -47,58 +64,121 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
 
     let processed = 0
     let failed = 0
-    for (const ev of events as { id: string; event_name: string; creator_id: string; payload: Record<string, unknown> }[]) {
-      // Optimistic lock: mark processing=true before handler runs
-      await supabase.from("automation_events").update({ processing: true }).eq("id", ev.id).match({}).then(null, () => {})
 
-      // Resolve workflow_id from event name (WA-01 pattern stored in payload or mapped by convention)
-      const workflowId = (ev.payload.workflowId as string | undefined) ?? ev.event_name
+    for (const ev of events as {
+      id: string
+      event_name: string
+      creator_id: string
+      payload: Record<string, unknown>
+      attempt_count: number | null
+      idempotency_key: string | null
+    }[]) {
+      const eventStart = Date.now()
+
+      // Optimistic lock — skip if we lose the race with a concurrent invocation
+      const { error: lockErr } = await supabase
+        .from("automation_events")
+        .update({ processing: true, updated_at: new Date().toISOString() })
+        .eq("id", ev.id)
+        .eq("processing", false)
+      if (lockErr) continue
+
+      // Correlation ID: prefer stored in payload, else generate fresh
+      const correlationId: string =
+        (ev.payload.correlationId as string | undefined) ??
+        generateCorrelationId("ae")
+
+      // Resolve canonical workflow entry from registry
+      const workflowEntry = await getWorkflowByEventName(ev.event_name)
+      const workflowId: string =
+        workflowEntry?.workflowId ??
+        (ev.payload.workflowId as string | undefined) ??
+        ev.event_name
+
+      // Start SLA tracking with registry-resolved SLA target
       const slaRecord = await startSLARecord(
         workflowId,
         ev.payload.tenantId as string | undefined,
-        ev.payload.correlationId as string | undefined,
+        correlationId,
         ev.id,
       )
 
-      const result = await processAutomationEvent(ev.id, ev.event_name as AutomationEventName, ev.creator_id, ev.payload)
+      const result = await processAutomationEvent(
+        ev.id,
+        ev.event_name as AutomationEventName,
+        ev.creator_id,
+        { ...ev.payload, correlationId, workflowId },
+      )
+
+      const executionDurationMs = Date.now() - eventStart
 
       if (result.ok) {
-        // Success — mark fully processed
         await supabase.from("automation_events").update({
-          processed: true,
-          processing: false,
-          processed_at: new Date().toISOString(),
+          processed:             true,
+          processing:            false,
+          processed_at:          new Date().toISOString(),
+          execution_duration_ms: executionDurationMs,
+          workflow_id:           workflowId,
+          correlation_id:        correlationId,
         }).eq("id", ev.id)
+
         await completeSLARecord(slaRecord, "completed")
+
+        await logAutomation({
+          workflowId,
+          eventName:  ev.event_name,
+          status:     "success",
+          durationMs: executionDurationMs,
+          ctx: {
+            tenantId:      ev.payload.tenantId as string ?? ev.creator_id,
+            creatorId:     ev.creator_id,
+            correlationId,
+          },
+          metadata: { eventId: ev.id, attempt: (ev.attempt_count ?? 0) + 1 },
+        })
+
         processed++
       } else {
-        // Failure — record error, increment attempt count; do NOT mark processed=true
-        const { data: current } = await supabase
-          .from("automation_events")
-          .select("attempt_count")
-          .eq("id", ev.id)
-          .single()
-
-        const attempts = ((current as { attempt_count?: number } | null)?.attempt_count ?? 0) + 1
+        const attempts = (ev.attempt_count ?? 0) + 1
         const isDead = attempts >= 5
 
         await supabase.from("automation_events").update({
-          processing: false,
-          processed: isDead,          // move to DLQ state after 5 attempts
-          processed_at: isDead ? new Date().toISOString() : null,
-          attempt_count: attempts,
-          last_error: result.error ?? "unknown error",
-          failed_at: new Date().toISOString(),
+          processing:            false,
+          processed:             isDead,
+          processed_at:          isDead ? new Date().toISOString() : null,
+          attempt_count:         attempts,
+          last_error:            result.error ?? "unknown error",
+          failed_at:             new Date().toISOString(),
+          execution_duration_ms: executionDurationMs,
+          workflow_id:           workflowId,
+          correlation_id:        correlationId,
         }).eq("id", ev.id)
 
         if (isDead) {
           logger.error("[automation] event moved to DLQ after 5 attempts", {
-            eventId: ev.id,
-            eventName: ev.event_name,
-            creatorId: ev.creator_id,
+            eventId:      ev.id,
+            eventName:    ev.event_name,
+            creatorId:    ev.creator_id,
+            workflowId,
+            correlationId,
           })
         }
+
         await completeSLARecord(slaRecord, "failed", result.error)
+
+        await logAutomation({
+          workflowId,
+          eventName:  ev.event_name,
+          status:     "failure",
+          durationMs: executionDurationMs,
+          ctx: {
+            tenantId:      ev.payload.tenantId as string ?? ev.creator_id,
+            creatorId:     ev.creator_id,
+            correlationId,
+          },
+          metadata: { eventId: ev.id, attempt: attempts, isDead, error: result.error },
+        })
+
         failed++
       }
     }
@@ -109,7 +189,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
   }
 }
 
-/** Retry dead-letter webhook events (up to 5 attempts already enforced in retry.ts) */
+/** Retry dead-letter webhook events (up to 5 attempts enforced in retry.ts) */
 export async function runWebhookRetryJob(): Promise<JobResult> {
   const start = Date.now()
   const supabase = createAdminClient()
@@ -121,7 +201,6 @@ export async function runWebhookRetryJob(): Promise<JobResult> {
       .eq("status", "failed")
       .lt("attempt_count", 5)
 
-    // Log queue depth — actual retry execution handled by existing webhook routes
     logger.info("[job] webhook_retry: pending failed events", { count: count ?? 0 })
     return { jobName: "webhook_retry", ok: true, durationMs: Date.now() - start, processed: count ?? 0 }
   } catch (err) {
@@ -161,8 +240,8 @@ export async function runChurnScoringJobWorker(): Promise<JobResult> {
 }
 
 /**
- * Self-healing: unstick events that have been locked in processing=true for > 5 minutes.
- * Guards against worker crashes that leave events perpetually in-flight.
+ * Self-healing: unstick events locked in processing=true for > 5 minutes.
+ * Guards against worker crashes leaving events perpetually in-flight.
  */
 export async function runStuckQueueRecoveryJob(): Promise<JobResult> {
   const start = Date.now()
@@ -171,7 +250,6 @@ export async function runStuckQueueRecoveryJob(): Promise<JobResult> {
   try {
     const cutoff = new Date(Date.now() - 5 * 60_000).toISOString()
 
-    // Find events stuck in processing=true for more than 5 minutes
     const { data: stuckEvents } = await supabase
       .from("automation_events")
       .select("id, event_name, attempt_count")
@@ -187,9 +265,9 @@ export async function runStuckQueueRecoveryJob(): Promise<JobResult> {
     let recovered = 0
     for (const ev of stuckEvents as { id: string; event_name: string; attempt_count: number }[]) {
       await supabase.from("automation_events").update({
-        processing:    false,
-        last_error:    "Recovered by self-healing job (processing timeout > 5 min)",
-        attempt_count: ev.attempt_count,  // preserve existing count
+        processing: false,
+        last_error: "Recovered by self-healing job (processing lock > 5 min)",
+        updated_at: new Date().toISOString(),
       }).eq("id", ev.id)
       recovered++
     }
@@ -211,11 +289,11 @@ export async function runMarketplaceIntelligenceJob(): Promise<JobResult> {
     ])
     logger.info("[job] marketplace_intelligence complete", { viralResult, snapResult })
     return {
-      jobName: "marketplace_intelligence",
-      ok: true,
+      jobName:    "marketplace_intelligence",
+      ok:         true,
       durationMs: Date.now() - start,
-      processed: viralResult.computed + snapResult.snapped,
-      failed: viralResult.failed,
+      processed:  viralResult.computed + snapResult.snapped,
+      failed:     viralResult.failed,
     }
   } catch (err) {
     return { jobName: "marketplace_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }

@@ -1,15 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createAdminClient } from "@/lib/supabase/server"
 import { logger } from "@/lib/observability/logger"
+import { verifyCronSecret } from "@/lib/runtime/cron"
 
 export const maxDuration = 300
 
-function verifyCronSecret(request: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-  const auth = request.headers.get("authorization")
-  return auth === `Bearer ${secret}`
-}
 
 async function runAnalyticsRollup(): Promise<{ ok: boolean; durationMs: number; processed: number; error?: string }> {
   const start = Date.now()
