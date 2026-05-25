@@ -313,9 +313,11 @@ export function HeroSection() {
               {...fadeUp(0.5)}
               className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
             >
-              <Button size="xl" className="group">
-                Get Started Free
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <Button size="xl" className="group" asChild>
+                <a href="/signup">
+                  Get Started Free
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </a>
               </Button>
               <Button variant="outline-white" size="xl" className="group">
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">

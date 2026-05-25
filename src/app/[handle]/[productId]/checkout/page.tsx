@@ -13,8 +13,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { mockProducts } from "@/data/mock/dashboard"
-import { storefrontCreator, buildWhatsAppUrl } from "@/data/mock/storefront"
+import { storefrontCreator } from "@/data/mock/storefront"
+
+// ─── Product type for checkout (real DB shape) ────────────────────────────────
+
+interface CheckoutProduct {
+  id: string
+  name: string
+  price: number        // in kobo/smallest unit
+  image: string
+  creatorId: string
+  creatorWhatsApp?: string
+  storeName: string
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -98,7 +109,7 @@ function StepIndicator({ current }: { current: CheckoutStep }) {
 // ─── Order Summary Sidebar ─────────────────────────────────────────────────────
 
 function OrderSummary({ product, qty, form }: {
-  product: { name: string; image: string; price: number; category: string }
+  product: { name: string; image: string; price: number; category?: string }
   qty: number
   form: CustomerForm
 }) {
@@ -117,7 +128,7 @@ function OrderSummary({ product, qty, form }: {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-snug">{product.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
+          {product.category && <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>}
           <p className="text-sm font-bold text-brand-purple mt-1">₦{product.price.toLocaleString()} × {qty}</p>
         </div>
       </div>
@@ -245,13 +256,6 @@ function PaymentStep({
   qty: number
 }) {
   const total = product.price * qty + DELIVERY_FEE
-
-  const waUrl = buildWhatsAppUrl(
-    storefrontCreator.whatsapp,
-    product.name,
-    `₦${(product.price).toLocaleString()}`,
-    storefrontCreator.name.split(" ")[0],
-  )
 
   return (
     <motion.div key="payment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -384,17 +388,44 @@ export default function CheckoutPage() {
   const handle = params?.handle ?? ""
   const productId = params?.productId ?? ""
 
-  const product = mockProducts.find(p => p.id === productId) ?? mockProducts[0]
-  const creator = storefrontCreator
+  // Fetch real product from DB; fall back to mock only for display skeleton
+  const [product, setProduct] = React.useState<CheckoutProduct | null>(null)
+  const [productLoading, setProductLoading] = React.useState(true)
+  const [productError, setProductError] = React.useState(false)
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!productId) return
+    fetch(`/api/storefront/${handle}/product/${productId}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(({ data }) => {
+        if (data) {
+          setProduct({
+            id:               data.id,
+            name:             data.name,
+            price:            Number(data.price ?? 0),
+            image:            data.image_url ?? "/placeholder-product.jpg",
+            creatorId:        data.creator_id,
+            creatorWhatsApp:  data.creator_whatsapp,
+            storeName:        data.store_name ?? handle,
+          })
+        } else {
+          setProductError(true)
+        }
+      })
+      .catch(() => setProductError(true))
+      .finally(() => setProductLoading(false))
+  }, [productId, handle])
 
   const [step, setStep] = React.useState<CheckoutStep>("details")
   const [form, setForm] = React.useState<CustomerForm>(emptyForm)
   const [qty, setQty] = React.useState(1)
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("paystack")
   const [placing, setPlacing] = React.useState(false)
-  const [orderId] = React.useState(`LM${Date.now().toString().slice(-5)}`)
 
-  const total = product.price * qty + DELIVERY_FEE
+  // Use real product price or fall back to 0 while loading
+  const productPrice = product?.price ?? 0
+  const total = productPrice * qty + DELIVERY_FEE
 
   const detailsValid = form.name.trim() && form.phone.trim() && form.address.trim() && form.city.trim()
 
@@ -405,24 +436,70 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (!product) return
     setPlacing(true)
 
     if (paymentMethod === "whatsapp") {
       const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ₦${total.toLocaleString()}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
-      const url = `https://wa.me/${creator.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`
-      setTimeout(() => {
-        setPlacing(false)
-        setStep("confirmation")
-        window.open(url, "_blank")
-      }, 600)
+      const waNumber = (product.creatorWhatsApp ?? storefrontCreator.whatsapp).replace(/\D/g, "")
+      const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`
+      setPlacing(false)
+      setStep("confirmation")
+      window.open(url, "_blank")
     } else {
-      setTimeout(() => {
+      try {
+        const res = await fetch("/api/payments/initiate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            productId:  product.id,
+            creatorId:  product.creatorId,
+            email:      form.email || `${form.phone.replace(/\D/g, "")}@lummy.co`,
+            quantity:   qty,
+            customerName:  form.name,
+            customerPhone: form.phone,
+            customerAddress: `${form.address}, ${form.city}, ${form.state}`,
+          }),
+        })
+        const data = await res.json() as {
+          authorization_url?: string
+          order_number?: string
+          error?: string
+        }
+        if (!res.ok || !data.authorization_url) {
+          toast({ title: data.error ?? "Payment setup failed", variant: "error" })
+          setPlacing(false)
+          return
+        }
+        // Redirect to Paystack hosted checkout
+        setConfirmedOrderNumber(data.order_number ?? null)
+        window.location.href = data.authorization_url
+      } catch {
+        toast({ title: "Network error — please try again", variant: "error" })
         setPlacing(false)
-        setStep("confirmation")
-        toast({ title: "Payment processed", description: "Order confirmed via Paystack.", variant: "success" })
-      }, 1500)
+      }
     }
+  }
+
+  // Loading / error states
+  if (productLoading) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (productError || !product) {
+    return (
+      <div className="min-h-dvh bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-muted-foreground text-sm text-center">This product is not available.</p>
+        <Link href={`/${handle}`} className="text-brand-purple text-sm font-medium hover:underline">
+          ← Back to store
+        </Link>
+      </div>
+    )
   }
 
   if (step === "confirmation") {
@@ -433,11 +510,11 @@ export default function CheckoutPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-indigo">
               <Zap className="h-3.5 w-3.5 text-white fill-white" />
             </div>
-            {creator.storeName}
+            {product.storeName}
           </Link>
         </header>
         <div className="flex-1 max-w-lg mx-auto px-4 py-8 w-full">
-          <ConfirmationStep orderId={orderId} handle={handle} />
+          <ConfirmationStep orderId={confirmedOrderNumber ?? `LM${Date.now().toString().slice(-5)}`} handle={handle} />
         </div>
       </div>
     )
@@ -458,7 +535,7 @@ export default function CheckoutPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-indigo">
               <Zap className="h-3.5 w-3.5 text-white fill-white" />
             </div>
-            {creator.storeName}
+            {product.storeName}
           </Link>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -522,7 +599,7 @@ export default function CheckoutPage() {
                 </Button>
               ) : (
                 <Button
-                  onClick={handlePlaceOrder}
+                  onClick={() => { void handlePlaceOrder() }}
                   disabled={placing}
                   variant={paymentMethod === "whatsapp" ? "whatsapp" : "default"}
                   className="flex-1 gap-2"
