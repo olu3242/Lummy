@@ -55,6 +55,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
       .eq("processed", false)
       .eq("processing", false)
       .or(`scheduled_for.is.null,scheduled_for.lte.${now}`)
+      .order("priority", { ascending: true })
       .order("created_at", { ascending: true })
       .limit(batchSize)
 
@@ -374,6 +375,62 @@ export async function runCreatorSuccessMonitoringJob(): Promise<JobResult> {
   }
 }
 
+/** Runs coordination engines: monetization, conversion, creator influence */
+export async function runCoordinationJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { detectMonetizationOpportunities } = await import("@/lib/coordination/monetization-coordinator")
+    const { runConversionCoordination } = await import("@/lib/coordination/conversion-coordinator")
+    const { detectHighInfluenceCreators } = await import("@/lib/coordination/creator-coordinator")
+    const { runWorkflowPriorityEngine } = await import("@/lib/coordination/workflow-priority-engine")
+
+    const results = await Promise.allSettled([
+      detectMonetizationOpportunities(100),
+      runConversionCoordination(100),
+      detectHighInfluenceCreators(100),
+      runWorkflowPriorityEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => {
+      if (r.status === "fulfilled") {
+        const v = r.value as { eventsEmitted?: number; processed?: number }
+        return s + (v.eventsEmitted ?? v.processed ?? 0)
+      }
+      return s
+    }, 0)
+    const failures = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] coordination complete", { totalEvents, failures })
+    return { jobName: "coordination", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "coordination", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs ecosystem intelligence: growth trends, health, retention risk */
+export async function runEcosystemIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runEcosystemGrowthEngine } = await import("@/lib/ecosystem-intelligence/ecosystem-growth-engine")
+    const { runEcosystemHealthEngine } = await import("@/lib/ecosystem-intelligence/ecosystem-health-engine")
+    const { runEcosystemRetentionEngine } = await import("@/lib/ecosystem-intelligence/ecosystem-retention-engine")
+
+    const results = await Promise.allSettled([
+      runEcosystemGrowthEngine(),
+      runEcosystemHealthEngine(),
+      runEcosystemRetentionEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? r.value.eventsEmitted : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] ecosystem_intelligence complete", { totalEvents, failures })
+    return { jobName: "ecosystem_intelligence", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "ecosystem_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:              runHealthScoringJob,
   churn_scoring:               runChurnScoringJobWorker,
@@ -384,4 +441,6 @@ export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   marketplace_intelligence:     runMarketplaceIntelligenceJob,
   intelligence_scoring:         runIntelligenceScoringJob,
   creator_success_monitoring:   runCreatorSuccessMonitoringJob,
+  coordination:                 runCoordinationJob,
+  ecosystem_intelligence:       runEcosystemIntelligenceJob,
 }

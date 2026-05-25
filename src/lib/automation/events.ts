@@ -33,6 +33,18 @@ export type AutomationEventName =
   | "ai_cost_spike"
   | "ai_budget_risk"
   | "recommendation_generated"
+  // ── Coordination events ──────────────────────────────────────────────
+  | "creator_monetization_opportunity"
+  | "creator_high_influence_detected"
+  | "workflow_priority_elevated"
+  // ── Marketplace intelligence events ──────────────────────────────────
+  | "marketplace_health_updated"
+  | "marketplace_conversion_drop"
+  | "storefront_performance_risk"
+  | "creator_repeat_customer_growth"
+  // ── Ecosystem events ─────────────────────────────────────────────────
+  | "ecosystem_revenue_growth"
+  | "ecosystem_retention_risk"
 
 export interface AutomationEvent {
   name: AutomationEventName

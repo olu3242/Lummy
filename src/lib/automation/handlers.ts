@@ -335,6 +335,114 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     }
     // medium/low priority recommendations surface in dashboard only — no push notification
   },
+
+  // ── Coordination events ──────────────────────────────────────────────────
+
+  creator_monetization_opportunity: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const title    = payload.title as string | undefined
+    const oppType  = payload.opportunityType as string | undefined
+    const estKobo  = payload.estimatedRevenueKobo as number | undefined
+    const estNGN   = estKobo != null ? `₦${(estKobo / 100).toLocaleString()}` : null
+    await notify(userId,
+      "💰 Revenue opportunity detected",
+      `${title ?? "You have a monetization opportunity"}${estNGN ? ` — estimated ${estNGN}` : ""}`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_monetization_opportunity", { creatorId, oppType })
+  },
+
+  creator_high_influence_detected: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🌟 You're a top creator!",
+      "Your store is in the top tier of Lummy creators. Keep it up — your influence is growing.",
+      "/dashboard"
+    )
+    logger.info("[handler] creator_high_influence_detected", { creatorId, orderCount: payload.orderCount })
+  },
+
+  workflow_priority_elevated: async ({ payload }) => {
+    // Internal ops event — logs escalation for SLA monitoring; no creator notification
+    logger.info("[handler] workflow_priority_elevated", {
+      originalEventId: payload.originalEventId,
+      eventName:       payload.eventName,
+      reason:          payload.reason,
+      toPriority:      payload.toPriority,
+    })
+  },
+
+  // ── Marketplace events ───────────────────────────────────────────────────
+
+  marketplace_health_updated: async ({ payload }) => {
+    // Platform-level health snapshot — ops-only, no creator notification
+    const score = payload.overallScore as number | undefined
+    logger.info("[handler] marketplace_health_updated", { overallScore: score, riskSignals: payload.riskSignals })
+  },
+
+  marketplace_conversion_drop: async ({ payload }) => {
+    const dropPct = payload.dropPercent as number | undefined
+    logger.warn("[handler] marketplace_conversion_drop", {
+      currentRate: payload.currentRate,
+      previousRate: payload.previousRate,
+      dropPercent: dropPct,
+      affectedCreators: payload.affectedCreators,
+    })
+  },
+
+  storefront_performance_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const riskType = payload.riskType as string | undefined
+    const metric   = payload.metric as string | undefined
+    const message  = riskType === "low_conversion"
+      ? `Your storefront conversion is below average. ${metric ?? "Try improving your WhatsApp CTA button."}`
+      : riskType === "inactive"
+        ? "Your store has had no recent sales. Add new products or update your storefront to re-engage customers."
+        : `Your store may need attention: ${metric ?? "check your dashboard for details."}`
+    await notify(userId,
+      "Your store needs attention",
+      message,
+      "/dashboard/store"
+    )
+    logger.info("[handler] storefront_performance_risk", { creatorId, riskType })
+  },
+
+  creator_repeat_customer_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const repeatRate = payload.repeatRate as number | undefined
+    await notify(userId,
+      "🔄 Repeat customers growing!",
+      `${(repeatRate ?? 0).toFixed(0)}% of your recent orders are from returning customers. Keep nurturing those relationships!`,
+      "/dashboard/customers"
+    )
+    logger.info("[handler] creator_repeat_customer_growth", { creatorId, repeatRate })
+  },
+
+  // ── Ecosystem events ─────────────────────────────────────────────────────
+
+  ecosystem_revenue_growth: async ({ payload }) => {
+    // Platform signal — ops/analytics only, no creator notification
+    const growthRate = payload.growthRate as number | undefined
+    logger.info("[handler] ecosystem_revenue_growth", {
+      growthRate:    growthRate != null ? `${(growthRate * 100).toFixed(1)}%` : "n/a",
+      activeCreators: payload.activeCreators,
+      newCreators:    payload.newCreators,
+    })
+  },
+
+  ecosystem_retention_risk: async ({ payload }) => {
+    const retentionRate = payload.platformRetentionRate as number | undefined
+    const critical      = payload.criticalThreshold as boolean | undefined
+    logger.warn("[handler] ecosystem_retention_risk", {
+      retentionRate,
+      critical,
+      churnRiskCount: payload.churnRiskCreatorCount,
+    })
+  },
 }
 
 export async function processAutomationEvent(
