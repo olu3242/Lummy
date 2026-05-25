@@ -221,6 +221,120 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       )
     }
   },
+
+  // ── Intelligence events ────────────────────────────────────────────────────
+
+  creator_health_degraded: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const drop = payload.dropPct as number | undefined
+    await notify(userId,
+      "Your store health score dropped",
+      `Your store health${drop ? ` dropped ${drop.toFixed(0)}%` : " declined"}. Add products and stay active to recover your score.`,
+      "/dashboard"
+    )
+  },
+
+  creator_revenue_drop: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const dropPct = payload.dropPct as number | undefined
+    await notify(userId,
+      "Revenue is down this month",
+      `Revenue dropped ${dropPct ? `${dropPct.toFixed(0)}%` : "significantly"} compared to last month. Try a WhatsApp promotion to re-engage customers.`,
+      "/dashboard/analytics"
+    )
+  },
+
+  creator_revenue_forecast_updated: async () => { /* forecast surfaced in dashboard — no notification */ },
+
+  creator_growth_detected: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const growthPct = payload.growthPct as number | undefined
+    await notify(userId,
+      "Your store is growing fast! 🚀",
+      `Revenue grew ${growthPct ? `${growthPct.toFixed(0)}%` : "significantly"} this month. Keep the momentum — now is the time to add new products.`,
+      "/dashboard/analytics"
+    )
+  },
+
+  creator_churn_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const action = payload.recommendedAction as string | undefined
+    await notify(userId,
+      "Your store needs attention",
+      action ?? "Your store activity is low. Adding products and engaging customers will help you grow.",
+      "/dashboard"
+    )
+  },
+
+  creator_engagement_drop: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const dropPct = payload.dropPct as number | undefined
+    await notify(userId,
+      "Store engagement is down",
+      `Store traffic dropped ${dropPct ? `${dropPct.toFixed(0)}%` : ""} this week. Try sharing your store link on WhatsApp or Instagram.`,
+      "/dashboard/analytics"
+    )
+  },
+
+  customer_high_value: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const orderCount = payload.orderCount as number | undefined
+    await notify(userId,
+      "You have a loyal customer! ⭐",
+      `A customer has placed ${orderCount ?? "multiple"} orders with you. Consider offering them a VIP discount to keep them coming back.`,
+      "/dashboard/customers"
+    )
+  },
+
+  customer_reengagement_needed: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const days = payload.silentDays as number | undefined
+    await notify(userId,
+      "A past customer is drifting away",
+      `A customer who bought from you hasn't returned in ${days ?? 21}+ days. Send them a WhatsApp message with a new product or offer.`,
+      "/dashboard/customers"
+    )
+  },
+
+  workflow_retry_spike: async () => {
+    // Internal ops alert — logged by the intelligence job, no creator notification
+    logger.warn("[handler] workflow_retry_spike event received")
+  },
+
+  workflow_at_risk: async () => {
+    logger.warn("[handler] workflow_at_risk event received")
+  },
+
+  ai_cost_spike: async () => {
+    logger.warn("[handler] ai_cost_spike event received — review ai_cost_events table")
+  },
+
+  ai_budget_risk: async ({ payload }) => {
+    const usedPct = payload.usedPct as number | undefined
+    const orgId = payload.organizationId as string | undefined
+    logger.warn("[handler] ai_budget_risk", { usedPct, orgId })
+  },
+
+  recommendation_generated: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const priority = payload.priority as string | undefined
+    if (priority === "critical" || priority === "high") {
+      await notify(userId,
+        "New recommendation for your store",
+        (payload.title as string | undefined) ?? "Check your recommendations for actionable tips.",
+        "/dashboard"
+      )
+    }
+    // medium/low priority recommendations surface in dashboard only — no push notification
+  },
 }
 
 export async function processAutomationEvent(

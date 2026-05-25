@@ -303,12 +303,85 @@ export async function runMarketplaceIntelligenceJob(): Promise<JobResult> {
   }
 }
 
+/** Runs all intelligence engines: creator trends, workflow health, AI cost, engagement */
+export async function runIntelligenceScoringJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { analyzeCreatorRevenueTrends, detectHealthScoreDegradation, detectEngagementDrops } = await import("@/lib/intelligence/creator-intelligence")
+    const { detectRetrySplikes } = await import("@/lib/intelligence/workflow-intelligence")
+    const { detectAICostAnomalies, detectAIBudgetRisk } = await import("@/lib/intelligence/ai-intelligence")
+    const { detectHighValueCustomers } = await import("@/lib/intelligence/conversion-intelligence")
+    const { detectDisengagedCustomers } = await import("@/lib/intelligence/engagement-intelligence")
+
+    const results = await Promise.allSettled([
+      analyzeCreatorRevenueTrends(200),
+      detectHealthScoreDegradation(200),
+      detectEngagementDrops(200),
+      detectRetrySplikes(),
+      detectAICostAnomalies(),
+      detectAIBudgetRisk(),
+      detectHighValueCustomers(),
+      detectDisengagedCustomers(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? r.value.eventsEmitted : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] intelligence_scoring complete", { totalEvents, failures })
+    return { jobName: "intelligence_scoring", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "intelligence_scoring", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs creator success monitoring: risk scanning, recommendation generation, health snapshots */
+export async function runCreatorSuccessMonitoringJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { scanAtRiskCreators } = await import("@/lib/creator-success/creator-risk-engine")
+    const { runRecommendationEngine } = await import("@/lib/intelligence/recommendation-engine")
+    const { computeOperationalHealthReport, persistHealthSnapshot } = await import("@/lib/intelligence/operational-health-intelligence")
+
+    const [riskResult, recResult, healthReport] = await Promise.allSettled([
+      scanAtRiskCreators(100),
+      runRecommendationEngine(100),
+      computeOperationalHealthReport().then(async report => {
+        await persistHealthSnapshot(report)
+        return report
+      }),
+    ])
+
+    const riskSummary = riskResult.status === "fulfilled" ? riskResult.value : { scanned: 0, critical: 0, high: 0 }
+    const recSummary  = recResult.status  === "fulfilled" ? recResult.value : { eventsEmitted: 0 }
+    const health      = healthReport.status === "fulfilled" ? healthReport.value.overall : 0
+
+    logger.info("[job] creator_success_monitoring complete", {
+      riskScanned: riskSummary.scanned,
+      critical:    riskSummary.critical,
+      recsGenerated: recSummary.eventsEmitted,
+      healthScore: health,
+    })
+
+    return {
+      jobName: "creator_success_monitoring",
+      ok: true,
+      durationMs: Date.now() - start,
+      processed: riskSummary.scanned + recSummary.eventsEmitted,
+      failed: riskResult.status === "rejected" ? 1 : 0,
+    }
+  } catch (err) {
+    return { jobName: "creator_success_monitoring", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
-  health_scoring:           runHealthScoringJob,
-  churn_scoring:            runChurnScoringJobWorker,
-  automation_processor:     runAutomationProcessorJob,
-  webhook_retry:            runWebhookRetryJob,
-  notification_cleanup:     runNotificationCleanupJob,
-  stuck_queue_recovery:     runStuckQueueRecoveryJob,
-  marketplace_intelligence: runMarketplaceIntelligenceJob,
+  health_scoring:              runHealthScoringJob,
+  churn_scoring:               runChurnScoringJobWorker,
+  automation_processor:        runAutomationProcessorJob,
+  webhook_retry:                runWebhookRetryJob,
+  notification_cleanup:         runNotificationCleanupJob,
+  stuck_queue_recovery:         runStuckQueueRecoveryJob,
+  marketplace_intelligence:     runMarketplaceIntelligenceJob,
+  intelligence_scoring:         runIntelligenceScoringJob,
+  creator_success_monitoring:   runCreatorSuccessMonitoringJob,
 }

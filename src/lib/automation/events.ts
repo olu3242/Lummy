@@ -19,6 +19,20 @@ export type AutomationEventName =
   | "checkout_started"
   | "checkout_abandoned"
   | "lead_scored"
+  // ── Intelligence events ──────────────────────────────────────────────
+  | "creator_health_degraded"
+  | "creator_revenue_drop"
+  | "creator_revenue_forecast_updated"
+  | "creator_growth_detected"
+  | "creator_churn_risk"
+  | "creator_engagement_drop"
+  | "customer_high_value"
+  | "customer_reengagement_needed"
+  | "workflow_retry_spike"
+  | "workflow_at_risk"
+  | "ai_cost_spike"
+  | "ai_budget_risk"
+  | "recommendation_generated"
 
 export interface AutomationEvent {
   name: AutomationEventName
