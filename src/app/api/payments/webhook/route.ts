@@ -42,10 +42,28 @@ function parseWebhook(rawBody: string): ParsedWebhook {
     };
   }
 
+  if (payload.event === 'charge.failed') {
+    return {
+      eventId: payload.data?.id?.toString() || payload.data?.reference,
+      eventType: 'charge.failed',
+      providerReference: payload.data?.reference,
+      metadata: payload.data?.metadata,
+    };
+  }
+
   if (payload.type === 'checkout.session.completed') {
     return {
       eventId: payload.id,
       eventType: payload.type,
+      providerReference: payload.data?.object?.id,
+      metadata: payload.data?.object?.metadata,
+    };
+  }
+
+  if (payload.type === 'payment_intent.payment_failed') {
+    return {
+      eventId: payload.id,
+      eventType: 'charge.failed',
       providerReference: payload.data?.object?.id,
       metadata: payload.data?.object?.metadata,
     };
@@ -183,6 +201,31 @@ export async function POST(req: Request) {
         amountFormatted,
         correlationId,
       }, `payment_received:${parsed.metadata.paymentId}`)
+    }
+
+    if (parsed.eventType === 'charge.failed') {
+      const sdkCtx = { tenantId: parsed.metadata.organizationId, correlationId }
+      // Resolve creator for notification
+      const admin = createAdminClient()
+      const orderRow = await admin.from('orders')
+        .select('creator_id')
+        .eq('id', parsed.metadata.orderId)
+        .maybeSingle()
+      const order = orderRow.data as { creator_id?: string } | null
+
+      if (order?.creator_id) {
+        await admin.from('payments')
+          .update({ status: 'failed' })
+          .eq('id', parsed.metadata.paymentId)
+          .eq('organization_id', parsed.metadata.organizationId)
+
+        void emitEvent('payment_failed', sdkCtx, {
+          orderId:        parsed.metadata.orderId,
+          paymentId:      parsed.metadata.paymentId,
+          orderReference: parsed.metadata.orderId.slice(0, 8).toUpperCase(),
+          correlationId,
+        }, `payment_failed:${parsed.metadata.paymentId}`)
+      }
     }
 
     logApiEvent('info', 'payments.webhook_processed', { correlationId, eventId: parsed.eventId, eventType: parsed.eventType, paymentId: parsed.metadata.paymentId });

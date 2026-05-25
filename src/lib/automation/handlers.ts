@@ -172,6 +172,55 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     )
   },
   whatsapp_message_received: async () => { /* handled by webhook */ },
+
+  payment_failed: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const orderRef = payload.orderReference as string | undefined
+    await notify(userId,
+      "Payment failed ⚠️",
+      `Payment${orderRef ? ` for order #${orderRef}` : ""} was unsuccessful. The customer may retry.`,
+      "/dashboard/orders"
+    )
+  },
+
+  payment_timeout: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const orderRef = payload.orderReference as string | undefined
+    await notify(userId,
+      "Payment timed out ⏱",
+      `Payment${orderRef ? ` for order #${orderRef}` : ""} expired without completion.`,
+      "/dashboard/orders"
+    )
+  },
+
+  checkout_started: async () => { /* analytics only — no action needed */ },
+
+  checkout_abandoned: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const productName = payload.productName as string | undefined
+    await notify(userId,
+      "Abandoned checkout 🛒",
+      `A customer started checkout${productName ? ` for "${productName}"` : ""} but didn't complete it.`,
+      "/dashboard/orders"
+    )
+  },
+
+  lead_scored: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const score = payload.score as number | undefined
+    const phone = payload.phone as string | undefined
+    if (score && score >= 80) {
+      await notify(userId,
+        "High-intent lead detected 🔥",
+        `A lead${phone ? ` (${phone})` : ""} scored ${score}/100 — reach out now while they're warm.`,
+        "/dashboard/customers"
+      )
+    }
+  },
 }
 
 export async function processAutomationEvent(

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { publishStorefront, unpublishStorefront, notifyStorefrontPublished } from "@/lib/queries/activation"
 import { trackEvent } from "@/lib/observability/events"
+import { emitEvent } from "@/lib/automation/sdk"
 
 async function requireUser() {
   const supabase = createClient()
@@ -51,6 +52,11 @@ export async function POST() {
   if (p.handle) {
     void notifyStorefrontPublished(user.id, p.handle).catch(console.error)
   }
+
+  // Emit automation event for STO-01 workflow
+  void emitEvent("storefront_published", { tenantId: p.id, creatorId: p.id }, {
+    handle: p.handle,
+  }, `storefront_published:${p.id}`)
 
   return NextResponse.json({ ok: true, handle: p.handle })
 }

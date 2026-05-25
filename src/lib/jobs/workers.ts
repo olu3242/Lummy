@@ -78,7 +78,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
       // Optimistic lock — skip if we lose the race with a concurrent invocation
       const { error: lockErr } = await supabase
         .from("automation_events")
-        .update({ processing: true, updated_at: new Date().toISOString() })
+        .update({ processing: true, status: "processing", updated_at: new Date().toISOString() })
         .eq("id", ev.id)
         .eq("processing", false)
       if (lockErr) continue
@@ -116,6 +116,7 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
         await supabase.from("automation_events").update({
           processed:             true,
           processing:            false,
+          status:                "completed",
           processed_at:          new Date().toISOString(),
           execution_duration_ms: executionDurationMs,
           workflow_id:           workflowId,
@@ -142,9 +143,11 @@ export async function runAutomationProcessorJob(batchSize = 50): Promise<JobResu
         const attempts = (ev.attempt_count ?? 0) + 1
         const isDead = attempts >= 5
 
+        const failStatus = isDead ? "dead_letter" : attempts > 1 ? "retrying" : "failed"
         await supabase.from("automation_events").update({
           processing:            false,
           processed:             isDead,
+          status:                failStatus,
           processed_at:          isDead ? new Date().toISOString() : null,
           attempt_count:         attempts,
           last_error:            result.error ?? "unknown error",

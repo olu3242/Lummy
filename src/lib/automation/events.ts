@@ -2,6 +2,8 @@
 export type AutomationEventName =
   | "order_created"
   | "payment_received"
+  | "payment_failed"
+  | "payment_timeout"
   | "storefront_published"
   | "product_created"
   | "first_sale_completed"
@@ -14,6 +16,9 @@ export type AutomationEventName =
   | "whatsapp_message_received"
   | "store_schema_updated"
   | "weekly_digest_requested"
+  | "checkout_started"
+  | "checkout_abandoned"
+  | "lead_scored"
 
 export interface AutomationEvent {
   name: AutomationEventName

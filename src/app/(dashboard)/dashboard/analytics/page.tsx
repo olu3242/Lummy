@@ -19,7 +19,6 @@ import { toast } from "@/hooks/use-toast"
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
 const GOAL_KEY = "lummy_revenue_goal"
-const CURRENT_MONTH_REVENUE = 623000
 
 const revenueData = [
   { month: "Jan", revenue: 285000, orders: 42, views: 1820, prev: 241000, aov: 6786 },
@@ -131,7 +130,7 @@ const dowRevenueData = [
 
 // ─── Components ───────────────────────────────────────────────────────────────
 
-function RevenueGoalCard() {
+function RevenueGoalCard({ currentRevenue }: { currentRevenue: number }) {
   const [goal, setGoal] = React.useState<number>(() => {
     if (typeof window === "undefined") return 800000
     try { const v = localStorage.getItem(GOAL_KEY); return v ? Number(v) : 800000 } catch { return 800000 }
@@ -139,8 +138,8 @@ function RevenueGoalCard() {
   const [editing, setEditing] = React.useState(false)
   const [inputVal, setInputVal] = React.useState("")
 
-  const pct = Math.min(100, Math.round((CURRENT_MONTH_REVENUE / goal) * 100))
-  const remaining = Math.max(0, goal - CURRENT_MONTH_REVENUE)
+  const pct = Math.min(100, Math.round((currentRevenue / goal) * 100))
+  const remaining = Math.max(0, goal - currentRevenue)
   const achieved = pct >= 100
 
   const saveGoal = () => {
@@ -181,7 +180,7 @@ function RevenueGoalCard() {
       ) : (
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="font-display text-2xl font-extrabold">₦{CURRENT_MONTH_REVENUE.toLocaleString()}</p>
+            <p className="font-display text-2xl font-extrabold">₦{currentRevenue.toLocaleString()}</p>
             <p className="text-xs text-muted-foreground">of ₦{goal.toLocaleString()} goal</p>
           </div>
           <p className={cn("font-display text-3xl font-extrabold", achieved ? "text-brand-green" : "text-brand-purple")}>{pct}%</p>
@@ -490,7 +489,7 @@ export default function AnalyticsPage() {
       </AnimatePresence>
 
       {/* Goal tracker */}
-      <RevenueGoalCard />
+      <RevenueGoalCard currentRevenue={liveSummary ? Math.round(liveSummary.revenue_ngn / 100) : 0} />
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
