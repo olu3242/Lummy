@@ -78,6 +78,31 @@ export type AutomationEventName =
   | "ecosystem_expansion_opportunity"
   | "geography_expansion_opportunity"
   | "creator_network_scaling"
+  // ── Economy intelligence events ──────────────────────────────────────────
+  | "creator_high_growth"
+  | "creator_revenue_accelerated"
+  | "creator_profitability_growth"
+  | "creator_scaling_opportunity"
+  | "repeat_purchase_accelerated"
+  | "economy_health_updated"
+  | "creator_ecosystem_influence_growth"
+  // ── Retention intelligence events ─────────────────────────────────────────
+  | "creator_retention_risk"
+  | "customer_churn_risk"
+  | "customer_retention_recovery_needed"
+  | "customer_repeat_purchase_growth"
+  | "customer_community_growth"
+  | "loyalty_acceleration"
+  | "engagement_decay"
+  // ── Scaling coordination events ───────────────────────────────────────────
+  | "marketplace_scaling_bottleneck"
+  | "creator_acquisition_opportunity"
+  | "monetization_anomaly"
+  | "ecosystem_integrity_risk"
+  | "localized_monetization_opportunity"
+  | "region_high_growth"
+  | "discovery_optimization_recommended"
+  | "scaling_governance_alert"
 
 export interface AutomationEvent {
   name: AutomationEventName

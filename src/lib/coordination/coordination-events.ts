@@ -51,6 +51,31 @@ export const PRIORITY_RULES: PriorityRule[] = [
   { eventName: "ecosystem_expansion_opportunity", basePriority: 8, rationale: "Expansion ops signal" },
   { eventName: "ecosystem_network_acceleration",  basePriority: 8, rationale: "Network growth tracking" },
   { eventName: "creator_network_scaling",    basePriority: 9, rationale: "Network scaling informational" },
+  // Economy intelligence — growth alerts are time-sensitive, forecasts informational
+  { eventName: "creator_high_growth",           basePriority: 4, rationale: "Growth moment is fleeting" },
+  { eventName: "creator_revenue_accelerated",   basePriority: 4, rationale: "Revenue acceleration to amplify" },
+  { eventName: "creator_profitability_growth",  basePriority: 5, rationale: "AOV growth advisory" },
+  { eventName: "creator_scaling_opportunity",   basePriority: 5, rationale: "Scaling advisory" },
+  { eventName: "repeat_purchase_accelerated",   basePriority: 5, rationale: "Retention growth signal" },
+  { eventName: "economy_health_updated",        basePriority: 9, rationale: "Platform informational" },
+  { eventName: "creator_ecosystem_influence_growth", basePriority: 7, rationale: "Ecosystem informational" },
+  // Retention intelligence — churn requires fast action; loyalty is advisory
+  { eventName: "creator_retention_risk",             basePriority: 3, rationale: "Retention intervention window" },
+  { eventName: "customer_churn_risk",                basePriority: 3, rationale: "Churn recovery window" },
+  { eventName: "customer_retention_recovery_needed", basePriority: 3, rationale: "Recovery action needed" },
+  { eventName: "customer_repeat_purchase_growth",    basePriority: 6, rationale: "Retention growth signal" },
+  { eventName: "customer_community_growth",          basePriority: 7, rationale: "Community informational" },
+  { eventName: "loyalty_acceleration",               basePriority: 6, rationale: "Loyalty milestone" },
+  { eventName: "engagement_decay",                   basePriority: 4, rationale: "Decay needs prompt action" },
+  // Scaling coordination — governance and bottlenecks are high priority
+  { eventName: "scaling_governance_alert",           basePriority: 2, rationale: "System health alert" },
+  { eventName: "marketplace_scaling_bottleneck",     basePriority: 3, rationale: "Scaling blocker" },
+  { eventName: "ecosystem_integrity_risk",           basePriority: 3, rationale: "Ecosystem risk" },
+  { eventName: "monetization_anomaly",               basePriority: 3, rationale: "Revenue anomaly" },
+  { eventName: "creator_acquisition_opportunity",    basePriority: 8, rationale: "Growth planning signal" },
+  { eventName: "localized_monetization_opportunity", basePriority: 8, rationale: "Ops planning signal" },
+  { eventName: "region_high_growth",                 basePriority: 8, rationale: "Geographic intelligence" },
+  { eventName: "discovery_optimization_recommended", basePriority: 7, rationale: "Discovery advisory" },
 ]
 
 export const PRIORITY_MAP = new Map<string, WorkflowPriority>(

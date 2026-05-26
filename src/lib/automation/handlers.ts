@@ -740,6 +740,262 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       growthRate7d: payload.growthRate7d,
     })
   },
+
+  // ── Economy intelligence handlers ────────────────────────────────────────
+
+  creator_high_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const rate = ((payload.growthRate as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      `📈 Your revenue grew ${rate}% this week!`,
+      `Keep the momentum — add new products or share your store link to maintain this growth.`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_high_growth", { creatorId, growthRate: payload.growthRate })
+  },
+
+  creator_revenue_accelerated: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const driver = (payload.driverSignal as string | undefined)?.replace(/_/g, " ") ?? "strong sales"
+    await notify(userId,
+      "🚀 Revenue acceleration detected!",
+      `Your store revenue is climbing fast — driven by ${driver}. Now is the time to scale.`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_revenue_accelerated", { creatorId, accelerationRate: payload.accelerationRate })
+  },
+
+  creator_profitability_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const growth = ((payload.aovGrowthRate as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      "💰 Average order value rising!",
+      `Your average order value grew ${growth}% this month. Customers are spending more — consider adding premium products.`,
+      "/dashboard/products"
+    )
+  },
+
+  creator_scaling_opportunity: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const signal = (payload.scalingSignal as string | undefined)?.replace(/_/g, " ") ?? "strong trajectory"
+    await notify(userId,
+      "⚡ Scaling opportunity detected",
+      `Your store shows a ${signal}. Your next 30 days could be your best yet — act now to capture it.`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_scaling_opportunity", { creatorId, signal: payload.scalingSignal })
+  },
+
+  repeat_purchase_accelerated: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const rate = ((payload.repeatRateCurrent as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      "🔁 Repeat buyers increasing!",
+      `${rate}% of your recent customers are buying again — up ${(payload.improvement as number ?? 0).toFixed(0)} points. Your retention is working.`,
+      "/dashboard/customers"
+    )
+  },
+
+  economy_health_updated: async ({ payload }) => {
+    logger.info("[handler] economy_health_updated", {
+      economyScore:   payload.economyScore,
+      growthRate:     payload.growthRate,
+      activeCreators: payload.activeCreators,
+    })
+  },
+
+  creator_ecosystem_influence_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🌟 Your ecosystem influence is growing!",
+      `You've referred ${payload.referralCount ?? 0} creators to Lummy. Your network impact is expanding.`,
+      "/dashboard"
+    )
+  },
+
+  // ── Retention intelligence handlers ──────────────────────────────────────
+
+  creator_retention_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const riskLevel = payload.riskLevel as string | undefined
+    if (riskLevel === "high" || riskLevel === "critical") {
+      await notify(userId,
+        "⚠️ Your store needs activity",
+        `It's been ${payload.daysSinceLastOrder ?? "several"} days since your last order. Add new products or share your store to re-engage customers.`,
+        "/dashboard/store"
+      )
+    }
+    logger.warn("[handler] creator_retention_risk", { creatorId, riskLevel, retentionScore: payload.retentionScore })
+  },
+
+  customer_churn_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "👋 A customer may be slipping away",
+      `One of your customers hasn't purchased in ${payload.daysSinceLastPurchase ?? "a while"}. A quick WhatsApp message could bring them back.`,
+      "/dashboard/customers"
+    )
+    logger.info("[handler] customer_churn_risk", { creatorId, churnRiskScore: payload.churnRiskScore })
+  },
+
+  customer_retention_recovery_needed: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const action = (payload.recommendedAction as string | undefined)?.replace(/_/g, " ") ?? "reach out"
+    await notify(userId,
+      `${payload.customersAtRisk ?? "Several"} customers need re-engagement`,
+      `Recommended action: ${action}. Estimated revenue at risk: ₦${(((payload.estimatedRevenueLossKobo as number ?? 0) / 100)).toLocaleString()}.`,
+      "/dashboard/customers"
+    )
+    logger.warn("[handler] customer_retention_recovery_needed", { creatorId, customersAtRisk: payload.customersAtRisk })
+  },
+
+  customer_repeat_purchase_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const rate = ((payload.repeatPurchaseRate as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      "🔄 More customers are returning!",
+      `${rate}% of your customers bought again this month — up ${((payload.growthRate as number ?? 0) * 100).toFixed(0)}%. Keep nurturing your community.`,
+      "/dashboard/customers"
+    )
+  },
+
+  customer_community_growth: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "👥 Your customer community is growing!",
+      `You now have ${payload.communitySize ?? 0} loyal and repeat customers. Your community is your strongest growth engine.`,
+      "/dashboard/customers"
+    )
+    logger.info("[handler] customer_community_growth", { creatorId, communitySize: payload.communitySize })
+  },
+
+  loyalty_acceleration: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const tier = payload.loyaltyTier as string | undefined
+    await notify(userId,
+      `🏅 ${tier ? tier.charAt(0).toUpperCase() + tier.slice(1) : "Loyalty"} tier customers growing!`,
+      `You have ${payload.loyalCustomers ?? 0} loyal customers averaging ${payload.avgOrdersPerLoyalCustomer ?? 0} orders each. Consider exclusive perks to reward them.`,
+      "/dashboard/customers"
+    )
+  },
+
+  engagement_decay: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const stage = payload.decayStage as string | undefined
+    if (stage === "severe" || stage === "moderate") {
+      await notify(userId,
+        "📉 Storefront traffic is dropping",
+        `Your store views dropped ${Math.abs((payload.decayRate as number ?? 0) * 100).toFixed(0)}% this week. Share your store link on social media to re-ignite traffic.`,
+        "/dashboard/analytics"
+      )
+    }
+    logger.warn("[handler] engagement_decay", { creatorId, decayStage: stage, decayRate: payload.decayRate })
+  },
+
+  // ── Scaling coordination handlers ─────────────────────────────────────────
+
+  marketplace_scaling_bottleneck: async ({ payload }) => {
+    logger.warn("[handler] marketplace_scaling_bottleneck", {
+      bottleneckType:        payload.bottleneckType,
+      severity:              payload.severity,
+      affectedCreators:      payload.affectedCreators,
+      estimatedRevenueLoss:  payload.estimatedRevenueLossKobo,
+      recommendedAction:     payload.recommendedAction,
+    })
+  },
+
+  creator_acquisition_opportunity: async ({ payload }) => {
+    logger.info("[handler] creator_acquisition_opportunity", {
+      opportunityType:      payload.opportunityType,
+      targetNiche:          payload.targetNiche,
+      estimatedCreators:    payload.estimatedCreatorCount,
+      estimatedRevenueLift: payload.estimatedRevenueLiftKobo,
+      confidence:           payload.confidence,
+    })
+  },
+
+  monetization_anomaly: async ({ payload }) => {
+    const isCritical = (payload.anomalyType as string | undefined) === "sudden_revenue_drop"
+    if (isCritical) {
+      logger.warn("[handler] monetization_anomaly — revenue drop detected", {
+        anomalyType:   payload.anomalyType,
+        magnitude:     payload.magnitude,
+        expectedValue: payload.expectedValue,
+        observedValue: payload.observedValue,
+      })
+    } else {
+      logger.info("[handler] monetization_anomaly", {
+        anomalyType: payload.anomalyType,
+        magnitude:   payload.magnitude,
+      })
+    }
+  },
+
+  ecosystem_integrity_risk: async ({ payload }) => {
+    logger.warn("[handler] ecosystem_integrity_risk", {
+      riskType:         payload.riskType,
+      severity:         payload.severity,
+      affectedCreators: payload.affectedCreators,
+      riskScore:        payload.riskScore,
+    })
+  },
+
+  localized_monetization_opportunity: async ({ payload }) => {
+    logger.info("[handler] localized_monetization_opportunity", {
+      region:           payload.region,
+      niche:            payload.niche,
+      opportunityScore: payload.opportunityScore,
+      activeCreators:   payload.activeCreators,
+    })
+  },
+
+  region_high_growth: async ({ payload }) => {
+    logger.info("[handler] region_high_growth", {
+      region:       payload.region,
+      growthRate:   payload.growthRate,
+      creatorCount: payload.creatorCount,
+    })
+  },
+
+  discovery_optimization_recommended: async ({ payload }) => {
+    logger.info("[handler] discovery_optimization_recommended", {
+      recommendationType: payload.recommendationType,
+      affectedCreators:   payload.affectedCreators,
+      estimatedReachBoost: payload.estimatedReachBoost,
+      priorityScore:      payload.priorityScore,
+    })
+  },
+
+  scaling_governance_alert: async ({ payload }) => {
+    const severity = payload.severity as string | undefined
+    if (severity === "critical") {
+      logger.error("[handler] scaling_governance_alert — CRITICAL", {
+        governanceArea:    payload.governanceArea,
+        currentValue:      payload.currentValue,
+        thresholdValue:    payload.thresholdValue,
+        recommendedAction: payload.recommendedAction,
+      })
+    } else {
+      logger.warn("[handler] scaling_governance_alert", {
+        governanceArea: payload.governanceArea,
+        currentValue:   payload.currentValue,
+        thresholdValue: payload.thresholdValue,
+      })
+    }
+  },
 }
 
 export async function processAutomationEvent(

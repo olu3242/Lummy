@@ -517,6 +517,96 @@ export async function runMarketplaceExpansionJob(): Promise<JobResult> {
   }
 }
 
+/** Runs economy intelligence: creator growth scoring, forecasting, profitability, repeat purchase */
+export async function runEconomyIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runCreatorEconomyEngine }        = await import("@/lib/economy-intelligence/creator-economy-engine")
+    const { runMonetizationForecastEngine }  = await import("@/lib/economy-intelligence/monetization-forecast-engine")
+    const { runCreatorProfitabilityEngine }  = await import("@/lib/economy-intelligence/creator-profitability-engine")
+    const { runRepeatPurchaseEngine }        = await import("@/lib/economy-intelligence/repeat-purchase-engine")
+    const { runMarketplaceRevenueEngine }    = await import("@/lib/economy-intelligence/marketplace-revenue-engine")
+    const { runEcosystemProfitabilityEngine } = await import("@/lib/economy-intelligence/ecosystem-profitability-engine")
+
+    const results = await Promise.allSettled([
+      runCreatorEconomyEngine(200),
+      runMonetizationForecastEngine(200),
+      runCreatorProfitabilityEngine(200),
+      runRepeatPurchaseEngine(200),
+      runMarketplaceRevenueEngine(),
+      runEcosystemProfitabilityEngine(100),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] economy_intelligence complete", { totalEvents, failures })
+    return { jobName: "economy_intelligence", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "economy_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs retention intelligence: creator/customer retention risk, churn, loyalty, lifecycle, engagement */
+export async function runRetentionIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runCreatorRetentionEngine }    = await import("@/lib/retention-intelligence/creator-retention-engine")
+    const { runCustomerRetentionEngine }   = await import("@/lib/retention-intelligence/customer-retention-engine")
+    const { runChurnRiskEngine }           = await import("@/lib/retention-intelligence/churn-risk-engine")
+    const { runLoyaltyIntelligenceEngine } = await import("@/lib/retention-intelligence/loyalty-intelligence-engine")
+    const { runLifecycleRetentionEngine }  = await import("@/lib/retention-intelligence/lifecycle-retention-engine")
+    const { runEngagementRetentionEngine } = await import("@/lib/retention-intelligence/engagement-retention-engine")
+
+    const results = await Promise.allSettled([
+      runCreatorRetentionEngine(200),
+      runCustomerRetentionEngine(200),
+      runChurnRiskEngine(300),
+      runLoyaltyIntelligenceEngine(200),
+      runLifecycleRetentionEngine(200),
+      runEngagementRetentionEngine(200),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] retention_intelligence complete", { totalEvents, failures })
+    return { jobName: "retention_intelligence", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "retention_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs scaling coordination: bottleneck detection, ecosystem integrity, monetization anomaly, governance */
+export async function runScalingCoordinationJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runScalingPriorityEngine }    = await import("@/lib/scaling-coordination/scaling-priority-engine")
+    const { runEcosystemCoordinator }     = await import("@/lib/scaling-coordination/ecosystem-coordinator")
+    const { runMonetizationCoordinator }  = await import("@/lib/scaling-coordination/monetization-coordinator")
+    const { runMarketplaceCoordinator }   = await import("@/lib/scaling-coordination/marketplace-coordinator")
+    const { runCreatorAcquisitionEngine } = await import("@/lib/scaling-coordination/creator-acquisition-engine")
+    const { runScalingGovernanceEngine }  = await import("@/lib/scaling-coordination/scaling-governance-engine")
+
+    const results = await Promise.allSettled([
+      runScalingPriorityEngine(),
+      runEcosystemCoordinator(),
+      runMonetizationCoordinator(),
+      runMarketplaceCoordinator(),
+      runCreatorAcquisitionEngine(),
+      runScalingGovernanceEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] scaling_coordination complete", { totalEvents, failures })
+    return { jobName: "scaling_coordination", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "scaling_coordination", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:              runHealthScoringJob,
   churn_scoring:               runChurnScoringJobWorker,
@@ -532,4 +622,7 @@ export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   trust_intelligence:           runTrustIntelligenceJob,
   discovery_intelligence:       runDiscoveryIntelligenceJob,
   marketplace_expansion:        runMarketplaceExpansionJob,
+  economy_intelligence:         runEconomyIntelligenceJob,
+  retention_intelligence:       runRetentionIntelligenceJob,
+  scaling_coordination:         runScalingCoordinationJob,
 }
