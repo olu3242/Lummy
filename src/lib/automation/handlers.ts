@@ -996,6 +996,275 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       })
     }
   },
+
+  // ── Kernel intelligence handlers ──────────────────────────────────────────
+
+  intervention_priority_high: async ({ payload }) => {
+    logger.warn("[handler] intervention_priority_high", {
+      category:    payload.category,
+      urgency:     payload.urgency,
+      topScore:    payload.topScore,
+      itemCount:   payload.itemCount,
+    })
+  },
+
+  monetization_intervention_required: async ({ payload }) => {
+    logger.warn("[handler] monetization_intervention_required", {
+      riskCount:    payload.riskCount,
+      topRisk:      payload.topRisk,
+      snapshotDate: payload.snapshotDate,
+    })
+  },
+
+  retention_intervention_required: async ({ payload }) => {
+    logger.warn("[handler] retention_intervention_required", {
+      riskCount:    payload.riskCount,
+      topRisk:      payload.topRisk,
+      snapshotDate: payload.snapshotDate,
+    })
+  },
+
+  governance_intervention_required: async ({ payload }) => {
+    const area = payload.governanceArea as string | undefined
+    logger.warn("[handler] governance_intervention_required", {
+      governanceArea: area,
+      score:          payload.score,
+      snapshotDate:   payload.snapshotDate,
+    })
+  },
+
+  scaling_intervention_required: async ({ payload }) => {
+    logger.warn("[handler] scaling_intervention_required", {
+      bottleneckCount: payload.bottleneckCount,
+      snapshotDate:    payload.snapshotDate,
+    })
+  },
+
+  operational_intervention_required: async ({ payload }) => {
+    logger.error("[handler] operational_intervention_required", {
+      runtimeHealthScore:    payload.runtimeHealthScore,
+      slaHealthScore:        payload.slaHealthScore,
+      recommendedAction:     payload.recommendedAction,
+    })
+  },
+
+  // ── Governance kernel handlers ────────────────────────────────────────────
+
+  marketplace_governance_risk: async ({ payload }) => {
+    logger.warn("[handler] marketplace_governance_risk", {
+      area:         payload.governanceArea ?? payload.area,
+      score:        payload.score,
+      degradation:  payload.degradation,
+      snapshotDate: payload.snapshotDate,
+    })
+  },
+
+  marketplace_sustainability_risk: async ({ payload }) => {
+    logger.warn("[handler] marketplace_sustainability_risk", {
+      sustainabilityScore: payload.sustainabilityScore,
+      trend:               payload.trend,
+      snapshotDate:        payload.snapshotDate,
+    })
+  },
+
+  trust_governance_degraded: async ({ payload }) => {
+    logger.warn("[handler] trust_governance_degraded", {
+      avgTrustScore:  payload.avgTrustScore,
+      atRiskCount:    payload.atRiskCount,
+      degradation:    payload.degradation,
+      snapshotDate:   payload.snapshotDate,
+    })
+  },
+
+  monetization_governance_alert: async ({ payload }) => {
+    const severity = payload.severity as string | undefined
+    if (severity === "critical") {
+      logger.error("[handler] monetization_governance_alert — CRITICAL (zero GMV)", {
+        snapshotDate: payload.snapshotDate,
+      })
+    } else {
+      logger.warn("[handler] monetization_governance_alert", {
+        economyScore: payload.economyScore,
+        drop:         payload.drop,
+        snapshotDate: payload.snapshotDate,
+      })
+    }
+  },
+
+  // ── Revenue stability handlers ────────────────────────────────────────────
+
+  creator_revenue_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const riskType = (payload.riskType as string | undefined) ?? "revenue_drop"
+    const message = riskType === "low_repeat_purchase"
+      ? "Your store has high traffic but low repeat buyers — focus on customer loyalty to stabilize revenue."
+      : `Your revenue has dropped ${((payload.dropRate as number ?? 0) * 100).toFixed(0)}% from your peak. Act now to recover.`
+    await notify(userId,
+      "⚠️ Revenue risk detected",
+      message,
+      "/dashboard/analytics"
+    )
+    logger.warn("[handler] creator_revenue_risk", { creatorId, riskType, dropRate: payload.dropRate })
+  },
+
+  monetization_interruption_detected: async ({ creatorId, payload }) => {
+    if (creatorId === "platform") {
+      logger.error("[handler] monetization_interruption_detected — PLATFORM", {
+        previousRevenue: payload.previousRevenue30dKobo,
+        currentRevenue:  payload.currentRevenue30dKobo,
+        snapshotDate:    payload.snapshotDate,
+      })
+      return
+    }
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🚨 Revenue interrupted",
+      "Your store had revenue last month but none this month. Review your products and reach out to past customers.",
+      "/dashboard/analytics"
+    )
+    logger.warn("[handler] monetization_interruption_detected", { creatorId })
+  },
+
+  payout_degradation_detected: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const failureRate = ((payload.failureRate as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      "💳 Payment failures detected",
+      `${failureRate}% of your recent payments failed. Check your payment settings and follow up with affected customers.`,
+      "/dashboard/orders"
+    )
+    logger.warn("[handler] payout_degradation_detected", { creatorId, failureRate: payload.failureRate })
+  },
+
+  creator_revenue_stabilized: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "✅ Revenue recovering!",
+      `Your store revenue is back on track. Keep the momentum going!`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_revenue_stabilized", { creatorId, growthRate: payload.growthRate })
+  },
+
+  ecosystem_revenue_stabilized: async ({ payload }) => {
+    logger.info("[handler] ecosystem_revenue_stabilized", {
+      totalGMV:     payload.totalGMV30dKobo,
+      growthRate:   payload.growthRate,
+      snapshotDate: payload.snapshotDate,
+    })
+  },
+
+  // ── Recovery kernel handlers ──────────────────────────────────────────────
+
+  creator_recovery_required: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const action = (payload.recommendedAction as string | undefined) ?? "Review your store and add new products"
+    await notify(userId,
+      "🔄 Your store needs attention",
+      action,
+      "/dashboard/store"
+    )
+    logger.info("[handler] creator_recovery_required", { creatorId, recoveryType: payload.recoveryType })
+  },
+
+  customer_recovery_required: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const dropoutRate = ((payload.dropoutRate as number ?? 0) * 100).toFixed(0)
+    await notify(userId,
+      "👥 Customer re-engagement needed",
+      `${dropoutRate}% of your active customers haven't purchased recently. A WhatsApp campaign could bring them back.`,
+      "/dashboard/customers"
+    )
+    logger.info("[handler] customer_recovery_required", { creatorId, dropoutRate: payload.dropoutRate })
+  },
+
+  engagement_recovery_required: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const stage = payload.decayStage as string | undefined
+    if (stage === "severe" || stage === "moderate") {
+      await notify(userId,
+        "📣 Re-engage your audience",
+        "Your store traffic dropped significantly. Share your store on social media to re-ignite interest.",
+        "/dashboard/analytics"
+      )
+    }
+    logger.info("[handler] engagement_recovery_required", { creatorId, decayStage: stage })
+  },
+
+  storefront_recovery_required: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🏪 Update your storefront",
+      (payload.recommendedAction as string | undefined) ?? "Your store hasn't been updated recently. Refresh it to attract new customers.",
+      "/dashboard/store"
+    )
+    logger.info("[handler] storefront_recovery_required", { creatorId, daysSinceUpdate: payload.daysSinceUpdate })
+  },
+
+  lifecycle_recovery_required: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🔁 Time to re-activate your store",
+      (payload.recommendedAction as string | undefined) ?? "Your store lifecycle signals need attention. Take action to recover momentum.",
+      "/dashboard"
+    )
+    logger.info("[handler] lifecycle_recovery_required", { creatorId, recoveryType: payload.recoveryType })
+  },
+
+  // ── Scaling kernel handlers ───────────────────────────────────────────────
+
+  scaling_bottleneck_detected: async ({ payload }) => {
+    logger.warn("[handler] scaling_bottleneck_detected", {
+      bottleneckArea: payload.bottleneckArea,
+      bottleneckType: payload.bottleneckType,
+      capacity:       payload.capacity,
+      snapshotDate:   payload.snapshotDate,
+    })
+  },
+
+  marketplace_capacity_risk: async ({ payload }) => {
+    logger.warn("[handler] marketplace_capacity_risk", {
+      activeCreators:   payload.activeCreators,
+      ordersPerCreator: payload.ordersPerCreator,
+      capacityPressure: payload.capacityPressure,
+      snapshotDate:     payload.snapshotDate,
+    })
+  },
+
+  creator_density_high_growth: async ({ payload }) => {
+    logger.info("[handler] creator_density_high_growth", {
+      niche:         payload.niche,
+      creatorCount:  payload.creatorCount,
+      revenueKobo:   payload.totalRevenueKobo,
+      growthSignal:  payload.growthSignal,
+    })
+  },
+
+  category_saturation_detected: async ({ payload }) => {
+    logger.info("[handler] category_saturation_detected", {
+      niche:                  payload.niche,
+      creatorCount:           payload.creatorCount,
+      revenuePerCreatorKobo:  payload.revenuePerCreatorKobo,
+    })
+  },
+
+  scaling_coordination_required: async ({ payload }) => {
+    logger.warn("[handler] scaling_coordination_required", {
+      queueDepth:      payload.queueDepth,
+      bottleneckCount: payload.bottleneckCount,
+      growthSignal:    payload.growthSignal,
+      snapshotDate:    payload.snapshotDate,
+    })
+  },
 }
 
 export async function processAutomationEvent(
