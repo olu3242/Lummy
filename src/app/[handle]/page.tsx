@@ -39,6 +39,7 @@ export default async function StorefrontPage({ params }: { params: { handle: str
       bio={storefront.bio ?? ''}
       products={products ?? []}
       storeSchema={creatorProfile?.store_schema ?? null}
+      whatsappNumber={creatorProfile?.whatsapp_number ?? null}
     />
   )
 }

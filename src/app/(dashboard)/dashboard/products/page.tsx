@@ -602,7 +602,7 @@ export default function ProductsPage() {
             id: p.id,
             name: p.title,
             description: p.description ?? "",
-            price: p.price,
+            price: Math.round(p.price / 100), // kobo → Naira for display
             stock: null,
             category: "Other",
             status: (p.status ?? "active") as DashboardProduct["status"],
@@ -882,7 +882,7 @@ export default function ProductsPage() {
               if (data?.products) {
                 setProducts(data.products.map(p => ({
                   id: p.id, name: p.title, description: p.description ?? "",
-                  price: p.price, stock: null, category: "Other",
+                  price: Math.round(p.price / 100), stock: null, category: "Other", // kobo → Naira
                   status: (p.status ?? "active") as DashboardProduct["status"],
                   image: p.image_url ?? "", imageUrl: p.image_url ?? "",
                   whatsappEnabled: true, sizes: [], colors: [],

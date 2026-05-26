@@ -1,26 +1,35 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
-async function getCreatorId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+async function getOrganizationId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase
-    .from("creator_profiles").select("id").eq("user_id", user.id).maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
+    .from("profiles").select("organization_id").eq("id", user.id).maybeSingle()
+  return (data as { organization_id: string } | null)?.organization_id ?? null
 }
 
 export async function GET() {
   const supabase = createClient()
-  const creatorId = await getCreatorId(supabase)
-  if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const organizationId = await getOrganizationId(supabase)
+  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { data, error } = await supabase
     .from("orders")
-    .select("id, order_number, status, payment_status, total_amount, currency, created_at, notes, customer_name, customer_phone, customer_email, source")
-    .eq("creator_id", creatorId)
+    .select("id, status, payment_status, amount, currency, created_at, notes, customer_name, customer_phone, customer_email, payment_provider")
+    .eq("organization_id", organizationId)
     .order("created_at", { ascending: false })
     .limit(100)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data })
+
+  // Normalize to expected shape — map amount → total_amount, generate order_number fallback
+  const normalized = (data ?? []).map(o => ({
+    ...o,
+    total_amount: o.amount,
+    order_number: `LMY-${o.id.slice(0, 8).toUpperCase()}`,
+    source: o.payment_provider ?? "direct",
+  }))
+
+  return NextResponse.json({ data: normalized })
 }

@@ -32,7 +32,7 @@ function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
     id: p.id,
     name: p.title,
     description: p.description ?? "",
-    price: p.price,
+    price: Math.round(p.price / 100), // kobo → Naira for display
     image: p.image_url ?? "/placeholder-product.jpg",
     category: "General",
     status: p.status === "active" ? "active" : "draft",
@@ -202,12 +202,14 @@ export function StorefrontClient({
   handle, storeName, bio,
   products: dbProducts = [],
   storeSchema = null,
+  whatsappNumber = null,
 }: {
   handle: string
   storeName: string
   bio: string
   products?: DbProduct[]
   storeSchema?: Json | null
+  whatsappNumber?: string | null
 }) {
   const realProducts = dbProducts.length > 0 ? dbProductsToStorefront(dbProducts) : storefrontCreator.publicProducts
   const creator = {
@@ -215,6 +217,8 @@ export function StorefrontClient({
     handle,
     storeName,
     bio: bio || storefrontCreator.bio,
+    // Use real creator WhatsApp if available, fall back to mock for dev only
+    whatsapp: whatsappNumber ?? storefrontCreator.whatsapp,
     publicProducts: realProducts,
     categories: ["All", ...Array.from(new Set(realProducts.map(p => p.category)))],
   }
