@@ -103,6 +103,36 @@ export type AutomationEventName =
   | "region_high_growth"
   | "discovery_optimization_recommended"
   | "scaling_governance_alert"
+  // ── Kernel intelligence events ────────────────────────────────────────────
+  | "intervention_priority_high"
+  | "monetization_intervention_required"
+  | "retention_intervention_required"
+  | "governance_intervention_required"
+  | "scaling_intervention_required"
+  | "operational_intervention_required"
+  // ── Governance kernel events ──────────────────────────────────────────────
+  | "marketplace_governance_risk"
+  | "marketplace_sustainability_risk"
+  | "trust_governance_degraded"
+  | "monetization_governance_alert"
+  // ── Revenue stability events ──────────────────────────────────────────────
+  | "creator_revenue_risk"
+  | "monetization_interruption_detected"
+  | "payout_degradation_detected"
+  | "creator_revenue_stabilized"
+  | "ecosystem_revenue_stabilized"
+  // ── Recovery kernel events ────────────────────────────────────────────────
+  | "creator_recovery_required"
+  | "customer_recovery_required"
+  | "engagement_recovery_required"
+  | "storefront_recovery_required"
+  | "lifecycle_recovery_required"
+  // ── Scaling kernel events ─────────────────────────────────────────────────
+  | "scaling_bottleneck_detected"
+  | "marketplace_capacity_risk"
+  | "creator_density_high_growth"
+  | "category_saturation_detected"
+  | "scaling_coordination_required"
 
 export interface AutomationEvent {
   name: AutomationEventName
