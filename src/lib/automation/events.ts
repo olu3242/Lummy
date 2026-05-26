@@ -45,6 +45,39 @@ export type AutomationEventName =
   // ── Ecosystem events ─────────────────────────────────────────────────
   | "ecosystem_revenue_growth"
   | "ecosystem_retention_risk"
+  // ── Trust intelligence events ─────────────────────────────────────────
+  | "creator_trust_improved"
+  | "creator_trust_degraded"
+  | "creator_high_reliability"
+  | "creator_dispute_risk"
+  | "creator_reputation_drop"
+  | "creator_network_growth_detected"
+  | "creator_collaboration_opportunity"
+  | "creator_fulfillment_risk"
+  | "customer_trust_risk"
+  | "customer_fraud_risk"
+  | "suspicious_checkout_detected"
+  | "dispute_spike_detected"
+  | "marketplace_integrity_risk"
+  | "marketplace_trust_degradation"
+  // ── Discovery intelligence events ────────────────────────────────────
+  | "creator_trending"
+  | "creator_discovery_boost"
+  | "storefront_discovery_accelerated"
+  | "storefront_recommendation_generated"
+  | "customer_match_high_confidence"
+  | "customer_discovery_accelerated"
+  | "customer_referral_detected"
+  | "customer_loyalty_accelerated"
+  | "conversion_priority_high"
+  // ── Ecosystem collaboration + expansion events ───────────────────────
+  | "creator_referral_opportunity"
+  | "ecosystem_network_acceleration"
+  | "ecosystem_monetization_opportunity"
+  | "category_high_growth"
+  | "ecosystem_expansion_opportunity"
+  | "geography_expansion_opportunity"
+  | "creator_network_scaling"
 
 export interface AutomationEvent {
   name: AutomationEventName

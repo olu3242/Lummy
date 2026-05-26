@@ -431,6 +431,92 @@ export async function runEcosystemIntelligenceJob(): Promise<JobResult> {
   }
 }
 
+/** Runs trust intelligence: creator trust scoring, reputation, fraud, dispute, integrity */
+export async function runTrustIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runCreatorTrustEngine }         = await import("@/lib/trust-intelligence/creator-trust-engine")
+    const { runReputationEngine }           = await import("@/lib/trust-intelligence/reputation-engine")
+    const { runTransactionSafetyEngine }    = await import("@/lib/trust-intelligence/transaction-safety-engine")
+    const { runFraudRiskEngine }            = await import("@/lib/trust-intelligence/fraud-risk-engine")
+    const { runDisputeIntelligenceEngine }  = await import("@/lib/trust-intelligence/dispute-intelligence-engine")
+    const { runMarketplaceIntegrityEngine } = await import("@/lib/trust-intelligence/marketplace-integrity-engine")
+
+    const results = await Promise.allSettled([
+      runCreatorTrustEngine(200),
+      runReputationEngine(200),
+      runTransactionSafetyEngine(500),
+      runFraudRiskEngine(),
+      runDisputeIntelligenceEngine(300),
+      runMarketplaceIntegrityEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] trust_intelligence complete", { totalEvents, failures })
+    return { jobName: "trust_intelligence", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "trust_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs discovery intelligence: trending creators, storefront ranking, customer matching, intent */
+export async function runDiscoveryIntelligenceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runCreatorDiscoveryEngine }   = await import("@/lib/discovery-intelligence/creator-discovery-engine")
+    const { runStorefrontRankingEngine }  = await import("@/lib/discovery-intelligence/storefront-ranking-engine")
+    const { runCustomerMatchingEngine }   = await import("@/lib/discovery-intelligence/customer-matching-engine")
+    const { runIntentDiscoveryEngine }    = await import("@/lib/discovery-intelligence/intent-discovery-engine")
+    const { runEngagementRankingEngine }  = await import("@/lib/discovery-intelligence/engagement-ranking-engine")
+
+    const results = await Promise.allSettled([
+      runCreatorDiscoveryEngine(200),
+      runStorefrontRankingEngine(200),
+      runCustomerMatchingEngine(200),
+      runIntentDiscoveryEngine(300),
+      runEngagementRankingEngine(200),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] discovery_intelligence complete", { totalEvents, failures })
+    return { jobName: "discovery_intelligence", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "discovery_intelligence", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs marketplace expansion intelligence: categories, geography, network scaling, monetization */
+export async function runMarketplaceExpansionJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runExpansionIntelligenceEngine } = await import("@/lib/marketplace-expansion/expansion-intelligence-engine")
+    const { runEcosystemExpansionEngine }    = await import("@/lib/marketplace-expansion/ecosystem-expansion-engine")
+    const { runCreatorNetworkEngine }        = await import("@/lib/ecosystem-intelligence/creator-network-engine")
+    const { runCreatorCollaborationEngine }  = await import("@/lib/ecosystem-intelligence/creator-collaboration-engine")
+    const { runCreatorRelationshipEngine }   = await import("@/lib/ecosystem-intelligence/creator-relationship-engine")
+
+    const results = await Promise.allSettled([
+      runExpansionIntelligenceEngine(),
+      runEcosystemExpansionEngine(),
+      runCreatorNetworkEngine(),
+      runCreatorCollaborationEngine(100),
+      runCreatorRelationshipEngine(200),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+
+    logger.info("[job] marketplace_expansion complete", { totalEvents, failures })
+    return { jobName: "marketplace_expansion", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "marketplace_expansion", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:              runHealthScoringJob,
   churn_scoring:               runChurnScoringJobWorker,
@@ -443,4 +529,7 @@ export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   creator_success_monitoring:   runCreatorSuccessMonitoringJob,
   coordination:                 runCoordinationJob,
   ecosystem_intelligence:       runEcosystemIntelligenceJob,
+  trust_intelligence:           runTrustIntelligenceJob,
+  discovery_intelligence:       runDiscoveryIntelligenceJob,
+  marketplace_expansion:        runMarketplaceExpansionJob,
 }

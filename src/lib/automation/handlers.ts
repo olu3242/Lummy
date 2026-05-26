@@ -443,6 +443,303 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       churnRiskCount: payload.churnRiskCreatorCount,
     })
   },
+
+  // ── Trust intelligence handlers ──────────────────────────────────────
+
+  creator_trust_improved: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const newScore = payload.newScore as number | undefined
+    const tier = newScore != null
+      ? newScore >= 80 ? "verified" : newScore >= 60 ? "trusted" : "standard"
+      : "standard"
+    await notify(userId,
+      "Your trust score improved! ⬆️",
+      `Your store trust score is now ${newScore ?? "higher"}. ${tier === "verified" ? "You've reached Verified status!" : "Keep it up!"}`,
+      "/dashboard"
+    )
+  },
+
+  creator_trust_degraded: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "Your store trust score dropped",
+      `Your trust score fell by ${payload.degradation ?? 0} points. ${(payload.primaryReason as string | undefined)?.replace(/_/g, " ") ?? "Review your recent orders and fulfillment."} `,
+      "/dashboard/orders"
+    )
+    logger.warn("[handler] creator_trust_degraded", { creatorId, degradation: payload.degradation })
+  },
+
+  creator_high_reliability: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🏆 You're a top reliable seller!",
+      `Your store has a reputation score of ${payload.reputationScore ?? "excellent"}. Customers trust you — keep delivering great experiences.`,
+      "/dashboard"
+    )
+  },
+
+  creator_dispute_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const level = payload.riskLevel as string | undefined
+    if (level === "high" || level === "critical") {
+      await notify(userId,
+        "⚠️ Dispute rate alert",
+        `Your dispute rate is ${((payload.disputeRate as number ?? 0) * 100).toFixed(0)}% over the last 30 days. Review your order fulfillment and consider proactive customer communication.`,
+        "/dashboard/orders"
+      )
+    }
+    logger.warn("[handler] creator_dispute_risk", { creatorId, riskLevel: level })
+  },
+
+  creator_reputation_drop: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "Your store reputation is declining",
+      `Your reputation score has dropped. Consistent fulfillment and quick responses will help rebuild it.`,
+      "/dashboard/orders"
+    )
+    logger.warn("[handler] creator_reputation_drop", { creatorId, score: payload.reputationScore })
+  },
+
+  creator_network_growth_detected: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "🌐 Your network is growing!",
+      `You've referred ${payload.referralCount ?? "multiple"} new creators to Lummy. Your network influence is building.`,
+      "/dashboard"
+    )
+  },
+
+  creator_collaboration_opportunity: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const niche = payload.niche as string | undefined
+    await notify(userId,
+      "🤝 Collaboration opportunity",
+      `There's a creator in your ${niche ?? "niche"} you could collaborate with for cross-promotion. Reach out to grow both audiences!`,
+      "/dashboard"
+    )
+  },
+
+  creator_fulfillment_risk: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "⚠️ Fulfillment needs attention",
+      `Your fulfillment rate is ${((payload.fulfillmentRate as number ?? 0)).toFixed(0)}%. Respond to pending orders promptly to maintain buyer trust.`,
+      "/dashboard/orders"
+    )
+    logger.warn("[handler] creator_fulfillment_risk", { creatorId, fulfillmentRate: payload.fulfillmentRate })
+  },
+
+  customer_trust_risk: async ({ payload }) => {
+    // Internal ops signal — logged only
+    logger.warn("[handler] customer_trust_risk", {
+      creatorId: payload.creatorId,
+      riskScore: payload.riskScore,
+      signals:   payload.riskSignals,
+    })
+  },
+
+  customer_fraud_risk: async ({ payload }) => {
+    logger.warn("[handler] customer_fraud_risk detected", {
+      creatorId:         payload.creatorId,
+      riskScore:         payload.riskScore,
+      fraudSignals:      payload.fraudSignals,
+      recommendedAction: payload.recommendedAction,
+    })
+  },
+
+  suspicious_checkout_detected: async ({ payload }) => {
+    logger.warn("[handler] suspicious_checkout_detected", {
+      creatorId:   payload.creatorId,
+      anomalyType: payload.anomalyType,
+      signals:     payload.signals,
+    })
+  },
+
+  dispute_spike_detected: async ({ payload }) => {
+    logger.warn("[handler] dispute_spike_detected — platform-wide", {
+      disputeCount7d:      payload.disputeCount7d,
+      disputeCountPrior7d: payload.disputeCountPrior7d,
+      spikePercent:        payload.spikePercent,
+    })
+  },
+
+  marketplace_integrity_risk: async ({ payload }) => {
+    logger.warn("[handler] marketplace_integrity_risk", {
+      overallIntegrityScore: payload.overallIntegrityScore,
+      highRiskCreators:      payload.highRiskCreators,
+      fraudSignals:          payload.fraudSignals,
+    })
+  },
+
+  marketplace_trust_degradation: async ({ payload }) => {
+    logger.warn("[handler] marketplace_trust_degradation", {
+      previousScore: payload.previousScore,
+      currentScore:  payload.currentScore,
+      degradation:   payload.degradation,
+    })
+  },
+
+  // ── Discovery intelligence handlers ──────────────────────────────────
+
+  creator_trending: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const driver = (payload.trendDriver as string | undefined)?.replace(/_/g, " ") ?? "traffic spike"
+    await notify(userId,
+      "🔥 You're trending!",
+      `Your store is getting a ${driver} this week! ${payload.views7d ?? ""} visits in 7 days — make sure your WhatsApp is ready.`,
+      "/dashboard/analytics"
+    )
+    logger.info("[handler] creator_trending", { creatorId, trendScore: payload.trendScore })
+  },
+
+  creator_discovery_boost: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "📈 Discovery opportunity",
+      `Your store converts well but isn't getting enough visitors. Small improvements to your WhatsApp CTA could boost reach by ${payload.estimatedReachBoost ?? 0}%.`,
+      "/dashboard/store"
+    )
+  },
+
+  storefront_discovery_accelerated: async ({ payload }) => {
+    // Discovery signal — ops/analytics only
+    logger.info("[handler] storefront_discovery_accelerated", {
+      creatorId:       payload.creatorId,
+      handle:          payload.storefrontHandle,
+      visibilityScore: payload.visibilityScore,
+    })
+  },
+
+  storefront_recommendation_generated: async ({ payload }) => {
+    logger.info("[handler] storefront_recommendation_generated", {
+      creatorId:          payload.creatorId,
+      recommendationType: payload.recommendationType,
+      confidence:         payload.confidence,
+    })
+  },
+
+  customer_match_high_confidence: async ({ payload }) => {
+    logger.info("[handler] customer_match_high_confidence", {
+      creatorId:  payload.creatorId,
+      matchScore: payload.matchScore,
+      signals:    payload.matchSignals,
+    })
+  },
+
+  customer_discovery_accelerated: async ({ payload }) => {
+    logger.info("[handler] customer_discovery_accelerated", {
+      creatorId:       payload.creatorId,
+      discoveryType:   payload.discoveryType,
+      customersMatched: payload.customersMatched,
+    })
+  },
+
+  customer_referral_detected: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "👥 Referral activity detected!",
+      `${payload.referralCount ?? 1} customer(s) referred new buyers to your store this week. Your word-of-mouth is working!`,
+      "/dashboard/customers"
+    )
+  },
+
+  customer_loyalty_accelerated: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    await notify(userId,
+      "❤️ Loyal customer base growing!",
+      `${payload.loyalCustomers ?? 0} loyal customers with ${((payload.avgRepeatRate as number ?? 0) * 100).toFixed(0)}% repeat rate. Consider a loyalty reward program!`,
+      "/dashboard/customers"
+    )
+  },
+
+  conversion_priority_high: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const priority = payload.priority as string | undefined
+    if (priority === "high_intent_customer") {
+      await notify(userId,
+        "🎯 High-intent buyers right now!",
+        `Customers are actively starting checkout. Make sure your WhatsApp is on and respond quickly — this window is ${payload.windowMinutes ?? 60} minutes.`,
+        "/dashboard"
+      )
+    }
+  },
+
+  // ── Expansion event handlers ──────────────────────────────────────────
+
+  creator_referral_opportunity: async ({ creatorId, payload }) => {
+    const userId = await resolveUserId(creatorId)
+    if (!userId) return
+    const potential = payload.referralPotential as string | undefined
+    if (potential === "high" || potential === "medium") {
+      await notify(userId,
+        "💌 Share your store with your customers",
+        (payload.incentiveRecommendation as string | undefined) ?? "Ask your loyal customers to refer friends — it's your fastest growth lever.",
+        "/dashboard/customers"
+      )
+    }
+  },
+
+  ecosystem_network_acceleration: async ({ payload }) => {
+    logger.info("[handler] ecosystem_network_acceleration", {
+      activeNodes:      payload.activeNodes,
+      newConnections7d: payload.newConnections7d,
+      signal:           payload.accelerationSignal,
+    })
+  },
+
+  ecosystem_monetization_opportunity: async ({ payload }) => {
+    logger.info("[handler] ecosystem_monetization_opportunity", {
+      opportunityType:  payload.opportunityType,
+      affectedCreators: payload.affectedCreators,
+      estimatedRevenue: payload.estimatedRevenueKobo,
+    })
+  },
+
+  category_high_growth: async ({ payload }) => {
+    logger.info("[handler] category_high_growth", {
+      category:    payload.category,
+      growthRate:  payload.growthRate,
+      creators:    payload.totalCreators,
+      opportunity: payload.opportunityScore,
+    })
+  },
+
+  ecosystem_expansion_opportunity: async ({ payload }) => {
+    logger.info("[handler] ecosystem_expansion_opportunity", {
+      opportunityType: payload.opportunityType,
+      title:           payload.title,
+      confidence:      payload.confidence,
+    })
+  },
+
+  geography_expansion_opportunity: async ({ payload }) => {
+    logger.info("[handler] geography_expansion_opportunity", {
+      region:      payload.region,
+      marketSize:  payload.marketSize,
+      growthSignal: payload.growthSignal,
+    })
+  },
+
+  creator_network_scaling: async ({ payload }) => {
+    logger.info("[handler] creator_network_scaling", {
+      networkSize:  payload.networkSize,
+      growthRate7d: payload.growthRate7d,
+    })
+  },
 }
 
 export async function processAutomationEvent(

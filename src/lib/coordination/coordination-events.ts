@@ -29,8 +29,28 @@ export const PRIORITY_RULES: PriorityRule[] = [
   { eventName: "creator_revenue_forecast_updated", basePriority: 7, rationale: "Informational" },
   { eventName: "marketplace_health_updated", basePriority: 8, rationale: "Background intelligence" },
   { eventName: "ecosystem_revenue_growth",   basePriority: 9, rationale: "Informational platform signal" },
-  { eventName: "ai_cost_spike",         basePriority: 3, rationale: "Cost alert needs prompt review" },
-  { eventName: "workflow_retry_spike",  basePriority: 3, rationale: "Runtime health signal" },
+  { eventName: "ai_cost_spike",              basePriority: 3, rationale: "Cost alert needs prompt review" },
+  { eventName: "workflow_retry_spike",       basePriority: 3, rationale: "Runtime health signal" },
+  // Trust intelligence — critical/high risk escalated
+  { eventName: "customer_fraud_risk",        basePriority: 2, rationale: "Fraud requires fast action" },
+  { eventName: "suspicious_checkout_detected", basePriority: 2, rationale: "Checkout anomaly — short window" },
+  { eventName: "dispute_spike_detected",     basePriority: 2, rationale: "Dispute spike platform risk" },
+  { eventName: "marketplace_integrity_risk", basePriority: 2, rationale: "Platform integrity alert" },
+  { eventName: "creator_trust_degraded",     basePriority: 3, rationale: "Trust degradation intervention" },
+  { eventName: "creator_dispute_risk",       basePriority: 3, rationale: "Dispute risk creator alert" },
+  { eventName: "creator_fulfillment_risk",   basePriority: 3, rationale: "Fulfillment risk ops alert" },
+  { eventName: "marketplace_trust_degradation", basePriority: 3, rationale: "Platform trust alert" },
+  { eventName: "conversion_priority_high",   basePriority: 2, rationale: "High-intent conversion window" },
+  // Discovery — time-sensitive trending signals
+  { eventName: "creator_trending",           basePriority: 4, rationale: "Trending moment is fleeting" },
+  { eventName: "creator_trust_improved",     basePriority: 6, rationale: "Trust improvement notify" },
+  { eventName: "creator_high_reliability",   basePriority: 7, rationale: "Reliability recognition" },
+  // Expansion — background intelligence
+  { eventName: "category_high_growth",       basePriority: 8, rationale: "Category intelligence signal" },
+  { eventName: "geography_expansion_opportunity", basePriority: 9, rationale: "Geographic expansion planning" },
+  { eventName: "ecosystem_expansion_opportunity", basePriority: 8, rationale: "Expansion ops signal" },
+  { eventName: "ecosystem_network_acceleration",  basePriority: 8, rationale: "Network growth tracking" },
+  { eventName: "creator_network_scaling",    basePriority: 9, rationale: "Network scaling informational" },
 ]
 
 export const PRIORITY_MAP = new Map<string, WorkflowPriority>(
