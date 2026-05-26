@@ -38,7 +38,7 @@ export default async function StorefrontPage({ params }: { params: { handle: str
       storeName={storeName}
       bio={storefront.bio ?? ''}
       products={products ?? []}
-      storeSchema={creatorProfile?.store_schema ?? null}
+      storeSchema={creatorProfile?.store_schema ?? (storefront as unknown as { store_schema?: import('@/lib/supabase/types').Json }).store_schema ?? null}
       whatsappNumber={creatorProfile?.whatsapp_number ?? null}
     />
   )

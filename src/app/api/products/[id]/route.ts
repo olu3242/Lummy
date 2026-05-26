@@ -4,22 +4,22 @@ import { updateProductSchema } from "@/lib/validations/product"
 
 type Params = { params: { id: string } }
 
-async function getCreatorId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
+async function getOrganizationId(supabase: ReturnType<typeof createClient>): Promise<string | null> {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
   const { data } = await supabase
-    .from("creator_profiles").select("id").eq("user_id", user.id).maybeSingle()
-  return (data as { id: string } | null)?.id ?? null
+    .from("profiles").select("organization_id").eq("id", user.id).maybeSingle()
+  return (data as { organization_id: string } | null)?.organization_id ?? null
 }
 
 // GET /api/products/:id
 export async function GET(_request: NextRequest, { params }: Params) {
   const supabase = createClient()
-  const creatorId = await getCreatorId(supabase)
-  if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const organizationId = await getOrganizationId(supabase)
+  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { data, error } = await supabase
-    .from("products").select("*").eq("id", params.id).eq("creator_id", creatorId).maybeSingle()
+    .from("products").select("*").eq("id", params.id).eq("organization_id", organizationId).maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data)  return NextResponse.json({ error: "Not found" }, { status: 404 })
@@ -29,8 +29,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
 // PATCH /api/products/:id
 export async function PATCH(request: NextRequest, { params }: Params) {
   const supabase = createClient()
-  const creatorId = await getCreatorId(supabase)
-  if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const organizationId = await getOrganizationId(supabase)
+  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const body = await request.json()
   const parsed = updateProductSchema.safeParse(body)
@@ -38,11 +38,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 })
   }
 
+  // Map title if name was sent (backwards compat with old field name)
+  const patch = { ...parsed.data } as Record<string, unknown>
+  if ('name' in patch && !('title' in patch)) { patch.title = patch.name; delete patch.name }
+
   const { data, error } = await supabase
     .from("products")
-    .update({ ...parsed.data, updated_at: new Date().toISOString() })
+    .update({ ...patch, updated_at: new Date().toISOString() })
     .eq("id", params.id)
-    .eq("creator_id", creatorId)
+    .eq("organization_id", organizationId)
     .select()
     .single()
 
@@ -51,17 +55,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return NextResponse.json({ data })
 }
 
-// DELETE /api/products/:id — soft delete via is_published = false
+// DELETE /api/products/:id — soft delete via status=draft
 export async function DELETE(_request: NextRequest, { params }: Params) {
   const supabase = createClient()
-  const creatorId = await getCreatorId(supabase)
-  if (!creatorId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  const organizationId = await getOrganizationId(supabase)
+  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { error } = await supabase
     .from("products")
-    .update({ is_published: false, updated_at: new Date().toISOString() })
+    .update({ status: "draft", updated_at: new Date().toISOString() })
     .eq("id", params.id)
-    .eq("creator_id", creatorId)
+    .eq("organization_id", organizationId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })

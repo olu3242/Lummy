@@ -449,32 +449,36 @@ export default function CheckoutPage() {
       window.open(url, "_blank")
     } else {
       try {
-        const res = await fetch("/api/payments/initiate", {
+        const res = await fetch("/api/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            handle,
             productId:  product.id,
-            creatorId:  product.creatorId,
-            email:      form.email || `${form.phone.replace(/\D/g, "")}@lummy.co`,
             quantity:   qty,
-            customerName:  form.name,
-            customerPhone: form.phone,
-            customerAddress: `${form.address}, ${form.city}, ${form.state}`,
+            method:     "paystack",
+            customer: {
+              email:   form.email || `${form.phone.replace(/\D/g, "")}@lummy.co`,
+              name:    form.name,
+              phone:   form.phone,
+              address: `${form.address}, ${form.city}, ${form.state}`,
+            },
           }),
         })
         const data = await res.json() as {
-          authorization_url?: string
-          order_number?: string
+          checkoutUrl?: string
+          order?: { id: string }
           error?: string
+          message?: string
         }
-        if (!res.ok || !data.authorization_url) {
-          toast({ title: data.error ?? "Payment setup failed", variant: "error" })
+        if (!res.ok || !data.checkoutUrl) {
+          toast({ title: data.message ?? data.error ?? "Payment setup failed", variant: "error" })
           setPlacing(false)
           return
         }
         // Redirect to Paystack hosted checkout
-        setConfirmedOrderNumber(data.order_number ?? null)
-        window.location.href = data.authorization_url
+        setConfirmedOrderNumber(data.order?.id?.slice(0, 8).toUpperCase() ?? null)
+        window.location.href = data.checkoutUrl
       } catch {
         toast({ title: "Network error — please try again", variant: "error" })
         setPlacing(false)

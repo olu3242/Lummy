@@ -246,8 +246,8 @@ export default function ProductDetailPage() {
   const router  = useRouter()
   const productId = params.productId as string
 
-  const original = mockProducts.find((p) => p.id === productId)
-  const [product,    setProduct]    = React.useState<DashboardProduct | null>(original ?? null)
+  const [product,    setProduct]    = React.useState<DashboardProduct | null>(null)
+  const [productLoading, setProductLoading] = React.useState(true)
   const [editing,    setEditing]    = React.useState<"price" | "stock" | "description" | null>(null)
   const [editPrice,  setEditPrice]  = React.useState("")
   const [editStock,  setEditStock]  = React.useState("")
@@ -255,6 +255,40 @@ export default function ProductDetailPage() {
   const [copied,     setCopied]     = React.useState(false)
   const [activeTab,  setActiveTab]  = React.useState<"overview" | "analytics" | "orders">("overview")
   const [variants,   setVariants]   = React.useState<Variant[]>(DEFAULT_VARIANTS)
+
+  React.useEffect(() => {
+    if (!productId) return
+    fetch(`/api/products/${productId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((result: { data?: { id: string; title: string; description?: string; price: number; image_url?: string; status?: string; created_at: string } } | null) => {
+        if (result?.data) {
+          const d = result.data
+          setProduct({
+            id: d.id,
+            name: d.title,
+            description: d.description ?? "",
+            price: Math.round(d.price / 100),
+            stock: null,
+            category: "Other",
+            status: (d.status ?? "active") as DashboardProduct["status"],
+            image: d.image_url ?? "",
+            whatsappEnabled: true,
+            sales: 0, views: 0, revenue: 0,
+            createdAt: d.created_at?.split("T")[0] ?? "",
+          })
+        }
+      })
+      .catch(() => {})
+      .finally(() => setProductLoading(false))
+  }, [productId])
+
+  if (productLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="h-6 w-6 border-2 border-brand-purple border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   if (!product) {
     return (
@@ -276,7 +310,7 @@ export default function ProductDetailPage() {
   const sc = statusConfig[product.status]
   const conversion  = product.views > 0 ? ((product.sales / product.views) * 100).toFixed(1) : "0.0"
   const avgOrderVal = product.sales > 0 ? Math.round(product.revenue / product.sales) : product.price
-  const storeUrl    = `https://lummy.co/sade.styles/${product.id}`
+  const storeUrl    = `${typeof window !== "undefined" ? window.location.origin : "https://lummy.co"}/p/${product.id}`
   const waClicks    = Math.round(product.views * 0.33)
 
   const productOrders = mockOrders.filter((o) => o.product.name === product.name).slice(0, 8)

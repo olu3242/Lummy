@@ -51,6 +51,21 @@ export async function completeOnboarding(input: {
   const profileUpdate = await supabase.from('profiles').update({ onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id }).eq('id', auth.user.id);
   if (profileUpdate.error) throw profileUpdate.error;
 
+  // Upsert creator_profiles so getCreatorByHandle() can resolve WhatsApp + store_schema.
+  // is_published = true makes the creator discoverable on public storefront.
+  const cleanHandle = input.handle.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
+  await supabase.from('creator_profiles').upsert(
+    {
+      user_id:       auth.user.id,
+      handle:        cleanHandle,
+      business_name: input.orgName,
+      whatsapp_number: input.phone,
+      is_published:  true,
+      onboarding_completed: true,
+    },
+    { onConflict: 'user_id' },
+  );
+
   // Write canonical onboarding_states record for future continuity bootstrap.
   // Uses upsert so re-running completeOnboarding is idempotent.
   await supabase.from('onboarding_states').upsert(
