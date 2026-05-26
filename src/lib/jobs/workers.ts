@@ -607,6 +607,57 @@ export async function runScalingCoordinationJob(): Promise<JobResult> {
   }
 }
 
+/** Runs intervention system: unified coordinator, routing, governance reads, compression */
+export async function runInterventionSystemJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runInterventionEngine }            = await import("@/lib/intervention-system/intervention-engine")
+    const { runInterventionRoutingEngine }     = await import("@/lib/intervention-system/intervention-routing-engine")
+    const { runInterventionGovernanceEngine }  = await import("@/lib/intervention-system/intervention-governance-engine")
+    const { runInterventionCompressionEngine } = await import("@/lib/intervention-system/intervention-compression-engine")
+
+    const results = await Promise.allSettled([
+      runInterventionEngine(),
+      runInterventionRoutingEngine(),
+      runInterventionGovernanceEngine(),
+      runInterventionCompressionEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+    logger.info("[job] intervention_system complete", { totalEvents, failures })
+    return { jobName: "intervention_system", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "intervention_system", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs stability governance: governance stability, integrity, trust, sustainability, operational */
+export async function runStabilityGovernanceJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runStabilityGovernanceOrchestrator } = await import("@/lib/stability-governance/operational-stability-engine")
+    const result = await runStabilityGovernanceOrchestrator()
+    logger.info("[job] stability_governance complete", result as unknown as Record<string, unknown>)
+    return { jobName: "stability_governance", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "stability_governance", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs stabilization scaling: adaptive, capacity, density, bottleneck, monetization scaling */
+export async function runStabilizationScalingJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runScalingStabilizationOrchestrator } = await import("@/lib/stabilization-scaling/monetization-scaling-engine")
+    const result = await runScalingStabilizationOrchestrator()
+    logger.info("[job] stabilization_scaling complete", result as unknown as Record<string, unknown>)
+    return { jobName: "stabilization_scaling", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "stabilization_scaling", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 /** Runs marketplace kernel: signal compression, operational truth, intervention ranking, governance */
 export async function runMarketplaceKernelJob(): Promise<JobResult> {
   const start = Date.now()
@@ -711,4 +762,7 @@ export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   revenue_stability:            runRevenueStabilityJob,
   recovery_kernel:              runRecoveryKernelJob,
   scaling_kernel:               runScalingKernelJob,
+  intervention_system:          runInterventionSystemJob,
+  stability_governance:         runStabilityGovernanceJob,
+  stabilization_scaling:        runStabilizationScalingJob,
 }
