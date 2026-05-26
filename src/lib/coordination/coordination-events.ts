@@ -76,6 +76,36 @@ export const PRIORITY_RULES: PriorityRule[] = [
   { eventName: "localized_monetization_opportunity", basePriority: 8, rationale: "Ops planning signal" },
   { eventName: "region_high_growth",                 basePriority: 8, rationale: "Geographic intelligence" },
   { eventName: "discovery_optimization_recommended", basePriority: 7, rationale: "Discovery advisory" },
+  // Kernel intelligence — interventions are high priority by design
+  { eventName: "intervention_priority_high",         basePriority: 2, rationale: "Kernel ranked critical intervention" },
+  { eventName: "monetization_intervention_required", basePriority: 2, rationale: "Monetization risk intervention" },
+  { eventName: "retention_intervention_required",    basePriority: 2, rationale: "Retention risk intervention" },
+  { eventName: "governance_intervention_required",   basePriority: 2, rationale: "Governance risk intervention" },
+  { eventName: "scaling_intervention_required",      basePriority: 3, rationale: "Scaling bottleneck intervention" },
+  { eventName: "operational_intervention_required",  basePriority: 2, rationale: "Runtime health intervention" },
+  // Governance kernel — degradation signals need prompt review
+  { eventName: "marketplace_governance_risk",        basePriority: 3, rationale: "Marketplace governance degradation" },
+  { eventName: "marketplace_sustainability_risk",    basePriority: 3, rationale: "Sustainability risk alert" },
+  { eventName: "trust_governance_degraded",          basePriority: 3, rationale: "Trust governance degradation" },
+  { eventName: "monetization_governance_alert",      basePriority: 3, rationale: "Monetization governance alert" },
+  // Revenue stability — revenue interruption needs fast action
+  { eventName: "creator_revenue_risk",               basePriority: 3, rationale: "Revenue risk requires action" },
+  { eventName: "monetization_interruption_detected", basePriority: 2, rationale: "Revenue interrupted — urgent" },
+  { eventName: "payout_degradation_detected",        basePriority: 2, rationale: "Payment failures — urgent" },
+  { eventName: "creator_revenue_stabilized",         basePriority: 7, rationale: "Recovery confirmation" },
+  { eventName: "ecosystem_revenue_stabilized",       basePriority: 8, rationale: "Ecosystem recovery informational" },
+  // Recovery kernel — recovery triggers are medium-high priority
+  { eventName: "creator_recovery_required",          basePriority: 3, rationale: "Creator reactivation needed" },
+  { eventName: "customer_recovery_required",         basePriority: 3, rationale: "Customer re-engagement needed" },
+  { eventName: "engagement_recovery_required",       basePriority: 4, rationale: "Engagement recovery" },
+  { eventName: "storefront_recovery_required",       basePriority: 4, rationale: "Storefront refresh needed" },
+  { eventName: "lifecycle_recovery_required",        basePriority: 4, rationale: "Lifecycle recovery" },
+  // Scaling kernel — capacity and bottleneck signals
+  { eventName: "scaling_bottleneck_detected",        basePriority: 3, rationale: "Scaling bottleneck detected" },
+  { eventName: "marketplace_capacity_risk",          basePriority: 3, rationale: "Capacity pressure alert" },
+  { eventName: "creator_density_high_growth",        basePriority: 8, rationale: "Density growth informational" },
+  { eventName: "category_saturation_detected",       basePriority: 7, rationale: "Category saturation signal" },
+  { eventName: "scaling_coordination_required",      basePriority: 3, rationale: "Cross-module scaling coordination" },
 ]
 
 export const PRIORITY_MAP = new Map<string, WorkflowPriority>(

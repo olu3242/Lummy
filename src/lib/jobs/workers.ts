@@ -607,6 +607,87 @@ export async function runScalingCoordinationJob(): Promise<JobResult> {
   }
 }
 
+/** Runs marketplace kernel: signal compression, operational truth, intervention ranking, governance */
+export async function runMarketplaceKernelJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runMarketplaceKernelEngine } = await import("@/lib/kernel-intelligence/marketplace-kernel-engine")
+    const result = await runMarketplaceKernelEngine()
+    logger.info("[job] marketplace_kernel complete", result as unknown as Record<string, unknown>)
+    return { jobName: "marketplace_kernel", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "marketplace_kernel", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs governance kernel: marketplace, trust, integrity, monetization, retention governance */
+export async function runGovernanceKernelJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runGovernancePriorityEngine } = await import("@/lib/governance-kernel/governance-priority-engine")
+    const result = await runGovernancePriorityEngine()
+    logger.info("[job] governance_kernel complete", result as unknown as Record<string, unknown>)
+    return { jobName: "governance_kernel", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "governance_kernel", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs revenue stability: monetization continuity, stability, payout, protection, ecosystem */
+export async function runRevenueStabilityJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runMonetizationContinuityEngine }     = await import("@/lib/revenue-stability/monetization-continuity-engine")
+    const { runRevenueStabilityEngine }           = await import("@/lib/revenue-stability/revenue-stability-engine")
+    const { runPayoutReliabilityEngine }          = await import("@/lib/revenue-stability/payout-reliability-engine")
+    const { runCreatorRevenueProtectionEngine }   = await import("@/lib/revenue-stability/creator-revenue-protection-engine")
+    const { runRepeatPurchaseStabilityEngine }    = await import("@/lib/revenue-stability/repeat-purchase-stability-engine")
+    const { runEcosystemRevenueStabilityEngine }  = await import("@/lib/revenue-stability/ecosystem-revenue-stability-engine")
+
+    const results = await Promise.allSettled([
+      runMonetizationContinuityEngine(200),
+      runRevenueStabilityEngine(200),
+      runPayoutReliabilityEngine(200),
+      runCreatorRevenueProtectionEngine(200),
+      runRepeatPurchaseStabilityEngine(200),
+      runEcosystemRevenueStabilityEngine(),
+    ])
+
+    const totalEvents = results.reduce((s, r) => s + (r.status === "fulfilled" ? (r.value.eventsEmitted ?? 0) : 0), 0)
+    const failures    = results.filter(r => r.status === "rejected").length
+    logger.info("[job] revenue_stability complete", { totalEvents, failures })
+    return { jobName: "revenue_stability", ok: true, durationMs: Date.now() - start, processed: totalEvents, failed: failures }
+  } catch (err) {
+    return { jobName: "revenue_stability", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs recovery kernel: creator, customer, churn, engagement, storefront recovery */
+export async function runRecoveryKernelJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runLifecycleRecoveryEngine } = await import("@/lib/recovery-kernel/lifecycle-recovery-engine")
+    const result = await runLifecycleRecoveryEngine(200)
+    logger.info("[job] recovery_kernel complete", result as unknown as Record<string, unknown>)
+    return { jobName: "recovery_kernel", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "recovery_kernel", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
+/** Runs scaling kernel: adaptive scaling, creator density, category capacity, bottlenecks, capacity */
+export async function runScalingKernelJob(): Promise<JobResult> {
+  const start = Date.now()
+  try {
+    const { runScalingKernelGovernanceEngine } = await import("@/lib/scaling-kernel/scaling-governance-engine")
+    const result = await runScalingKernelGovernanceEngine()
+    logger.info("[job] scaling_kernel complete", result as unknown as Record<string, unknown>)
+    return { jobName: "scaling_kernel", ok: true, durationMs: Date.now() - start, processed: result.eventsEmitted, failed: 0 }
+  } catch (err) {
+    return { jobName: "scaling_kernel", ok: false, durationMs: Date.now() - start, error: String(err) }
+  }
+}
+
 export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   health_scoring:              runHealthScoringJob,
   churn_scoring:               runChurnScoringJobWorker,
@@ -625,4 +706,9 @@ export const ALL_JOBS: Record<string, () => Promise<JobResult>> = {
   economy_intelligence:         runEconomyIntelligenceJob,
   retention_intelligence:       runRetentionIntelligenceJob,
   scaling_coordination:         runScalingCoordinationJob,
+  marketplace_kernel:           runMarketplaceKernelJob,
+  governance_kernel:            runGovernanceKernelJob,
+  revenue_stability:            runRevenueStabilityJob,
+  recovery_kernel:              runRecoveryKernelJob,
+  scaling_kernel:               runScalingKernelJob,
 }

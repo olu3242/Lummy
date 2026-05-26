@@ -67,6 +67,26 @@
     {
       "path": "/api/cron/scaling-coordination",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/revenue-stability",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/recovery-kernel",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/scaling-kernel",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/governance-kernel",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/marketplace-kernel",
+      "schedule": "0 18 * * *"
     }
   ]
 }
