@@ -106,6 +106,20 @@ export const PRIORITY_RULES: PriorityRule[] = [
   { eventName: "creator_density_high_growth",        basePriority: 8, rationale: "Density growth informational" },
   { eventName: "category_saturation_detected",       basePriority: 7, rationale: "Category saturation signal" },
   { eventName: "scaling_coordination_required",      basePriority: 3, rationale: "Cross-module scaling coordination" },
+  // Intervention system
+  { eventName: "creator_intervention_required",      basePriority: 2, rationale: "Unified creator intervention" },
+  // Stability governance
+  { eventName: "governance_degradation_detected",    basePriority: 2, rationale: "Governance stability alert" },
+  { eventName: "operational_instability_detected",   basePriority: 2, rationale: "Runtime instability alert" },
+  { eventName: "marketplace_stability_risk",         basePriority: 3, rationale: "Marketplace stability risk" },
+  { eventName: "trust_stability_degraded",           basePriority: 3, rationale: "Trust stability degradation" },
+  { eventName: "ecosystem_sustainability_risk",      basePriority: 4, rationale: "Ecosystem sustainability" },
+  // Stabilization scaling
+  { eventName: "workflow_stabilization_required",    basePriority: 2, rationale: "Workflow bottleneck — urgent" },
+  { eventName: "scaling_stabilization_required",     basePriority: 3, rationale: "Scaling stabilization needed" },
+  // Recovery stabilization
+  { eventName: "monetization_recovery_required",     basePriority: 2, rationale: "Revenue recovery — urgent" },
+  { eventName: "ecosystem_recovery_required",        basePriority: 4, rationale: "Ecosystem recovery signal" },
 ]
 
 export const PRIORITY_MAP = new Map<string, WorkflowPriority>(

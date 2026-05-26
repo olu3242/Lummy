@@ -1265,6 +1265,111 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       snapshotDate:    payload.snapshotDate,
     })
   },
+
+  // ── Intervention system handlers ──────────────────────────────────────────
+
+  creator_intervention_required: async ({ payload }) => {
+    logger.warn("[handler] creator_intervention_required", {
+      count:           payload.count,
+      topIntervention: payload.topIntervention,
+      snapshotDate:    payload.snapshotDate,
+    })
+  },
+
+  // ── Stability governance handlers ─────────────────────────────────────────
+
+  marketplace_stability_risk: async ({ payload }) => {
+    logger.warn("[handler] marketplace_stability_risk", {
+      integrityRiskCount: payload.integrityRiskCount,
+      breakdown:          payload.breakdown,
+      snapshotDate:       payload.snapshotDate,
+    })
+  },
+
+  governance_degradation_detected: async ({ payload }) => {
+    logger.error("[handler] governance_degradation_detected", {
+      governanceStabilityScore: payload.governanceStabilityScore,
+      criticalCount:            payload.criticalCount,
+      primaryRisk:              payload.primaryRisk,
+    })
+  },
+
+  trust_stability_degraded: async ({ payload }) => {
+    logger.warn("[handler] trust_stability_degraded", {
+      degradationCount: payload.degradationCount,
+      breakdown:        payload.signalBreakdown,
+      snapshotDate:     payload.snapshotDate,
+    })
+  },
+
+  operational_instability_detected: async ({ payload }) => {
+    logger.error("[handler] operational_instability_detected", {
+      criticalCount: payload.criticalCount,
+      totalCount:    payload.totalCount,
+      topSignal:     payload.topSignal,
+    })
+  },
+
+  ecosystem_sustainability_risk: async ({ payload }) => {
+    logger.warn("[handler] ecosystem_sustainability_risk", {
+      sustainabilityRiskScore: payload.sustainabilityRiskScore,
+      breakdown:               payload.breakdown,
+      snapshotDate:            payload.snapshotDate,
+    })
+  },
+
+  // ── Stabilization scaling handlers ───────────────────────────────────────
+
+  scaling_stabilization_required: async ({ payload }) => {
+    const severity = payload.severity as string | undefined
+    if (severity === "critical") {
+      logger.error("[handler] scaling_stabilization_required — CRITICAL", {
+        triggerEvent:      payload.triggerEvent,
+        triggerCount:      payload.triggerCount,
+        recommendedAction: payload.recommendedAction,
+      })
+    } else {
+      logger.warn("[handler] scaling_stabilization_required", {
+        triggerEvent: payload.triggerEvent,
+        triggerCount: payload.triggerCount,
+      })
+    }
+  },
+
+  workflow_stabilization_required: async ({ payload }) => {
+    logger.error("[handler] workflow_stabilization_required", {
+      triggerCount:      payload.triggerCount,
+      recommendedAction: payload.recommendedAction,
+    })
+  },
+
+  // ── Recovery stabilization handlers ──────────────────────────────────────
+
+  monetization_recovery_required: async ({ creatorId, payload }) => {
+    if (creatorId !== "platform") {
+      const userId = await resolveUserId(creatorId)
+      if (userId) {
+        await notify(userId,
+          "🚨 Revenue recovery needed",
+          (payload.recommendedAction as string | undefined) ?? "Your store revenue needs attention — review your products and re-engage customers.",
+          "/dashboard/analytics"
+        )
+      }
+    }
+    logger.warn("[handler] monetization_recovery_required", {
+      creatorId,
+      recoveryType: payload.recoveryType,
+      snapshotDate: payload.snapshotDate,
+    })
+  },
+
+  ecosystem_recovery_required: async ({ payload }) => {
+    logger.warn("[handler] ecosystem_recovery_required", {
+      riskSignals:      payload.riskSignals,
+      sustainabilityScore: payload.sustainabilityScore,
+      snapshotDate:     payload.snapshotDate,
+    })
+  },
 }
 
 export async function processAutomationEvent(

@@ -133,6 +133,20 @@ export type AutomationEventName =
   | "creator_density_high_growth"
   | "category_saturation_detected"
   | "scaling_coordination_required"
+  // ── Intervention system events ────────────────────────────────────────────
+  | "creator_intervention_required"
+  // ── Stability governance events ───────────────────────────────────────────
+  | "marketplace_stability_risk"
+  | "governance_degradation_detected"
+  | "trust_stability_degraded"
+  | "operational_instability_detected"
+  | "ecosystem_sustainability_risk"
+  // ── Stabilization scaling events ──────────────────────────────────────────
+  | "scaling_stabilization_required"
+  | "workflow_stabilization_required"
+  // ── Recovery stabilization events ─────────────────────────────────────────
+  | "monetization_recovery_required"
+  | "ecosystem_recovery_required"
 
 export interface AutomationEvent {
   name: AutomationEventName
