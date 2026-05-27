@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,8 @@ const STEPS = [
   { id: 3, label: "Pricing",          description: "Price, stock & settings" },
 ]
 
+const PRODUCT_DRAFT_KEY = "lummy_product_draft"
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FormState {
@@ -69,6 +72,12 @@ interface FormState {
   whatsappEnabled: boolean
 }
 
+type ProductDraft = {
+  step: number
+  form: FormState
+  savedAt?: string
+}
+
 const initial: FormState = {
   name: "",
   category: "Clothing",
@@ -80,6 +89,26 @@ const initial: FormState = {
   stock: "",
   status: "active",
   whatsappEnabled: true,
+}
+
+function normalizeProductDraft(value: unknown): ProductDraft | null {
+  if (!value || typeof value !== "object") return null
+  const draft = value as Partial<ProductDraft>
+  if (!draft.form || typeof draft.form !== "object") return null
+  return {
+    step: Math.min(Math.max(Number(draft.step) || 1, 1), STEPS.length),
+    form: { ...initial, ...draft.form },
+    savedAt: draft.savedAt,
+  }
+}
+
+function formatSavedAt(value: string | null) {
+  if (!value) return "Draft autosave enabled"
+  const diff = Math.max(0, Date.now() - new Date(value).getTime())
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return "Last saved just now"
+  if (minutes === 1) return "Last saved 1 min ago"
+  return `Last saved ${minutes} mins ago`
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -488,9 +517,120 @@ function Step3({ form, setForm }: { form: FormState; setForm: React.Dispatch<Rea
 
 export default function NewProductPage() {
   const router = useRouter()
+  const [mounted, setMounted] = React.useState(false)
+  const [hydrated, setHydrated] = React.useState(false)
+  const [userId, setUserId] = React.useState<string | null>(null)
+  const [continuityRow, setContinuityRow] = React.useState<{
+    current_step?: string | null
+    completed?: boolean
+    organization_id?: string | null
+    metadata?: Record<string, unknown>
+  }>({})
   const [step, setStep] = React.useState(1)
   const [form, setForm] = React.useState<FormState>(initial)
   const [saving, setSaving] = React.useState(false)
+  const [restored, setRestored] = React.useState(false)
+  const [lastSavedAt, setLastSavedAt] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  React.useEffect(() => {
+    if (!mounted) return
+
+    let cancelled = false
+
+    async function restoreDraft() {
+      const supabase = createClient()
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) {
+        setHydrated(true)
+        return
+      }
+
+      setUserId(auth.user.id)
+
+      const { data: state } = await supabase
+        .from("onboarding_states")
+        .select("current_step, completed, organization_id, metadata, updated_at")
+        .eq("user_id", auth.user.id)
+        .maybeSingle()
+
+      if (cancelled) return
+
+      const metadata = (state?.metadata ?? {}) as Record<string, unknown>
+      setContinuityRow({
+        current_step: state?.current_step,
+        completed: state?.completed,
+        organization_id: state?.organization_id,
+        metadata,
+      })
+
+      let localDraft: ProductDraft | null = null
+      try {
+        localDraft = normalizeProductDraft(JSON.parse(localStorage.getItem(PRODUCT_DRAFT_KEY) ?? "null"))
+      } catch {
+        localDraft = null
+      }
+
+      const dbDraft = normalizeProductDraft(metadata.product_draft)
+      const dbTime = dbDraft?.savedAt ? new Date(dbDraft.savedAt).getTime() : 0
+      const localTime = localDraft?.savedAt ? new Date(localDraft.savedAt).getTime() : 0
+      const nextDraft = dbTime >= localTime ? dbDraft ?? localDraft : localDraft ?? dbDraft
+
+      if (nextDraft) {
+        setStep(nextDraft.step)
+        setForm(nextDraft.form)
+        setLastSavedAt(nextDraft.savedAt ?? null)
+        setRestored(Object.values(nextDraft.form).some((value) => Array.isArray(value) ? value.length > 0 : Boolean(value)))
+      }
+
+      setHydrated(true)
+    }
+
+    void restoreDraft()
+
+    return () => {
+      cancelled = true
+    }
+  }, [mounted])
+
+  React.useEffect(() => {
+    if (!mounted || !hydrated || !userId) return
+
+    const savedAt = new Date().toISOString()
+    const productDraft = { step, form, savedAt }
+    try {
+      localStorage.setItem(PRODUCT_DRAFT_KEY, JSON.stringify(productDraft))
+    } catch { /* ignore */ }
+
+    const timeout = window.setTimeout(() => {
+      const supabase = createClient()
+      const metadata = {
+        ...(continuityRow.metadata ?? {}),
+        product_draft: productDraft,
+      }
+
+      void supabase.from("onboarding_states").upsert(
+        {
+          user_id: userId,
+          organization_id: continuityRow.organization_id ?? null,
+          current_step: continuityRow.current_step ?? "completed",
+          completed: continuityRow.completed ?? true,
+          metadata,
+          updated_at: savedAt,
+        },
+        { onConflict: "user_id" },
+      ).then(({ error }) => {
+        if (!error) {
+          setLastSavedAt(savedAt)
+        }
+      })
+    }, 700)
+
+    return () => window.clearTimeout(timeout)
+  }, [continuityRow.completed, continuityRow.current_step, continuityRow.metadata, continuityRow.organization_id, form, hydrated, mounted, step, userId])
 
   const canNext =
     step === 1 ? form.name.trim().length > 0 :
@@ -509,11 +649,30 @@ export default function NewProductPage() {
         description: `"${form.name}" is ${form.status === "draft" ? "saved as a draft" : "now live in your store"}.`,
         variant: "success",
       })
+      try { localStorage.removeItem(PRODUCT_DRAFT_KEY) } catch { /* ignore */ }
+      if (userId) {
+        const supabase = createClient()
+        const metadata = { ...(continuityRow.metadata ?? {}) }
+        delete metadata.product_draft
+        void supabase.from("onboarding_states").upsert(
+          {
+            user_id: userId,
+            organization_id: continuityRow.organization_id ?? null,
+            current_step: continuityRow.current_step ?? "completed",
+            completed: continuityRow.completed ?? true,
+            metadata,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" },
+        )
+      }
       router.push("/dashboard/products")
     }, 1000)
   }
 
   const progressPct = ((step - 1) / (STEPS.length - 1)) * 100
+
+  if (!mounted || !hydrated) return null
 
   return (
     <div className="min-h-screen bg-background">
@@ -527,6 +686,7 @@ export default function NewProductPage() {
           <div className="h-4 w-px bg-border" />
           <div className="flex-1">
             <h1 className="font-display font-bold text-base">Add new product</h1>
+            <p className="text-[10px] text-muted-foreground">{formatSavedAt(lastSavedAt)}</p>
           </div>
           <p className="text-xs text-muted-foreground flex-shrink-0">
             Step {step} of {STEPS.length}
@@ -545,6 +705,11 @@ export default function NewProductPage() {
 
       {/* Content */}
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8">
+        {restored && (
+          <div className="mb-5 rounded-xl border border-brand-purple/20 bg-brand-purple/10 px-3 py-2 text-xs font-medium text-brand-purple">
+            Draft restored
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8 items-start">
 
           {/* Left: Form */}

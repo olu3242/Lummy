@@ -1,9 +1,11 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowLeft, Zap, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
+import { ArrowLeft, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
+import { BRAND } from "@/config/branding"
 
 const links = [
   { label: "Go home",          href: "/",              icon: Home,            desc: "Back to the landing page" },
@@ -22,10 +24,8 @@ export default function NotFound() {
         className="mb-8"
       >
         <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-sm group-hover:shadow-brand transition-shadow">
-            <Zap className="h-5 w-5 text-white fill-white" />
-          </div>
-          <span className="font-display text-xl font-bold">Lummy</span>
+          <Image src={BRAND.logo} alt={BRAND.name} width={40} height={40} className="h-10 w-10 rounded-2xl shadow-brand-sm group-hover:shadow-brand transition-shadow" />
+          <span className="font-display text-xl font-bold">{BRAND.name}</span>
         </Link>
       </motion.div>
 

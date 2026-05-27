@@ -1,8 +1,9 @@
 import { ImageResponse } from "next/og"
+import { BRAND } from "@/config/branding"
 import { storefrontCreator } from "@/data/mock/storefront"
 
 export const runtime = "edge"
-export const alt = "Product on Lummy"
+export const alt = `Product on ${BRAND.name}`
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -45,10 +46,9 @@ export default async function OGImage({
         <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "48px 52px 48px 36px", justifyContent: "space-between" }}>
           {/* Lummy logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #6C4EF3, #4F46E5)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <div style={{ color: "white", fontSize: 18, fontWeight: 900 }}>⚡</div>
-            </div>
-            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, fontWeight: 600, letterSpacing: 1 }}>Lummy</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={BRAND.logo} alt={BRAND.name} width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10 }} />
+            <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, fontWeight: 600, letterSpacing: 1 }}>{BRAND.name}</span>
           </div>
 
           {/* Product details */}

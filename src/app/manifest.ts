@@ -1,9 +1,10 @@
 import { MetadataRoute } from "next"
+import { BRAND } from "@/config/branding"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Lummy — Creator Commerce OS",
-    short_name: "Lummy",
+    name: `${BRAND.name} — Creator Commerce OS`,
+    short_name: BRAND.name,
     description: "Your WhatsApp storefront. Sell anything, anywhere in Africa.",
     start_url: "/",
     display: "standalone",
@@ -11,9 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#6C4EF3",
     orientation: "portrait",
     icons: [
-      { src: "/icon-192.png",  sizes: "192x192",  type: "image/png" },
-      { src: "/icon-512.png",  sizes: "512x512",  type: "image/png" },
-      { src: "/icon-mask.png", sizes: "512x512",  type: "image/png", purpose: "maskable" },
+      { src: BRAND.icon, sizes: "800x800", type: "image/png" },
+      { src: "/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
     categories: ["shopping", "business", "productivity"],
     screenshots: [

@@ -14,7 +14,6 @@ import {
   BarChart3,
   Bot,
   Settings,
-  Zap,
   HelpCircle,
   ChevronRight,
   BadgeCheck,
@@ -36,6 +35,7 @@ import {
   Lightbulb,
   MessageCircle,
 } from "lucide-react"
+import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
 
@@ -111,10 +111,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5 border-b border-white/5 flex-shrink-0">
         <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-sm">
-            <Zap className="h-4 w-4 text-white fill-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">Lummy</span>
+          <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl shadow-brand-sm" />
+          <span className="font-display text-lg font-bold text-white">{BRAND.name}</span>
         </Link>
 
         {/* Mobile close */}

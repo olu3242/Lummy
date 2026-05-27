@@ -1,3 +1,5 @@
+import { BRAND } from "@/config/branding"
+
 /**
  * Centralized image configuration.
  * Replace Unsplash URLs with production assets when ready.
@@ -46,7 +48,7 @@ export const images = {
   },
 
   // Logo / brand
-  logo: "/logo.svg",
+  logo: BRAND.logo,
 } as const
 
 export type ImageKey = keyof typeof images

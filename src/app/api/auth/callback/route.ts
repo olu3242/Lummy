@@ -32,6 +32,14 @@ export async function GET(request: NextRequest) {
   }
 
   // Ensure next is a relative path to prevent open redirect
-  const safeNext = next.startsWith("/") ? next : "/dashboard"
+  let safeNext = next.startsWith("/") ? next : "/dashboard"
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed, organization_id")
+      .eq("id", user.id)
+      .maybeSingle()
+    if (!profile?.onboarding_completed || !profile.organization_id) safeNext = "/onboarding"
+  }
   return NextResponse.redirect(`${origin}${safeNext}`)
 }

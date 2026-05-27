@@ -37,6 +37,16 @@ export default function LoginPage() {
         setShakeKey(k => k + 1)
         return
       }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed, organization_id")
+        .maybeSingle()
+
+      if (!profile?.onboarding_completed || !profile.organization_id) {
+        window.location.href = "/onboarding"
+        return
+      }
+
       // Read ?next= param for post-login redirect — validate to prevent open redirect
       const params = new URLSearchParams(window.location.search)
       const next = params.get("next") ?? ""

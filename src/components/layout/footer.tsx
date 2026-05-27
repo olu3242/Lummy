@@ -1,6 +1,8 @@
 import Link from "next/link"
-import { Zap, Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
+import Image from "next/image"
+import { Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { BRAND } from "@/config/branding"
 
 const footerLinks = {
   Product: [
@@ -18,7 +20,7 @@ const footerLinks = {
     { label: "Creator Blog", href: "#" },
   ],
   Company: [
-    { label: "About Lummy", href: "#" },
+    { label: `About ${BRAND.name}`, href: "#" },
     { label: "Careers", href: "#" },
     { label: "Press Kit", href: "#" },
     { label: "Contact", href: "#" },
@@ -47,10 +49,8 @@ export function Footer() {
           {/* Brand col */}
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2 group w-fit">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-                <Zap className="h-4 w-4 text-white fill-white" />
-              </div>
-              <span className="font-display text-xl font-bold text-white">Lummy</span>
+              <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl" />
+              <span className="font-display text-xl font-bold text-white">{BRAND.name}</span>
             </Link>
             <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
               The creator commerce OS for Africa. Turn your followers into customers with storefronts, WhatsApp orders, and AI-powered growth tools.
@@ -97,7 +97,7 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
         <p className="text-xs text-white/30">
-          © 2025 Lummy Technologies Ltd. · Built for African creators.
+          © 2025 {BRAND.name} Technologies Ltd. · Built for African creators.
         </p>
         <div className="flex items-center gap-1">
           <span className="text-xs text-white/30">Made with</span>

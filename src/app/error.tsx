@@ -1,10 +1,12 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { motion } from "framer-motion"
-import { AlertTriangle, RefreshCw, Home, Zap } from "lucide-react"
+import { AlertTriangle, RefreshCw, Home } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { BRAND } from "@/config/branding"
 
 export default function GlobalError({
   error,
@@ -23,10 +25,8 @@ export default function GlobalError({
       >
         {/* Logo */}
         <Link href="/" className="inline-flex items-center gap-2 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-            <Zap className="h-4.5 w-4.5 text-white fill-white h-5 w-5" />
-          </div>
-          <span className="font-display text-lg font-bold">Lummy</span>
+          <Image src={BRAND.logo} alt={BRAND.name} width={36} height={36} className="h-9 w-9 rounded-xl" />
+          <span className="font-display text-lg font-bold">{BRAND.name}</span>
         </Link>
 
         {/* Error icon */}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Syne, DM_Sans } from "next/font/google"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { BRAND } from "@/config/branding"
 import "./globals.css"
 
 const syne = Syne({
@@ -18,9 +19,15 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Lummy — Turn Followers Into Customers",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://lummy.co"),
+  title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
     "The creator commerce OS for Africa. Build your storefront, sell via WhatsApp, and grow with AI. Post. Chat. Get Paid.",
+  icons: {
+    icon: BRAND.icon,
+    apple: "/apple-icon.png",
+    shortcut: "/favicon.ico",
+  },
   keywords: [
     "creator commerce",
     "Africa",
@@ -32,16 +39,18 @@ export const metadata: Metadata = {
     "Paystack",
   ],
   openGraph: {
-    title: "Lummy — Turn Followers Into Customers",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
     description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    images: [{ url: BRAND.logo, width: 800, height: 800, alt: BRAND.name }],
     type: "website",
     locale: "en_NG",
-    siteName: "Lummy",
+    siteName: BRAND.name,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lummy — Turn Followers Into Customers",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
     description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    images: [BRAND.logo],
     creator: "@lummyhq",
   },
   robots: {

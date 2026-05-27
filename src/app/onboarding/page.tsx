@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { createClient } from "@/lib/supabase/client"
@@ -13,7 +14,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  Zap,
   Store,
   MessageCircle,
   Copy,
@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
 import { completeOnboarding } from "@/server/actions/onboarding"
 
@@ -61,6 +62,62 @@ interface WizardData {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
+const DRAFT_KEY = "lummy_onboarding_draft"
+const STEP_KEYS = ["creator_type", "storefront_setup", "first_product", "bank_setup", "preview"] as const
+
+const emptyWizardData: WizardData = {
+  creatorType: "",
+  storeName: "",
+  handle: "",
+  whatsapp: "",
+  niche: "",
+  location: "",
+  productName: "",
+  productPrice: "",
+  productDesc: "",
+  productCategory: "",
+  addProduct: false,
+  bankName: "",
+  accountNumber: "",
+  accountName: "",
+}
+
+type OnboardingDraft = {
+  step: number
+  data: WizardData
+  savedAt?: string
+}
+
+function stepToKey(step: number) {
+  return STEP_KEYS[Math.min(Math.max(step, 1), TOTAL_STEPS) - 1]
+}
+
+function keyToStep(step?: string | null) {
+  const index = STEP_KEYS.findIndex((key) => key === step)
+  if (index >= 0) return index + 1
+  if (step === "completed") return TOTAL_STEPS
+  return 1
+}
+
+function normalizeDraft(value: unknown): OnboardingDraft | null {
+  if (!value || typeof value !== "object") return null
+  const draft = value as Partial<OnboardingDraft>
+  if (!draft.data || typeof draft.data !== "object") return null
+  return {
+    step: Math.min(Math.max(Number(draft.step) || 1, 1), TOTAL_STEPS),
+    data: { ...emptyWizardData, ...draft.data },
+    savedAt: draft.savedAt,
+  }
+}
+
+function formatSavedAt(value: string | null) {
+  if (!value) return "Saving enabled"
+  const diff = Math.max(0, Date.now() - new Date(value).getTime())
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return "Last saved just now"
+  if (minutes === 1) return "Last saved 1 min ago"
+  return `Last saved ${minutes} mins ago`
+}
 
 const creatorTypes = [
   {
@@ -495,9 +552,9 @@ function StepPreview({ data }: { data: WizardData }) {
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-lg mb-6 mx-auto"
+        className="inline-flex h-20 w-20 items-center justify-center rounded-3xl shadow-brand-lg mb-6 mx-auto overflow-hidden"
       >
-        <Zap className="h-10 w-10 text-white fill-white" />
+        <Image src={BRAND.logo} alt={BRAND.name} width={80} height={80} className="h-20 w-20" />
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -564,48 +621,152 @@ const slideVariants = {
 
 export default function OnboardingPage() {
   const router = useRouter()
-
-  // Redirect already-onboarded creators straight to dashboard
-  React.useEffect(() => {
-    const supabase = createClient()
-    supabase.from("profiles")
-      .select("onboarding_completed, organization_id")
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data?.onboarding_completed && data.organization_id) {
-          router.replace("/dashboard")
-        }
-      }, () => null)
-  }, [router])
-
-  const DRAFT_KEY = "lummy_onboarding_draft"
-
-  const loadDraft = (): { step: number; data: WizardData } => {
-    try {
-      const raw = typeof window !== "undefined" ? localStorage.getItem(DRAFT_KEY) : null
-      if (raw) return JSON.parse(raw)
-    } catch { /* ignore */ }
-    return {
-      step: 1,
-      data: { creatorType: "", storeName: "", handle: "", whatsapp: "", niche: "", location: "", productName: "", productPrice: "", productDesc: "", productCategory: "", addProduct: false, bankName: "", accountNumber: "", accountName: "" },
-    }
-  }
-
-  const draft = loadDraft()
-  const [step, setStep] = React.useState(draft.step)
+  const [mounted, setMounted] = React.useState(false)
+  const [hydrated, setHydrated] = React.useState(false)
+  const [step, setStep] = React.useState(1)
   const [dir, setDir] = React.useState(1)
   const [submitting, setSubmitting] = React.useState(false)
-  const [data, setData] = React.useState<WizardData>(draft.data)
+  const [data, setData] = React.useState<WizardData>(emptyWizardData)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
+  const [lastSavedAt, setLastSavedAt] = React.useState<string | null>(null)
+  const [restored, setRestored] = React.useState(false)
+  const [userContext, setUserContext] = React.useState<{ id: string; email: string | null } | null>(null)
 
-  const saveDraft = React.useCallback((nextStep: number, nextData: WizardData) => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ step: nextStep, data: nextData })) } catch { /* ignore */ }
+  React.useEffect(() => {
+    setMounted(true)
   }, [])
+
+  React.useEffect(() => {
+    if (!mounted) return
+
+    let cancelled = false
+
+    async function restoreDraft() {
+      const supabase = createClient()
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) {
+        setHydrated(true)
+        return
+      }
+
+      setUserContext({ id: auth.user.id, email: auth.user.email ?? null })
+
+      const [{ data: profile }, { data: onboardingState }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("onboarding_completed, organization_id, onboarding_step")
+          .eq("id", auth.user.id)
+          .maybeSingle(),
+        supabase
+          .from("onboarding_states")
+          .select("current_step, completed, metadata, updated_at")
+          .eq("user_id", auth.user.id)
+          .maybeSingle(),
+      ])
+
+      if (cancelled) return
+
+      if (profile?.onboarding_completed && profile.organization_id) {
+        router.replace("/dashboard")
+        return
+      }
+
+      let localDraft: OnboardingDraft | null = null
+      try {
+        localDraft = normalizeDraft(JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null"))
+      } catch {
+        localDraft = null
+      }
+
+      const metadata = onboardingState?.metadata as { wizard_data?: WizardData; step?: number; updated_at?: string } | null
+      const dbDraft = normalizeDraft({
+        step: metadata?.step ?? keyToStep(onboardingState?.current_step ?? profile?.onboarding_step),
+        data: metadata?.wizard_data,
+        savedAt: onboardingState?.updated_at ?? metadata?.updated_at,
+      })
+
+      const dbTime = dbDraft?.savedAt ? new Date(dbDraft.savedAt).getTime() : 0
+      const localTime = localDraft?.savedAt ? new Date(localDraft.savedAt).getTime() : 0
+      const nextDraft = dbTime >= localTime ? dbDraft ?? localDraft : localDraft ?? dbDraft
+
+      if (nextDraft) {
+        setStep(nextDraft.step)
+        setData(nextDraft.data)
+        setLastSavedAt(nextDraft.savedAt ?? null)
+        setRestored(nextDraft.step > 1 || Object.values(nextDraft.data).some(Boolean))
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...nextDraft, savedAt: nextDraft.savedAt ?? new Date().toISOString() }))
+        } catch { /* ignore */ }
+      }
+
+      setHydrated(true)
+    }
+
+    void restoreDraft()
+
+    return () => {
+      cancelled = true
+    }
+  }, [mounted, router])
+
+  React.useEffect(() => {
+    if (!mounted || !hydrated || !userContext) return
+
+    const savedAt = new Date().toISOString()
+    const localDraft = { step, data, savedAt }
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(localDraft))
+    } catch { /* ignore */ }
+
+    const timeout = window.setTimeout(() => {
+      const supabase = createClient()
+      const currentStep = stepToKey(step)
+      const metadata = {
+        wizard_data: data,
+        step,
+        storefront_setup: {
+          storeName: data.storeName,
+          handle: data.handle,
+          whatsapp: data.whatsapp,
+          niche: data.niche,
+          location: data.location,
+        },
+        updated_at: savedAt,
+      }
+
+      void Promise.all([
+        supabase.from("profiles").upsert(
+          {
+            id: userContext.id,
+            email: userContext.email,
+            phone: data.whatsapp || null,
+            onboarding_step: currentStep,
+            onboarding_completed: false,
+            updated_at: savedAt,
+          },
+          { onConflict: "id" },
+        ),
+        supabase.from("onboarding_states").upsert(
+          {
+            user_id: userContext.id,
+            current_step: currentStep,
+            completed: false,
+            metadata,
+            updated_at: savedAt,
+          },
+          { onConflict: "user_id" },
+        ),
+      ]).then(() => {
+        setLastSavedAt(savedAt)
+      }, () => null)
+    }, 700)
+
+    return () => window.clearTimeout(timeout)
+  }, [data, hydrated, mounted, step, userContext])
 
   const update = (partial: Partial<WizardData>) => setData((d) => {
     const next = { ...d, ...partial }
-    saveDraft(step, next)
     return next
   })
 
@@ -673,12 +834,12 @@ export default function OnboardingPage() {
       }
     }
     setDir(1)
-    setStep((s) => { const next = Math.min(s + 1, TOTAL_STEPS); saveDraft(next, data); return next })
+    setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
 
   const back = () => {
     setDir(-1)
-    setStep((s) => { const prev = Math.max(s - 1, 1); saveDraft(prev, data); return prev })
+    setStep((s) => Math.max(s - 1, 1))
   }
 
   const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
@@ -705,18 +866,27 @@ export default function OnboardingPage() {
     }
   }
 
+  if (!mounted || !hydrated) return null
+
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">
       {/* Header */}
       <header className="flex h-16 items-center justify-between px-6 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-            <Zap className="h-4 w-4 text-white fill-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">Lummy</span>
+          <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl" />
+          <span className="font-display text-lg font-bold text-white">{BRAND.name}</span>
         </div>
-        <span className="text-xs text-white/20">Step {step} of {TOTAL_STEPS}</span>
+        <div className="text-right">
+          <span className="block text-xs text-white/20">Step {step} of {TOTAL_STEPS}</span>
+          <span className="block text-[10px] text-white/30">{formatSavedAt(lastSavedAt)}</span>
+        </div>
       </header>
+
+      {restored && (
+        <div className="mx-6 mb-5 rounded-xl border border-brand-purple/20 bg-brand-purple/10 px-3 py-2 text-xs font-medium text-brand-purple">
+          Continuing where you left off
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="px-6 mb-8 flex-shrink-0">
