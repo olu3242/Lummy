@@ -22,27 +22,43 @@ export async function getActivationChecklist(userId: string): Promise<Activation
   try {
     const supabase = createClient()
 
-    const { data: profile } = await supabase
-      .from("creator_profiles")
-      .select("id, handle, bio, whatsapp_number, is_published, avatar_url, onboarding_completed")
-      .eq("user_id", userId)
-      .maybeSingle()
+    const [profileResult, userProfileResult] = await Promise.all([
+      supabase
+        .from("creator_profiles")
+        .select("id, handle, bio, whatsapp_number, is_published, avatar_url, onboarding_completed")
+        .eq("user_id", userId)
+        .maybeSingle(),
+      supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", userId)
+        .maybeSingle(),
+    ])
 
+    const profile = profileResult.data
     if (!profile) return null
 
-    const creatorId = (profile as { id: string; handle: string | null; bio: string | null; whatsapp_number: string | null; is_published: boolean; avatar_url: string | null; onboarding_completed: boolean }).id
+    const orgId = (userProfileResult.data as { organization_id: string | null } | null)?.organization_id
 
-    const { count: productCount } = await supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("creator_id", creatorId)
-      .eq("is_published", true)
+    const [productResult, orderResult] = await Promise.all([
+      orgId
+        ? supabase
+            .from("products")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .eq("status", "active")
+        : Promise.resolve({ count: 0 }),
+      orgId
+        ? supabase
+            .from("orders")
+            .select("id", { count: "exact", head: true })
+            .eq("organization_id", orgId)
+            .eq("payment_status", "paid")
+        : Promise.resolve({ count: 0 }),
+    ])
 
-    const { count: orderCount } = await supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("creator_id", creatorId)
-      .eq("payment_status", "paid")
+    const productCount = productResult.count
+    const orderCount = orderResult.count
 
     const p = profile as {
       handle: string | null; bio: string | null; whatsapp_number: string | null;

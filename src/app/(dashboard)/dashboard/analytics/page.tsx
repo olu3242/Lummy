@@ -223,10 +223,10 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   )
 }
 
-function exportAnalyticsCSV(period: "3m" | "6m" | "12m") {
-  const slice = period === "3m" ? revenueData.slice(-3) : period === "6m" ? revenueData.slice(-6) : revenueData
-  const header = ["Month", "Revenue (₦)", "Prev Revenue (₦)", "Orders", "Store Views", "AOV (₦)"]
-  const rows = slice.map(r => [r.month, r.revenue, r.prev, r.orders, r.views, r.aov].join(","))
+function exportAnalyticsCSV(period: "3m" | "6m" | "12m", data: { month: string; revenue: number; orders: number; views: number; aov: number; prev?: number }[]) {
+  const slice = period === "3m" ? data.slice(-3) : period === "6m" ? data.slice(-6) : data
+  const header = ["Month", "Revenue (₦)", "Orders", "Store Views", "AOV (₦)"]
+  const rows = slice.map(r => [r.month, r.revenue, r.orders, r.views, r.aov].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
@@ -237,8 +237,8 @@ function exportAnalyticsCSV(period: "3m" | "6m" | "12m") {
 }
 
 // AOV sparkline (SVG inline)
-function AOVSparkline() {
-  const values = revenueData.map(d => d.aov)
+function AOVSparkline({ data }: { data: { aov: number }[] }) {
+  const values = data.map(d => d.aov)
   const min = Math.min(...values)
   const max = Math.max(...values)
   const w = 120, h = 36
@@ -397,6 +397,8 @@ function DayOfWeekChart() {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 interface LiveSummary { whatsapp_clicks: number; storefront_views: number; orders: number; revenue_ngn: number; conversion_rate: number }
+interface MonthlyBucket { month: string; revenue: number; orders: number; views: number; aov: number }
+interface WeeklyBucket { day: string; views: number; clicks: number; orders: number }
 
 export default function AnalyticsPage() {
   const [revPeriod, setRevPeriod] = React.useState<"3m" | "6m" | "12m">("12m")
@@ -405,26 +407,38 @@ export default function AnalyticsPage() {
   const [aovMetric, setAovMetric] = React.useState<"revenue" | "aov">("revenue")
   const [dismissedInsights, setDismissedInsights] = React.useState<Set<number>>(new Set())
   const [liveSummary, setLiveSummary] = React.useState<LiveSummary | null>(null)
+  const [liveMonthly, setLiveMonthly] = React.useState<MonthlyBucket[]>([])
+  const [liveWeekly, setLiveWeekly] = React.useState<WeeklyBucket[]>([])
 
   React.useEffect(() => {
     fetch("/api/analytics")
       .then(r => r.ok ? r.json() : null)
-      .then((data: { summary?: LiveSummary | null } | null) => {
+      .then((data: { summary?: LiveSummary | null; monthlyData?: MonthlyBucket[]; weeklyData?: WeeklyBucket[] } | null) => {
         if (data?.summary) setLiveSummary(data.summary)
+        if (Array.isArray(data?.monthlyData) && data.monthlyData.length > 0) setLiveMonthly(data.monthlyData)
+        if (Array.isArray(data?.weeklyData) && data.weeklyData.length > 0) setLiveWeekly(data.weeklyData)
       })
       .catch(() => {})
   }, [])
 
-  const revSlice = revPeriod === "3m" ? revenueData.slice(-3) : revPeriod === "6m" ? revenueData.slice(-6) : revenueData
+  // Use real data when available, fall back to illustrative demo data
+  const activeRevenueData = liveMonthly.length > 0 ? liveMonthly : revenueData
+  const activeWeeklyData  = liveWeekly.length  > 0 ? liveWeekly  : weeklyConversionData
+
+  const revSlice = revPeriod === "3m" ? activeRevenueData.slice(-3) : revPeriod === "6m" ? activeRevenueData.slice(-6) : activeRevenueData
   const peakHour = hourlyData.reduce((max, d) => d.orders > max.orders ? d : max, hourlyData[0])
   const hourMax = Math.max(...hourlyData.map(d => d.orders))
 
   const visibleInsights = AI_INSIGHTS.filter((_, i) => !dismissedInsights.has(i))
 
-  // Current AOV
-  const currentAOV = Math.round(revenueData[revenueData.length - 2].revenue / revenueData[revenueData.length - 2].orders)
-  const prevAOV    = Math.round(revenueData[revenueData.length - 3].revenue / revenueData[revenueData.length - 3].orders)
-  const aovChange  = (((currentAOV - prevAOV) / prevAOV) * 100).toFixed(1)
+  // Current AOV — use last 2 months from active data
+  const currentAOV = activeRevenueData.length >= 2
+    ? Math.round(activeRevenueData[activeRevenueData.length - 2].revenue / Math.max(1, activeRevenueData[activeRevenueData.length - 2].orders))
+    : Math.round(revenueData[revenueData.length - 2].revenue / revenueData[revenueData.length - 2].orders)
+  const prevAOV = activeRevenueData.length >= 3
+    ? Math.round(activeRevenueData[activeRevenueData.length - 3].revenue / Math.max(1, activeRevenueData[activeRevenueData.length - 3].orders))
+    : Math.round(revenueData[revenueData.length - 3].revenue / revenueData[revenueData.length - 3].orders)
+  const aovChange  = prevAOV > 0 ? (((currentAOV - prevAOV) / prevAOV) * 100).toFixed(1) : "0.0"
 
   return (
     <div className="p-4 sm:p-6 space-y-6">
@@ -442,7 +456,7 @@ export default function AnalyticsPage() {
           >
             <Sparkles className="h-3.5 w-3.5" /> Insights
           </button>
-          <button onClick={() => exportAnalyticsCSV(revPeriod)}
+          <button onClick={() => exportAnalyticsCSV(revPeriod, activeRevenueData)}
             className="flex items-center gap-1.5 h-9 px-3 rounded-xl border border-border bg-card text-xs font-semibold hover:bg-accent transition-colors">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
@@ -545,7 +559,7 @@ export default function AnalyticsPage() {
               {aovChange}%
             </div>
           </div>
-          <AOVSparkline />
+          <AOVSparkline data={activeRevenueData} />
           <div className="mt-4 pt-4 border-t border-border">
             <div className="flex gap-4">
               <button onClick={() => setAovMetric("revenue")}
@@ -561,7 +575,7 @@ export default function AnalyticsPage() {
             </div>
             <div className="h-24 mt-3">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData} margin={{ top: 2, right: 2, left: -30, bottom: 0 }}>
+                <AreaChart data={activeRevenueData} margin={{ top: 2, right: 2, left: -30, bottom: 0 }}>
                   <defs>
                     <linearGradient id="aovAreaGrad" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#6C4EF3" stopOpacity={0.25} />
@@ -698,7 +712,7 @@ export default function AnalyticsPage() {
           <p className="text-xs text-muted-foreground mb-4">Views → Clicks → Orders</p>
           <div className="h-48">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={weeklyConversionData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
+              <BarChart data={activeWeeklyData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />

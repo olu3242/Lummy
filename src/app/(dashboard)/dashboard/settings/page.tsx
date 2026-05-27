@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useUpload } from "@/hooks/use-upload"
 
 type SettingsSection = "profile" | "store" | "notifications" | "payments" | "security"
 
@@ -84,9 +85,18 @@ function useLocalStorageState<T>(key: string, fallback: T) {
 }
 
 function ProfileSection() {
-  const defaults = React.useMemo(() => ({ firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }), [])
+  const defaults = React.useMemo(() => ({ firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria", avatarUrl: "" }), [])
   const [form, setForm] = useLocalStorageState(PROFILE_KEY, defaults)
   const [saved, setSaved] = React.useState(false)
+  const avatarInputRef = React.useRef<HTMLInputElement>(null)
+  const { upload: uploadAvatar, uploading: avatarUploading } = useUpload({
+    type: "avatar",
+    onSuccess: (url) => {
+      setForm(f => ({ ...f, avatarUrl: url }))
+      toast({ title: "Photo updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
 
   const save = () => {
     saveLS(PROFILE_KEY, form)
@@ -109,16 +119,38 @@ function ProfileSection() {
 
       {/* Avatar upload */}
       <div className="flex items-center gap-4">
-        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0">
-          {form.firstName.charAt(0)}
-          <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-            <Upload className="h-4 w-4 text-white" />
+        <div
+          className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0 cursor-pointer group"
+          onClick={() => avatarInputRef.current?.click()}
+        >
+          {form.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span>{form.firstName.charAt(0)}</span>
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            {avatarUploading
+              ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Upload className="h-4 w-4 text-white" />}
           </div>
         </div>
         <div>
           <p className="text-sm font-semibold">Profile photo</p>
-          <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG · Max 2MB</p>
-          <button className="mt-1.5 text-xs text-brand-purple font-semibold hover:underline">Upload photo</button>
+          <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG · Max 10 MB</p>
+          <button
+            className="mt-1.5 text-xs text-brand-purple font-semibold hover:underline"
+            onClick={() => avatarInputRef.current?.click()}
+          >
+            Upload photo
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f) }}
+          />
         </div>
       </div>
 

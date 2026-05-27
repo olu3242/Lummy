@@ -16,10 +16,10 @@ export async function GET(req: Request) {
       .eq("user_id", user.id)
       .maybeSingle()
 
-    if (!profile?.id) return NextResponse.json({ summary: null })
+    if (!profile?.id) return NextResponse.json({ summary: null, monthlyData: [], weeklyData: [] })
 
-    const summary = await get30DayAnalytics(profile.id)
-    return NextResponse.json({ summary }, { headers: { "x-correlation-id": correlationId } })
+    const { monthlyData, weeklyData, ...summary } = await get30DayAnalytics(profile.id)
+    return NextResponse.json({ summary, monthlyData, weeklyData }, { headers: { "x-correlation-id": correlationId } })
   } catch (error) {
     return errorResponse(500, "ANALYTICS_FAILED", "Failed to fetch analytics", correlationId)
   }

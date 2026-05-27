@@ -20,6 +20,7 @@ import {
 import { type DashboardProduct } from "@/data/mock/dashboard"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useUpload } from "@/hooks/use-upload"
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 
@@ -352,6 +353,13 @@ function ProductDrawer({
   const [form, setForm] = React.useState<ProductFormState>(emptyForm)
   const [saving, setSaving] = React.useState(false)
   const [aiGenerating, setAiGenerating] = React.useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const { upload, uploading: imageUploading } = useUpload({
+    type: "product",
+    productId: editing?.id,
+    onSuccess: (url) => { set("imageUrl", url); toast({ title: "Image uploaded", variant: "success" }) },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
 
   React.useEffect(() => {
     setForm(editing ? productToForm(editing) : emptyForm)
@@ -431,18 +439,36 @@ function ProductDrawer({
         <SheetBody>
           <div>
             <FieldLabel>Product image</FieldLabel>
-            <div className="relative rounded-2xl overflow-hidden bg-muted border border-border h-44 mb-2.5 flex items-center justify-center">
+            <div
+              className="relative rounded-2xl overflow-hidden bg-muted border border-border h-44 mb-2.5 flex items-center justify-center cursor-pointer group"
+              onClick={() => fileInputRef.current?.click()}
+            >
               {form.imageUrl ? (
                 <Image src={form.imageUrl} alt="preview" fill className="object-cover" unoptimized />
               ) : (
                 <div className="flex flex-col items-center gap-2 text-muted-foreground">
                   <ImagePlus className="h-8 w-8 opacity-30" />
-                  <span className="text-xs">Image preview</span>
+                  <span className="text-xs">Click to upload image</span>
                 </div>
               )}
+              {imageUploading && (
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 text-white animate-spin" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="text-[11px] text-white font-semibold bg-black/40 rounded-lg px-2 py-1">Change image</span>
+              </div>
             </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) upload(f) }}
+            />
             <input value={form.imageUrl} onChange={(e) => set("imageUrl", e.target.value)}
-              placeholder="Paste image URL…" className={inputCls} />
+              placeholder="Or paste image URL…" className={inputCls} />
           </div>
 
           <div>

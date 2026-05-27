@@ -427,6 +427,11 @@ export default function OrdersPage() {
 
   const handleStatusChange = (id: string, status: OrderStatus) => {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
+    fetch(`/api/orders/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    }).catch(() => { /* status update is best-effort; local state already updated */ })
   }
 
   const filtered = React.useMemo(() => {
@@ -466,16 +471,24 @@ export default function OrdersPage() {
   const clearSelect = () => setSelectedIds(new Set())
 
   const bulkAdvance = () => {
-    let count = 0
+    const updates: { id: string; status: OrderStatus }[] = []
     setOrders(prev => prev.map(o => {
       if (!selectedIds.has(o.id)) return o
       const idx = statusFlow.indexOf(o.status as OrderStatus)
       if (idx < 0 || idx >= statusFlow.length - 1) return o
-      count++
-      return { ...o, status: statusFlow[idx + 1] }
+      const nextStatus = statusFlow[idx + 1]
+      updates.push({ id: o.id, status: nextStatus })
+      return { ...o, status: nextStatus }
     }))
-    toast({ title: `${count} orders advanced`, variant: "success" })
+    toast({ title: `${updates.length} orders advanced`, variant: "success" })
     clearSelect()
+    updates.forEach(({ id, status }) => {
+      fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      }).catch(() => {})
+    })
   }
 
   const bulkWhatsApp = () => {

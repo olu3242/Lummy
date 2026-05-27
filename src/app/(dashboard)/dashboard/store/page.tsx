@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { mockCreatorProfile } from "@/data/mock/dashboard"
 import { useStoreSchema } from "@/store/hooks/use-store-schema"
+import { useUpload } from "@/hooks/use-upload"
 import { StorefrontPreview } from "@/store/preview/storefront-preview"
 import { ThemeEditorPanel } from "@/store/editor/theme-editor-panel"
 import { SectionListEditor } from "@/store/editor/section-list-editor"
@@ -180,6 +181,29 @@ export default function StorePage() {
   const [selectedSectionId, setSelectedSectionId] = React.useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = React.useState(false)
 
+  // Store media upload
+  const [coverUrl, setCoverUrl] = React.useState("")
+  const [avatarUrl, setAvatarUrl] = React.useState("")
+  const coverInputRef = React.useRef<HTMLInputElement>(null)
+  const avatarInputRef = React.useRef<HTMLInputElement>(null)
+  const { upload: uploadCover, uploading: coverUploading } = useUpload({
+    type: "banner",
+    onSuccess: (url) => {
+      setCoverUrl(url)
+      fetch("/api/storefront", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ hero_image: url }) }).catch(() => {})
+      toast({ title: "Cover updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
+  const { upload: uploadAvatar, uploading: avatarUploading } = useUpload({
+    type: "avatar",
+    onSuccess: (url) => {
+      setAvatarUrl(url)
+      toast({ title: "Avatar updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
+
   React.useEffect(() => { setSettings(loadSettings()) }, [])
 
   const update = (patch: Partial<StoreSettings>) => setSettings(prev => ({ ...prev, ...patch }))
@@ -305,21 +329,30 @@ export default function StorePage() {
             <div className="space-y-4">
               {/* Cover + avatar */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className="relative h-36 bg-muted group cursor-pointer">
-                  <Image src={p.cover} alt="Cover" fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                <div className="relative h-36 bg-muted group cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                  <Image src={coverUrl || p.cover} alt="Cover" fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-2xl px-4 py-2 text-white text-xs font-semibold">
-                      <Camera className="h-3.5 w-3.5" /> Change Cover
+                      {coverUploading
+                        ? <><div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                        : <><Camera className="h-3.5 w-3.5" /> Change Cover</>}
                     </div>
                   </div>
+                  <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCover(f) }} />
                 </div>
                 <div className="px-5 pb-4">
                   <div className="relative -mt-8 mb-3 w-fit">
-                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-background border border-border cursor-pointer group">
-                      <Image src={p.avatar} alt={p.name} fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-background border border-border cursor-pointer group"
+                      onClick={() => avatarInputRef.current?.click()}>
+                      <Image src={avatarUrl || p.avatar} alt={p.name} fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                        <Camera className="h-4 w-4 text-white" />
+                        {avatarUploading
+                          ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <Camera className="h-4 w-4 text-white" />}
                       </div>
+                      <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f) }} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
