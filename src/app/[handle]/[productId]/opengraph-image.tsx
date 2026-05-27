@@ -7,6 +7,8 @@ export const alt = `Product on ${BRAND.name}`
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
+const brandLogoUrl = new URL(BRAND.logo, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString()
+
 export default async function OGImage({
   params,
 }: {
@@ -47,7 +49,7 @@ export default async function OGImage({
           {/* Lummy logo */}
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={BRAND.logo} alt={BRAND.name} width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10 }} />
+            <img src={brandLogoUrl} alt={BRAND.name} width={36} height={36} style={{ width: 36, height: 36, borderRadius: 10 }} />
             <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, fontWeight: 600, letterSpacing: 1 }}>{BRAND.name}</span>
           </div>
 

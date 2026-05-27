@@ -3,9 +3,9 @@ import { BRAND } from "@/config/branding"
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${BRAND.name} — Creator Commerce OS`,
+    name: BRAND.name,
     short_name: BRAND.name,
-    description: "Your WhatsApp storefront. Sell anything, anywhere in Africa.",
+    description: BRAND.tagline,
     start_url: "/",
     display: "standalone",
     background_color: "#080815",

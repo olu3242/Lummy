@@ -209,9 +209,13 @@ function DiscountGenerator({ customer }: { customer: Customer }) {
 
 // ── Customer Tags ─────────────────────────────────────────────────────────────
 function CustomerTags({ customerId }: { customerId: string }) {
-  const [tags, setTags]       = React.useState<string[]>(() => loadTags(customerId))
+  const [tags, setTags]       = React.useState<string[]>([])
   const [input, setInput]     = React.useState("")
   const [adding, setAdding]   = React.useState(false)
+
+  React.useEffect(() => {
+    setTags(loadTags(customerId))
+  }, [customerId])
 
   const addTag = () => {
     const t = input.trim().toLowerCase()

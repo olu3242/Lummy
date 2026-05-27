@@ -125,10 +125,11 @@ function EarningsChart({ data }: { data: { month: string; amount: number }[] }) 
 
 function QRCodeDisplay({ url }: { url: string }) {
   // Simplified visual QR placeholder — actual QR lib would be used in production
+  const seed = Array.from(url).reduce((sum, char) => sum + char.charCodeAt(0), 0)
   const cells = Array.from({ length: 7 }, (_, r) =>
     Array.from({ length: 7 }, (_, c) => {
       const isCorner = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
-      return isCorner || Math.random() > 0.5
+      return isCorner || ((seed + r * 7 + c * 11) % 3 === 0)
     })
   )
 

@@ -1,9 +1,10 @@
 import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
-import { Zap } from "lucide-react"
+import { BRAND } from "@/config/branding"
 
 export const metadata: Metadata = {
-  title: "Lummy Store",
+  title: `${BRAND.name} Store`,
 }
 
 export default function StorefrontLayout({ children }: { children: React.ReactNode }) {
@@ -19,10 +20,8 @@ export default function StorefrontLayout({ children }: { children: React.ReactNo
         >
           Powered by
           <span className="inline-flex items-center gap-1 font-semibold text-foreground">
-            <div className="flex h-4 w-4 items-center justify-center rounded bg-gradient-to-br from-brand-purple to-brand-indigo">
-              <Zap className="h-2.5 w-2.5 text-white fill-white" />
-            </div>
-            Lummy
+            <Image src={BRAND.logo} alt={BRAND.name} width={16} height={16} className="h-4 w-4 rounded" />
+            {BRAND.name}
           </span>
           <span className="text-muted-foreground/50">— Start your store free</span>
         </Link>

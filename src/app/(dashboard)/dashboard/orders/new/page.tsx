@@ -305,7 +305,11 @@ export default function NewOrderPage() {
 
   const freeDeliveryProgress = Math.min((subtotal / FREE_DELIVERY_THRESHOLD) * 100, 100)
 
-  const orderId = React.useMemo(() => `LM${Math.floor(1000 + Math.random() * 9000)}`, [])
+  const [orderId, setOrderId] = React.useState("LM0000")
+
+  React.useEffect(() => {
+    setOrderId(`LM${Math.floor(1000 + Math.random() * 9000)}`)
+  }, [])
   const confirmMsg = buildConfirmationMsg(items, customer, total, payment, orderId)
 
   const copyMsg = () => {

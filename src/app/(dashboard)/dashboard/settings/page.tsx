@@ -73,9 +73,19 @@ function saveLS(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
 
+function useLocalStorageState<T>(key: string, fallback: T) {
+  const [value, setValue] = React.useState<T>(fallback)
+
+  React.useEffect(() => {
+    setValue(loadLS(key, fallback))
+  }, [fallback, key])
+
+  return [value, setValue] as const
+}
+
 function ProfileSection() {
-  const defaults = { firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }
-  const [form, setForm] = React.useState(() => loadLS(PROFILE_KEY, defaults))
+  const defaults = React.useMemo(() => ({ firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }), [])
+  const [form, setForm] = useLocalStorageState(PROFILE_KEY, defaults)
   const [saved, setSaved] = React.useState(false)
 
   const save = () => {
@@ -156,8 +166,8 @@ function ProfileSection() {
 }
 
 function StoreSection() {
-  const defaults = { storeName: "Sade's Boutique", handle: "sade", instagram: "sadeboutique", twitter: "sadeboutique", tiktok: "" }
-  const [form, setForm] = React.useState(() => loadLS(STORE_KEY, defaults))
+  const defaults = React.useMemo(() => ({ storeName: "Sade's Boutique", handle: "sade", instagram: "sadeboutique", twitter: "sadeboutique", tiktok: "" }), [])
+  const [form, setForm] = useLocalStorageState(STORE_KEY, defaults)
   const [saved, setSaved] = React.useState(false)
 
   const save = async () => {
@@ -233,11 +243,11 @@ function StoreSection() {
 }
 
 function NotificationsSection() {
-  const defaultPrefs = {
+  const defaultPrefs = React.useMemo(() => ({
     newOrder: true, orderStatus: true, newReview: true, lowStock: true,
     weeklySummary: true, aiInsights: false, marketing: false, whatsappAlerts: true, emailDigest: true,
-  }
-  const [prefs, setPrefs] = React.useState(() => loadLS(NOTIF_KEY, defaultPrefs))
+  }), [])
+  const [prefs, setPrefs] = useLocalStorageState(NOTIF_KEY, defaultPrefs)
   const [saved, setSaved] = React.useState(false)
   const save = () => { saveLS(NOTIF_KEY, prefs); setSaved(true); setTimeout(() => setSaved(false), 2500); toast({ title: "Notification preferences saved", variant: "success" }) }
 

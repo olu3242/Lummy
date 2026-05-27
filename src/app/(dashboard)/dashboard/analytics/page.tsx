@@ -131,12 +131,16 @@ const dowRevenueData = [
 // ─── Components ───────────────────────────────────────────────────────────────
 
 function RevenueGoalCard({ currentRevenue }: { currentRevenue: number }) {
-  const [goal, setGoal] = React.useState<number>(() => {
-    if (typeof window === "undefined") return 800000
-    try { const v = localStorage.getItem(GOAL_KEY); return v ? Number(v) : 800000 } catch { return 800000 }
-  })
+  const [goal, setGoal] = React.useState<number>(800000)
   const [editing, setEditing] = React.useState(false)
   const [inputVal, setInputVal] = React.useState("")
+
+  React.useEffect(() => {
+    try {
+      const v = localStorage.getItem(GOAL_KEY)
+      if (v) setGoal(Number(v))
+    } catch {}
+  }, [])
 
   const pct = Math.min(100, Math.round((currentRevenue / goal) * 100))
   const remaining = Math.max(0, goal - currentRevenue)

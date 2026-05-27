@@ -104,11 +104,24 @@ function normalizeProductDraft(value: unknown): ProductDraft | null {
 
 function formatSavedAt(value: string | null) {
   if (!value) return "Draft autosave enabled"
-  const diff = Math.max(0, Date.now() - new Date(value).getTime())
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "Last saved just now"
-  if (minutes === 1) return "Last saved 1 min ago"
-  return `Last saved ${minutes} mins ago`
+
+  try {
+    const saved = new Date(value).getTime()
+
+    if (Number.isNaN(saved)) {
+      return "Draft autosave enabled"
+    }
+
+    const diff = Math.max(0, Date.now() - saved)
+    const minutes = Math.floor(diff / 60000)
+
+    if (minutes < 1) return "Last saved just now"
+    if (minutes === 1) return "Last saved 1 min ago"
+
+    return `Last saved ${minutes} mins ago`
+  } catch {
+    return "Draft autosave enabled"
+  }
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -531,6 +544,8 @@ export default function NewProductPage() {
   const [saving, setSaving] = React.useState(false)
   const [restored, setRestored] = React.useState(false)
   const [lastSavedAt, setLastSavedAt] = React.useState<string | null>(null)
+  const autosaveTimeoutRef = React.useRef<number | null>(null)
+  const draftFinalizedRef = React.useRef(false)
 
   React.useEffect(() => {
     setMounted(true)
@@ -597,7 +612,7 @@ export default function NewProductPage() {
   }, [mounted])
 
   React.useEffect(() => {
-    if (!mounted || !hydrated || !userId) return
+    if (!mounted || !hydrated || !userId || draftFinalizedRef.current) return
 
     const savedAt = new Date().toISOString()
     const productDraft = { step, form, savedAt }
@@ -605,7 +620,9 @@ export default function NewProductPage() {
       localStorage.setItem(PRODUCT_DRAFT_KEY, JSON.stringify(productDraft))
     } catch { /* ignore */ }
 
-    const timeout = window.setTimeout(() => {
+    if (autosaveTimeoutRef.current) window.clearTimeout(autosaveTimeoutRef.current)
+    autosaveTimeoutRef.current = window.setTimeout(() => {
+      if (draftFinalizedRef.current) return
       const supabase = createClient()
       const metadata = {
         ...(continuityRow.metadata ?? {}),
@@ -629,7 +646,9 @@ export default function NewProductPage() {
       })
     }, 700)
 
-    return () => window.clearTimeout(timeout)
+    return () => {
+      if (autosaveTimeoutRef.current) window.clearTimeout(autosaveTimeoutRef.current)
+    }
   }, [continuityRow.completed, continuityRow.current_step, continuityRow.metadata, continuityRow.organization_id, form, hydrated, mounted, step, userId])
 
   const canNext =
@@ -641,8 +660,10 @@ export default function NewProductPage() {
   const handleBack = () => { if (step > 1) setStep(s => s - 1) }
 
   const handleSave = () => {
+    draftFinalizedRef.current = true
+    if (autosaveTimeoutRef.current) window.clearTimeout(autosaveTimeoutRef.current)
     setSaving(true)
-    setTimeout(() => {
+    setTimeout(async () => {
       setSaving(false)
       toast({
         title: form.status === "draft" ? "Product saved as draft" : "Product published!",
@@ -654,7 +675,7 @@ export default function NewProductPage() {
         const supabase = createClient()
         const metadata = { ...(continuityRow.metadata ?? {}) }
         delete metadata.product_draft
-        void supabase.from("onboarding_states").upsert(
+        await supabase.from("onboarding_states").upsert(
           {
             user_id: userId,
             organization_id: continuityRow.organization_id ?? null,
@@ -665,6 +686,7 @@ export default function NewProductPage() {
           },
           { onConflict: "user_id" },
         )
+        setContinuityRow((row) => ({ ...row, metadata }))
       }
       router.push("/dashboard/products")
     }, 1000)

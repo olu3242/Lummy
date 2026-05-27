@@ -365,10 +365,14 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = React.useState<Notification[]>(mockNotifications)
   const [activeTab, setActiveTab] = React.useState<typeof filterTabs[number]>("All")
   const [prefsOpen, setPrefsOpen] = React.useState(false)
-  const [prefs, setPrefs] = React.useState<NotifPrefs>(loadPrefs)
+  const [prefs, setPrefs] = React.useState<NotifPrefs>(DEFAULT_PREFS)
   const [search, setSearch] = React.useState("")
   const [snoozeOpenId, setSnoozeOpenId] = React.useState<string | null>(null)
   const [showHeatmap, setShowHeatmap] = React.useState(false)
+
+  React.useEffect(() => {
+    setPrefs(loadPrefs())
+  }, [])
 
   const unreadCount = notifications.filter(n => !n.read && !n.snoozedUntil).length
 

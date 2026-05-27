@@ -112,11 +112,24 @@ function normalizeDraft(value: unknown): OnboardingDraft | null {
 
 function formatSavedAt(value: string | null) {
   if (!value) return "Saving enabled"
-  const diff = Math.max(0, Date.now() - new Date(value).getTime())
-  const minutes = Math.floor(diff / 60000)
-  if (minutes < 1) return "Last saved just now"
-  if (minutes === 1) return "Last saved 1 min ago"
-  return `Last saved ${minutes} mins ago`
+
+  try {
+    const saved = new Date(value).getTime()
+
+    if (Number.isNaN(saved)) {
+      return "Saving enabled"
+    }
+
+    const diff = Math.max(0, Date.now() - saved)
+    const minutes = Math.floor(diff / 60000)
+
+    if (minutes < 1) return "Last saved just now"
+    if (minutes === 1) return "Last saved 1 min ago"
+
+    return `Last saved ${minutes} mins ago`
+  } catch {
+    return "Saving enabled"
+  }
 }
 
 const creatorTypes = [
@@ -620,8 +633,21 @@ const slideVariants = {
 }
 
 export default function OnboardingPage() {
-  const router = useRouter()
   const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <OnboardingFlow />
+}
+
+function OnboardingFlow() {
+  const router = useRouter()
   const [hydrated, setHydrated] = React.useState(false)
   const [step, setStep] = React.useState(1)
   const [dir, setDir] = React.useState(1)
@@ -634,12 +660,6 @@ export default function OnboardingPage() {
   const [userContext, setUserContext] = React.useState<{ id: string; email: string | null } | null>(null)
 
   React.useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  React.useEffect(() => {
-    if (!mounted) return
-
     let cancelled = false
 
     async function restoreDraft() {
@@ -708,10 +728,10 @@ export default function OnboardingPage() {
     return () => {
       cancelled = true
     }
-  }, [mounted, router])
+  }, [router])
 
   React.useEffect(() => {
-    if (!mounted || !hydrated || !userContext) return
+    if (!hydrated || !userContext) return
 
     const savedAt = new Date().toISOString()
     const localDraft = { step, data, savedAt }
@@ -763,7 +783,7 @@ export default function OnboardingPage() {
     }, 700)
 
     return () => window.clearTimeout(timeout)
-  }, [data, hydrated, mounted, step, userContext])
+  }, [data, hydrated, step, userContext])
 
   const update = (partial: Partial<WizardData>) => setData((d) => {
     const next = { ...d, ...partial }
@@ -866,7 +886,7 @@ export default function OnboardingPage() {
     }
   }
 
-  if (!mounted || !hydrated) return null
+  if (!hydrated) return null
 
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">

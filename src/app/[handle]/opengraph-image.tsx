@@ -7,6 +7,8 @@ export const alt = `${BRAND.name} creator storefront`
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
+const brandLogoUrl = new URL(BRAND.logo, process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").toString()
+
 export default async function OGImage() {
   const creator = storefrontCreator
 
@@ -32,7 +34,7 @@ export default async function OGImage() {
         {/* Lummy logo */}
         <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 48 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={BRAND.logo} alt={BRAND.name} width={44} height={44} style={{ width: 44, height: 44, borderRadius: 12 }} />
+          <img src={brandLogoUrl} alt={BRAND.name} width={44} height={44} style={{ width: 44, height: 44, borderRadius: 12 }} />
           <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 22, fontWeight: 600, letterSpacing: 1 }}>{BRAND.name}</span>
         </div>
 

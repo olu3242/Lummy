@@ -1,8 +1,9 @@
+import type { ConnectionOptions } from "bullmq"
 import IORedis from "ioredis"
 
 let _redis: IORedis | null = null
 
-export function getRedisConnection(): IORedis {
+export function getRedisConnection(): ConnectionOptions {
   if (!_redis) {
     const url = process.env.REDIS_URL
     _redis = url
@@ -20,13 +21,13 @@ export function getRedisConnection(): IORedis {
       console.error("[redis] connection error", err.message)
     })
   }
-  return _redis
+  return _redis as unknown as ConnectionOptions
 }
 
 /** Dedicated connection for BullMQ workers (must not share with subscribers) */
-export function createWorkerConnection(): IORedis {
+export function createWorkerConnection(): ConnectionOptions {
   const url = process.env.REDIS_URL
-  return url
+  const connection = url
     ? new IORedis(url, { maxRetriesPerRequest: null, enableReadyCheck: false })
     : new IORedis({
         host:                process.env.REDIS_HOST ?? "localhost",
@@ -35,4 +36,6 @@ export function createWorkerConnection(): IORedis {
         maxRetriesPerRequest: null,
         enableReadyCheck:    false,
       })
+
+  return connection as unknown as ConnectionOptions
 }

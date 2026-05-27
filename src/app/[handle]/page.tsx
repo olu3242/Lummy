@@ -2,22 +2,23 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getPublishedStorefrontByHandle } from '@/repositories/storefront-repository'
 import { getPublishedProductsByHandle } from '@/repositories/product-repository'
+import { BRAND } from '@/config/branding'
 import { getCreatorByHandle } from '@/lib/queries/creator'
 import { StorefrontClient } from './storefront-client'
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   const storefront = await getPublishedStorefrontByHandle(params.handle)
   if (!storefront) {
-    return { title: 'Store not found — Lummy' }
+    return { title: `Store not found — ${BRAND.name}` }
   }
 
   const storeName = (storefront.organizations as { name?: string } | null)?.name ?? `${params.handle} Store`
-  const description = storefront.bio || `${storeName} on Lummy`
+  const description = storefront.bio || `${storeName} on ${BRAND.name}`
 
   return {
-    title: `${storeName} — Shop on Lummy`,
+    title: `${storeName} — Shop on ${BRAND.name}`,
     description,
-    openGraph: { title: storeName, description, url: `https://lummy.co/${params.handle}`, siteName: 'Lummy', type: 'website' },
+    openGraph: { title: storeName, description, url: `https://lummy.co/${params.handle}`, siteName: BRAND.name, type: 'website' },
     twitter: { card: 'summary_large_image', title: storeName, description },
     alternates: { canonical: `https://lummy.co/${params.handle}` },
   }

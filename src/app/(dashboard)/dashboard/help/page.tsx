@@ -209,14 +209,15 @@ function ShortcutKey({ k }: { k: string }) {
 }
 
 function OnboardingChecklist() {
-  const [done, setDone] = React.useState<Set<string>>(() => {
-    if (typeof window === "undefined") return new Set()
+  const [done, setDone] = React.useState<Set<string>>(new Set())
+  const [dismissed, setDismissed] = React.useState(false)
+
+  React.useEffect(() => {
     try {
       const raw = localStorage.getItem(ONBOARDING_KEY)
-      return raw ? new Set(JSON.parse(raw) as string[]) : new Set()
-    } catch { return new Set() }
-  })
-  const [dismissed, setDismissed] = React.useState(false)
+      setDone(raw ? new Set(JSON.parse(raw) as string[]) : new Set())
+    } catch {}
+  }, [])
 
   const toggle = (id: string) => {
     setDone(prev => {
@@ -343,15 +344,18 @@ function SystemStatusPanel() {
 }
 
 function FeatureRequestBoard() {
-  const [requests, setRequests] = React.useState<(FeatureRequest & { voted: boolean })[]>(() => {
-    if (typeof window === "undefined") return INITIAL_FEATURE_REQUESTS.map(r => ({ ...r, voted: false }))
-    try {
-      const voted = new Set(JSON.parse(localStorage.getItem(FEATURE_VOTES_KEY) ?? "[]") as string[])
-      return INITIAL_FEATURE_REQUESTS.map(r => ({ ...r, voted: voted.has(r.id) }))
-    } catch { return INITIAL_FEATURE_REQUESTS.map(r => ({ ...r, voted: false })) }
-  })
+  const [requests, setRequests] = React.useState<(FeatureRequest & { voted: boolean })[]>(
+    INITIAL_FEATURE_REQUESTS.map(r => ({ ...r, voted: false }))
+  )
   const [newRequest, setNewRequest] = React.useState("")
   const [submitting, setSubmitting] = React.useState(false)
+
+  React.useEffect(() => {
+    try {
+      const voted = new Set(JSON.parse(localStorage.getItem(FEATURE_VOTES_KEY) ?? "[]") as string[])
+      setRequests(INITIAL_FEATURE_REQUESTS.map(r => ({ ...r, voted: voted.has(r.id) })))
+    } catch {}
+  }, [])
 
   const vote = (id: string) => {
     setRequests(prev => {

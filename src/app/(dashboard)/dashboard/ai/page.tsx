@@ -302,11 +302,15 @@ export default function AIPage() {
   ])
   const [input, setInput] = React.useState("")
   const [isTyping, setIsTyping] = React.useState(false)
-  const [history, setHistory] = React.useState<HistoryEntry[]>(() => {
-    if (typeof window === "undefined") return []
-    try { const raw = localStorage.getItem(HISTORY_KEY); return raw ? JSON.parse(raw) : [] } catch { return [] }
-  })
+  const [history, setHistory] = React.useState<HistoryEntry[]>([])
   const bottomRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY)
+      setHistory(raw ? JSON.parse(raw) : [])
+    } catch {}
+  }, [])
 
   React.useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, isTyping])
 

@@ -425,7 +425,7 @@ function LinkAnalyticsPanel({ link }: { link: LinkItem }) {
 }
 
 export default function LinksPage() {
-  const [links, setLinks] = React.useState<LinkItem[]>(loadLinks)
+  const [links, setLinks] = React.useState<LinkItem[]>(DEFAULT_LINKS)
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editLabel, setEditLabel] = React.useState("")
   const [editUrl, setEditUrl] = React.useState("")
@@ -434,6 +434,10 @@ export default function LinksPage() {
   const [copied, setCopied] = React.useState(false)
   const [expandedId, setExpandedId] = React.useState<string | null>(null)
   const [qrOpen, setQrOpen] = React.useState(false)
+
+  React.useEffect(() => {
+    setLinks(loadLinks())
+  }, [])
 
   const handle = "sade.styles"
   const bioUrl = `https://lummy.co/${handle}/links`
