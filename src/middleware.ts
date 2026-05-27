@@ -3,6 +3,8 @@ import { updateSession } from "@/lib/supabase/middleware"
 
 const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/ops", "/developers"]
 const AUTH_ROUTES = ["/login", "/signup"]
+// Auth infrastructure routes — never redirect these, even if unauthenticated
+const AUTH_PASSTHROUGH = ["/api/auth/", "/auth/"]
 
 function genCorrelationId(): string {
   return `req_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`
@@ -16,6 +18,13 @@ export async function middleware(request: NextRequest) {
   // no cookie mutation. Meta's verification requires a fast plain-text 200;
   // Supabase updateSession overhead risks timeout or response interference.
   if (pathname.startsWith("/api/webhooks/")) {
+    return NextResponse.next()
+  }
+
+  // Auth infrastructure routes — never apply redirect logic here.
+  // The PKCE callback exchanges codes and sets session cookies; intercepting
+  // it would corrupt the OAuth flow and prevent session establishment.
+  if (AUTH_PASSTHROUGH.some(p => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 

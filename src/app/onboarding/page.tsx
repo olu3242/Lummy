@@ -666,7 +666,10 @@ function OnboardingFlow() {
       const supabase = createClient()
       const { data: auth } = await supabase.auth.getUser()
       if (!auth.user) {
-        setHydrated(true)
+        // Session missing — redirect to login with `next` param so they return here after auth
+        if (!cancelled) {
+          window.location.href = "/login?next=/onboarding"
+        }
         return
       }
 
@@ -675,7 +678,7 @@ function OnboardingFlow() {
       const [{ data: profile }, { data: onboardingState }] = await Promise.all([
         supabase
           .from("profiles")
-          .select("onboarding_completed, organization_id, onboarding_step")
+          .select("onboarding_completed, organization_id, onboarding_step, full_name")
           .eq("id", auth.user.id)
           .maybeSingle(),
         supabase
@@ -718,6 +721,14 @@ function OnboardingFlow() {
         try {
           localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...nextDraft, savedAt: nextDraft.savedAt ?? new Date().toISOString() }))
         } catch { /* ignore */ }
+      } else {
+        // No draft — new user (e.g. Google OAuth). Pre-populate name from profile.
+        const profileName = (profile as { full_name?: string | null } | null)?.full_name
+        const googleName = auth.user.user_metadata?.full_name ?? auth.user.user_metadata?.name ?? null
+        const inferredName = (profileName ?? googleName ?? "").trim()
+        if (inferredName) {
+          setData(d => ({ ...d, storeName: inferredName }))
+        }
       }
 
       setHydrated(true)
