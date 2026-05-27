@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/automation-processor",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/analytics-rollup",
@@ -22,7 +22,7 @@
     },
     {
       "path": "/api/cron/stuck-queue-recovery",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 23 * * *"
     },
     {
       "path": "/api/cron/weekly-digest",

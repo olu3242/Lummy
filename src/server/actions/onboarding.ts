@@ -4,6 +4,7 @@ import { saveOnboardingProfile, ensureOrganizationForUser } from '@/repositories
 import { upsertStorefront } from '@/repositories/storefront-repository';
 import { createProduct } from '@/repositories/product-repository';
 import { createClient } from '@/lib/supabase/server';
+import { sendStorefrontLiveEmail, sendCreatorWelcomeEmail } from '@/lib/notifications/email';
 
 export async function saveOnboardingStep(input: { full_name?: string; phone?: string; country?: string; currency?: string; handle?: string; organizationId?: string }) {
   await saveOnboardingProfile({ ...input, onboarding_step: 'profile' });
@@ -72,6 +73,24 @@ export async function completeOnboarding(input: {
     { user_id: auth.user.id, organization_id: organization.id, current_step: 'completed', completed: true },
     { onConflict: 'user_id' },
   );
+
+  // Fire-and-forget: storefront-live + welcome emails (non-blocking)
+  const creatorEmail = auth.user.email;
+  if (creatorEmail) {
+    void sendStorefrontLiveEmail({
+      to: creatorEmail,
+      creatorName: input.fullName,
+      storeName: input.orgName,
+      storeHandle: cleanHandle,
+    }).catch(() => { /* non-critical — never block onboarding completion */ });
+
+    void sendCreatorWelcomeEmail({
+      to: creatorEmail,
+      creatorName: input.fullName,
+      storeHandle: cleanHandle,
+      storeName: input.orgName,
+    }).catch(() => {});
+  }
 
   return { organizationId: organization.id };
 }

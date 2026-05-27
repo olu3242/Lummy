@@ -17,7 +17,7 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
   SheetDescription, SheetBody, SheetFooter,
 } from "@/components/ui/sheet"
-import { mockProducts, type DashboardProduct } from "@/data/mock/dashboard"
+import { type DashboardProduct } from "@/data/mock/dashboard"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 

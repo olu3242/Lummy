@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { updateProductSchema } from "@/lib/validations/product"
+import { sendProductPublishedEmail } from "@/lib/notifications/email"
+import { logger } from "@/lib/observability/logger"
 
 type Params = { params: { id: string } }
 
@@ -52,6 +54,30 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data)  return NextResponse.json({ error: "Not found" }, { status: 404 })
+
+  // Fire-and-forget: product-published email when status transitions to active
+  if (patch.status === "active") {
+    void (async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user?.email) return
+        const { data: storefront } = await supabase
+          .from("storefronts").select("handle").eq("organization_id", organizationId).maybeSingle()
+        const productRow = data as { title?: string; price?: number }
+        const priceNaira = `₦${Math.round((productRow.price ?? 0) / 100).toLocaleString()}`
+        void sendProductPublishedEmail({
+          to: user.email,
+          creatorName: user.email.split("@")[0]!,
+          productName: productRow.title ?? "Product",
+          price: priceNaira,
+          storeHandle: (storefront as { handle?: string } | null)?.handle ?? "",
+        })
+      } catch (e) {
+        logger.warn("product-published email failed", { productId: params.id, error: String(e) })
+      }
+    })()
+  }
+
   return NextResponse.json({ data })
 }
 
