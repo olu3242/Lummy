@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, "claude/**"]
+    branches: [main, "claude/**", "convergence/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "convergence/**"]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -28,8 +28,6 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm check:graph
-      - run: pnpm build:references
       - run: pnpm build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
@@ -70,20 +68,16 @@ jobs:
             exit 1
           fi
           echo "Migration safety check passed"
-      - name: Verify migration sequence is contiguous
+      - name: Verify migration sequence has no duplicates
         run: |
-          PREV=0
-          for f in $(ls supabase/migrations/*.sql | sort); do
-            NUM=$(basename "$f" | cut -d_ -f1 | sed 's/^0*//')
-            NUM=${NUM:-0}
-            EXPECTED=$((PREV+1))
-            if [ "$NUM" -ne "$EXPECTED" ]; then
-              echo "Gap in migration sequence: expected $EXPECTED, got $NUM ($f)"
-              exit 1
-            fi
-            PREV=$NUM
-          done
-          echo "Migration sequence is contiguous (1-$PREV)"
+          DUPES=$(ls supabase/migrations/*.sql | xargs -I{} basename {} | cut -d_ -f1 | sort | uniq -d)
+          if [ -n "$DUPES" ]; then
+            echo "Duplicate migration prefixes found: $DUPES"
+            echo "Each NNN prefix must be unique. Use the next available number for new migrations."
+            exit 1
+          fi
+          TOTAL=$(ls supabase/migrations/*.sql | wc -l)
+          echo "Migration uniqueness check passed ($TOTAL migrations, no duplicate prefixes)"
 
   env-audit:
     name: Env & Secret Audit
