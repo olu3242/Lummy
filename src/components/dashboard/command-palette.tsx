@@ -130,9 +130,8 @@ export function CommandPalette() {
     })),
   [go])
 
-  const allItems = [...baseItems, ...productItems, ...orderItems]
-
   const filtered = React.useMemo(() => {
+    const allItems = [...baseItems, ...productItems, ...orderItems]
     if (!query.trim()) return baseItems
     const q = query.toLowerCase()
     return allItems.filter(
@@ -141,7 +140,7 @@ export function CommandPalette() {
         (i.description?.toLowerCase().includes(q)) ||
         i.group.toLowerCase().includes(q)
     )
-  }, [query, allItems, baseItems])
+  }, [query, baseItems, productItems, orderItems])
 
   const groups = React.useMemo(() => {
     const map: Record<string, CommandItem[]> = {}

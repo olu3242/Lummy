@@ -410,6 +410,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
     setNote(customer.notes ?? "")
     setComposeOpen(false)
     setCustomMsg("")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer.id])
 
   const saveNote = () => {

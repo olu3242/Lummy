@@ -4,12 +4,18 @@
  * GET /api/storefront/[handle]/product/[productId]
  */
 
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/server"
+import { checkRateLimit, getRateLimitKey } from "@/lib/security/rate-limit"
 
 type Params = { params: { handle: string; productId: string } }
 
-export async function GET(_req: Request, { params }: Params) {
+export async function GET(_req: NextRequest, { params }: Params) {
+  // Rate limit: 120 req/min per IP on public product lookup
+  const rl = checkRateLimit(getRateLimitKey("storefront:product", _req), 120)
+  if (!rl.allowed) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 })
+  }
   const { handle, productId } = params
 
   const supabase = createAdminClient()
