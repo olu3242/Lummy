@@ -26,9 +26,9 @@ export async function generateMetadata({ params }: { params: { handle: string } 
 
 export default async function StorefrontPage({ params }: { params: { handle: string } }) {
   const [storefront, products, creatorProfile] = await Promise.all([
-    getPublishedStorefrontByHandle(params.handle),
+    getPublishedStorefrontByHandle(params.handle).catch(() => null),
     getPublishedProductsByHandle(params.handle).catch(() => []),
-    getCreatorByHandle(params.handle),
+    getCreatorByHandle(params.handle).catch(() => null),
   ])
   if (!storefront) notFound()
 

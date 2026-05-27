@@ -74,7 +74,9 @@ function parseWebhook(rawBody: string): ParsedWebhook {
 
 export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
-  validatePaymentRuntimeEnv();
+  try { validatePaymentRuntimeEnv(); } catch {
+    return errorResponse(503, 'PAYMENT_NOT_CONFIGURED', 'Payment provider not configured', correlationId);
+  }
   const rawBody = await req.text();
   const stripeSig = req.headers.get('stripe-signature');
   const paystackSig = req.headers.get('x-paystack-signature');
