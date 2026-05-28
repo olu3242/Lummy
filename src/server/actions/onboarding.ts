@@ -49,7 +49,10 @@ export async function completeOnboarding(input: {
     }
   }
 
-  const profileUpdate = await supabase.from('profiles').update({ onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id }).eq('id', auth.user.id);
+  const profileUpdate = await supabase.from('profiles').upsert(
+    { id: auth.user.id, email: auth.user.email!, onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id },
+    { onConflict: 'id' },
+  );
   if (profileUpdate.error) throw profileUpdate.error;
 
   // Upsert creator_profiles so getCreatorByHandle() can resolve WhatsApp + store_schema.

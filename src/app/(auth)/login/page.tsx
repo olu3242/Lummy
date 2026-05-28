@@ -67,7 +67,10 @@ export default function LoginPage() {
         .eq("id", user.id)
         .maybeSingle()
 
-      if (!profile?.onboarding_completed || !profile.organization_id) {
+      // Only redirect to onboarding on positive confirmation of incomplete state.
+      // A null profile (query returned no row or transient error) goes to dashboard
+      // and lets the dashboard's own guard decide — avoids login→onboarding→login loops.
+      if (profile && (profile.onboarding_completed === false || !profile.organization_id)) {
         window.location.href = "/onboarding"
         return
       }

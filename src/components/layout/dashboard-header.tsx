@@ -3,16 +3,94 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-
-import { Menu, Search } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Menu, Search, LogOut, User } from "lucide-react"
 import { ThemeToggle } from "@/components/shared/theme-toggle"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
-import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
   title?: string
+}
+
+function UserAvatarMenu() {
+  const router = useRouter()
+  const [user, setUser] = React.useState<{ name: string; email: string; avatarUrl: string | null } | null>(null)
+  const [menuOpen, setMenuOpen] = React.useState(false)
+  const menuRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user) {
+        setUser({
+          name: data.user.user_metadata?.full_name ?? data.user.user_metadata?.name ?? data.user.email ?? "Creator",
+          email: data.user.email ?? "",
+          avatarUrl: data.user.user_metadata?.avatar_url ?? null,
+        })
+      }
+    })
+  }, [])
+
+  React.useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    if (menuOpen) document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [menuOpen])
+
+  const handleSignOut = async () => {
+    setMenuOpen(false)
+    await fetch("/api/auth/signout", { method: "POST" })
+    router.push("/login")
+  }
+
+  const initials = user?.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() ?? "?"
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setMenuOpen(v => !v)}
+        className="flex items-center gap-2 group focus:outline-none"
+        aria-label="Account menu"
+      >
+        <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-brand-purple/40 transition-all flex items-center justify-center bg-brand-purple/20">
+          {user?.avatarUrl ? (
+            <Image src={user.avatarUrl} alt={user.name} fill className="object-cover" unoptimized />
+          ) : (
+            <span className="text-xs font-bold text-brand-purple">{initials}</span>
+          )}
+        </div>
+      </button>
+
+      {menuOpen && (
+        <div className="absolute right-0 mt-2 w-56 rounded-2xl border border-border bg-card shadow-lg z-50 overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-sm font-semibold truncate">{user?.name ?? "Creator"}</p>
+            <p className="text-xs text-muted-foreground truncate">{user?.email ?? ""}</p>
+          </div>
+          <div className="p-1">
+            <Link
+              href="/dashboard/settings"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm hover:bg-accent transition-colors"
+            >
+              <User className="h-4 w-4" />
+              Settings
+            </Link>
+            <button
+              onClick={handleSignOut}
+              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-brand-coral hover:bg-brand-coral/10 transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
@@ -48,18 +126,9 @@ export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
       </button>
 
       <div className="ml-auto flex items-center gap-2">
-        {/* Theme toggle */}
         <ThemeToggle />
-
-        {/* Notifications — real-time from DB */}
         <NotificationCenter />
-
-        {/* Avatar */}
-        <Link href="/dashboard/settings" className="flex items-center gap-2 group">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-brand-purple/40 transition-all">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
-          </div>
-        </Link>
+        <UserAvatarMenu />
       </div>
     </header>
   )

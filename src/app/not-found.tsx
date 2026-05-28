@@ -1,11 +1,10 @@
 "use client"
 
 import * as React from "react"
-import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { ArrowLeft, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
-import { BRAND } from "@/config/branding"
+import { SmartLogo } from "@/components/shared/smart-logo"
 
 const links = [
   { label: "Go home",          href: "/",              icon: Home,            desc: "Back to the landing page" },
@@ -23,10 +22,12 @@ export default function NotFound() {
         transition={{ duration: 0.4 }}
         className="mb-8"
       >
-        <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <Image src={BRAND.logo} alt={BRAND.name} width={40} height={40} className="h-10 w-10 rounded-2xl shadow-brand-sm group-hover:shadow-brand transition-shadow" />
-          <span className="font-display text-xl font-bold">{BRAND.name}</span>
-        </Link>
+        <SmartLogo
+          imageClassName="h-10 w-10 rounded-2xl shadow-brand-sm group-hover:shadow-brand transition-shadow"
+          textClassName="font-display text-xl font-bold"
+          className="inline-flex items-center gap-2.5 group"
+          imageSize={40}
+        />
       </motion.div>
 
       {/* 404 display */}

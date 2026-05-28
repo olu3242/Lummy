@@ -110,7 +110,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 px-5 border-b border-white/5 flex-shrink-0">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/dashboard" className="flex items-center gap-2.5 group">
           <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl shadow-brand-sm" />
           <span className="font-display text-lg font-bold text-white">{BRAND.name}</span>
         </Link>
