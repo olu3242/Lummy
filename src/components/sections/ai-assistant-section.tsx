@@ -11,19 +11,19 @@ const aiExamples = [
   {
     prompt: "Write a caption for my new Ankara dress drop 🎉",
     response:
-      "🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just landed and she's everything. Bold. Elegant. Unapologetically African. ✨\n\nSizes S–XL available now. Link in bio 👆 or tap below to order via WhatsApp. Don't sleep — last drop sold out in 48 hrs 🏃🏾‍♀️\n\n#LummyStore #AnkaraFashion #MadeInNigeria",
+      "🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just landed and she's everything. Bold. Elegant. Timeless. ✨\n\nSizes S–XL available now. Link in bio 👆 or tap below to order via WhatsApp. Don't sleep — last drop sold out in 48 hrs 🏃🏾‍♀️\n\n#LummyStore #AnkaraFashion #HandmadeWithLove",
     tag: "Caption Generator",
   },
   {
     prompt: "Suggest a price for my handmade beaded necklaces",
     response:
-      "Based on your niche (handmade African jewellery), follower count (21k), and market data:\n\n💡 Recommended pricing:\n• Basic set: ₦7,000–₦9,000\n• Premium set: ₦12,000–₦16,000\n• Custom order: ₦18,000–₦25,000\n\nYour audience will pay for authenticity. Lead with the story behind each piece 🪡",
+      "Based on your niche (handmade jewellery), follower count (21k), and market data:\n\n💡 Recommended pricing:\n• Basic set: $18–$24\n• Premium set: $32–$45\n• Custom order: $55–$80\n\nYour audience will pay for authenticity. Lead with the story behind each piece 🪡",
     tag: "Pricing Advisor",
   },
   {
     prompt: "Write a WhatsApp reply for someone asking about delivery",
     response:
-      "Hi! 👋 Thanks for ordering from [Your Store Name]!\n\nDelivery details:\n📍 Lagos: 1–2 business days via GIG\n🚚 Other states: 3–5 business days\n💳 Pay on delivery available for Lagos orders\n\nWe'll send you a tracking link once dispatched 📦",
+      "Hi! 👋 Thanks for ordering from [Your Store Name]!\n\nDelivery details:\n📍 Local: 1–2 business days\n🚚 Nationwide: 3–5 business days\n💳 Multiple payment methods accepted\n\nWe'll send you a tracking link once dispatched 📦",
     tag: "Reply Template",
   },
 ]

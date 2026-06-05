@@ -189,7 +189,7 @@ export default function SignupPage() {
               </div>
             </div>
             <p className="text-white/60 text-xs leading-relaxed">
-              &ldquo;Set up my store in 10 minutes. Made my first ₦50,000 that same evening.&rdquo;
+              &ldquo;Set up my store in 10 minutes. Made my first sale that same evening.&rdquo;
             </p>
           </div>
         </div>

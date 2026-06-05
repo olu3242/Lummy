@@ -38,7 +38,7 @@ const TOOLS = [
       { key: "tone",     label: "Tone",             placeholder: "e.g. Hype, Elegant, Playful", optional: true },
     ],
     generate: (f: Record<string, string>) =>
-      `🔥 ${(f.occasion || "NEW DROP").toUpperCase()} ALERT!\n\nMeet the ${f.product} — it's giving EVERYTHING. Bold. Premium. Unapologetically African. ✨\n\nLimited stock available now. Order via the WhatsApp link in bio 👆 — last drop sold out fast.\n\nTag someone who needs this in their wardrobe 💜\n\n#${(f.product || "").replace(/\s+/g, "")} #LagosStyle #AfricanFashion #MadeInNigeria #${(f.occasion || "NewDrop").replace(/\s+/g, "")} #LummyStore`,
+      `🔥 ${(f.occasion || "NEW DROP").toUpperCase()} ALERT!\n\nMeet the ${f.product} — it's giving EVERYTHING. Bold. Premium. Timeless. ✨\n\nLimited stock available now. Order via the WhatsApp link in bio 👆 — last drop sold out fast.\n\nTag someone who needs this in their wardrobe 💜\n\n#${(f.product || "").replace(/\s+/g, "")} #NewDrop #HandmadeWithLove #${(f.occasion || "NewDrop").replace(/\s+/g, "")} #LummyStore`,
   },
   {
     id: "hashtags",
@@ -49,12 +49,12 @@ const TOOLS = [
     bg: "bg-brand-coral/10",
     fields: [
       { key: "niche",  label: "Your niche",     placeholder: "e.g. Ankara fashion, Skincare, Jewellery" },
-      { key: "market", label: "Target market",  placeholder: "e.g. Lagos, Nigeria, Pan-African" },
+      { key: "market", label: "Target market",  placeholder: "e.g. US, UK, Global, Local" },
     ],
     generate: (f: Record<string, string>) => {
       const niche = f.niche || "fashion"
-      const market = f.market || "Nigeria"
-      return `📌 **Hashtag Pack — ${niche} (${market})**\n\n🔥 High-volume:\n#${niche.replace(/\s+/g, "")} #${market.replace(/\s+/g, "")}Fashion #AfricanStyle #MadeInAfrica #BlackOwnedBusiness\n\n💎 Mid-range:\n#LagosCreators #NaijaShopping #ShopSmall #AfricanCreators #LummyStore #WhatsAppBusiness #NaijaEntrepreneur\n\n✨ Niche-specific:\n#${niche.split(" ")[0]}Lover #African${niche.replace(/\s+/g, "")} #${market.replace(/\s+/g, "")}Style #AfricanPrint #CulturalFashion #LocalIsBest #BuyAfrican\n\n🎯 Engagement:\n#ShopNow #LinkInBio #NewDrop #LimitedStock #ExclusiveCollection #OrderNow #WhatsAppOnly\n\n💡 Tip: Mix 5–7 hashtags per post for best reach.`
+      const market = f.market || "Global"
+      return `📌 **Hashtag Pack — ${niche} (${market})**\n\n🔥 High-volume:\n#${niche.replace(/\s+/g, "")} #${market.replace(/\s+/g, "")}Fashion #HandmadeStyle #SmallBusiness #CreatorCommerce\n\n💎 Mid-range:\n#IndieCreators #ShopSmall #LummyStore #WhatsAppBusiness #CreatorEconomy\n\n✨ Niche-specific:\n#${niche.split(" ")[0]}Lover #Handmade${niche.replace(/\s+/g, "")} #${market.replace(/\s+/g, "")}Style #ArtisanMade #LocalIsBest\n\n🎯 Engagement:\n#ShopNow #LinkInBio #NewDrop #LimitedStock #ExclusiveCollection #OrderNow #WhatsAppOnly\n\n💡 Tip: Mix 5–7 hashtags per post for best reach.`
     },
   },
   {
@@ -66,22 +66,22 @@ const TOOLS = [
     bg: "bg-brand-green/10",
     fields: [
       { key: "name",     label: "Product name",   placeholder: "e.g. Handcrafted Beaded Necklace" },
-      { key: "price",    label: "Price (₦)",       placeholder: "e.g. 12500" },
+      { key: "price",    label: "Price",            placeholder: "e.g. 29.99" },
       { key: "material", label: "Key features",    placeholder: "e.g. Hand-beaded, Yoruba pattern, adjustable" },
     ],
     generate: (f: Record<string, string>) =>
-      `✨ ${f.name}\n\nHandcrafted with love and precision, this ${(f.name || "").toLowerCase()} is more than an accessory — it's a statement. ${f.material ? `Made with ${f.material.toLowerCase()}, every detail has been thoughtfully considered.` : ""}\n\n🌍 Rooted in African artistry, designed for the modern woman who owns every room she walks into.\n\n💫 **Why you'll love it:**\n• Premium quality materials sourced locally\n• Each piece is uniquely handcrafted — no two are identical\n• Arrives beautifully packaged, perfect as a gift\n• Backed by our 100% satisfaction guarantee\n\n💰 **Price: ₦${parseInt(f.price || "0").toLocaleString()}**\n\nDM to order now or tap the WhatsApp button. Limited stock — don't sleep on this one! 🛍️`,
+      `✨ ${f.name}\n\nHandcrafted with love and precision, this ${(f.name || "").toLowerCase()} is more than an accessory — it's a statement. ${f.material ? `Made with ${f.material.toLowerCase()}, every detail has been thoughtfully considered.` : ""}\n\n💫 **Why you'll love it:**\n• Premium quality materials\n• Each piece is uniquely handcrafted — no two are identical\n• Arrives beautifully packaged, perfect as a gift\n• Backed by our 100% satisfaction guarantee\n\n${f.price ? `💰 **Price: ${f.price}**\n\n` : ""}DM to order now or tap the WhatsApp button. Limited stock — don't sleep on this one! 🛍️`,
   },
   {
     id: "pricing",
     icon: DollarSign,
     label: "Price Suggester",
-    description: "Data-backed pricing tiers for your Nigerian market",
+    description: "Data-backed pricing tiers for your market",
     color: "text-amber-500",
     bg: "bg-amber-500/10",
     fields: [
       { key: "product",  label: "Product type",       placeholder: "e.g. Handmade bag, Ankara dress, Skincare set" },
-      { key: "cost",     label: "Production cost (₦)", placeholder: "e.g. 5000" },
+      { key: "cost",     label: "Production cost",     placeholder: "e.g. 15.00" },
       { key: "audience", label: "Target audience",     placeholder: "e.g. Working-class women, Students, VIPs" },
     ],
     generate: (f: Record<string, string>) => {
@@ -89,7 +89,7 @@ const TOOLS = [
       const t1 = Math.round(cost * 1.8 / 500) * 500
       const t2 = Math.round(cost * 2.5 / 500) * 500
       const t3 = Math.round(cost * 3.5 / 500) * 500
-      return `💰 **Pricing Strategy — ${f.product}**\n\n📊 Market-based tiers:\n\n🟢 **Entry** — ₦${t1.toLocaleString()}\nFor new customers, bundle offers, or lightweight versions. Good for volume.\n\n🟡 **Standard** — ₦${t2.toLocaleString()} *(recommended)*\nYour sweet spot. Covers costs, leaves solid margin, competitive for your niche.\n\n🟣 **Premium** — ₦${t3.toLocaleString()}\nFor bespoke orders, limited editions, or VIP customers. Lean into the story.\n\n📈 **Margin analysis:**\n• Cost: ₦${cost.toLocaleString()}\n• Standard margin: ${Math.round(((t2 - cost) / t2) * 100)}%\n• Monthly break-even at standard price: ${Math.ceil(50000 / (t2 - cost))} units\n\n💡 **Pro tip:** ${f.audience ? `For ${f.audience.toLowerCase()}, lead with value messaging — not discounts.` : "Bundle 2 items at 15% off to increase average order value."}`
+      return `💰 **Pricing Strategy — ${f.product}**\n\n📊 Market-based tiers:\n\n🟢 **Entry** — ${t1.toLocaleString()}\nFor new customers, bundle offers, or lightweight versions. Good for volume.\n\n🟡 **Standard** — ${t2.toLocaleString()} *(recommended)*\nYour sweet spot. Covers costs, leaves solid margin, competitive for your niche.\n\n🟣 **Premium** — ${t3.toLocaleString()}\nFor bespoke orders, limited editions, or VIP customers. Lean into the story.\n\n📈 **Margin analysis:**\n• Cost: ${cost.toLocaleString()}\n• Standard margin: ${Math.round(((t2 - cost) / t2) * 100)}%\n\n💡 **Pro tip:** ${f.audience ? `For ${f.audience.toLowerCase()}, lead with value messaging — not discounts.` : "Bundle 2 items at 15% off to increase average order value."}`
     },
   },
   {
@@ -102,10 +102,10 @@ const TOOLS = [
     fields: [
       { key: "product", label: "Product name",    placeholder: "e.g. Beaded Necklace Set" },
       { key: "qty",     label: "Units restocked",  placeholder: "e.g. 20" },
-      { key: "price",   label: "Price (₦)",         placeholder: "e.g. 24000", optional: true },
+      { key: "price",   label: "Price",              placeholder: "e.g. 59.99", optional: true },
     ],
     generate: (f: Record<string, string>) =>
-      `🔔 RESTOCK ALERT — ${(f.product || "").toUpperCase()}!\n\nYou asked, I delivered! 🙏🏾\n\nThe ${f.product} is BACK IN STOCK — only ${f.qty || "limited"} units available. ${f.price ? `Price: ₦${parseInt(f.price).toLocaleString()}` : ""}\n\n⚡ First come, first served. The last batch sold out quickly.\n\n📲 Tap the link in bio or DM me "RESTOCK" to order now.\n\nDon't miss out this time! 🛍️💜\n\n#Restock #BackInStock #${(f.product || "").replace(/\s+/g, "")} #LimitedUnits #LummyStore`,
+      `🔔 RESTOCK ALERT — ${(f.product || "").toUpperCase()}!\n\nYou asked, I delivered! 🙏\n\nThe ${f.product} is BACK IN STOCK — only ${f.qty || "limited"} units available. ${f.price ? `Price: ${f.price}` : ""}\n\n⚡ First come, first served. The last batch sold out quickly.\n\n📲 Tap the link in bio or DM me "RESTOCK" to order now.\n\nDon't miss out this time! 🛍️💜\n\n#Restock #BackInStock #${(f.product || "").replace(/\s+/g, "")} #LimitedUnits #LummyStore`,
   },
   {
     id: "broadcast",
@@ -127,11 +127,11 @@ const TOOLS = [
 // ─── Mock responses ───────────────────────────────────────────────────────────
 
 const mockResponses: Record<string, string> = {
-  caption: `🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just dropped and it is giving EVERYTHING. Bold. Vibrant. Unapologetically African. ✨\n\nSizes S-XL available NOW. Order via the WhatsApp link in bio.\n\nTag a friend who needs this in their wardrobe 💜\n\n#AnkaraFashion #LagosStyle #AfricanPrint #LummyStore #MadeInNigeria`,
-  price: `Based on your market position and niche, here are my pricing recommendations for handmade beaded necklaces:\n\n💎 **Tier 1 — Basic Sets:** ₦7,000–₦9,000\n✨ **Tier 2 — Premium Sets:** ₦12,000–₦16,000\n👑 **Tier 3 — Custom/Bespoke:** ₦20,000–₦35,000\n\n**Why this works:**\n- Your 21k engaged audience values authenticity\n- Handmade commands a 40-60% premium over mass-produced\n- Bundle 2 pieces at 15% discount to increase AOV\n\n**Pro tip:** Always lead with the story — "hand-crafted in Enugu" converts better than just "beaded necklace" 🪡`,
-  whatsapp: `Hi [Customer Name]! 👋 Thanks for reaching out to {storeName}.\n\nRegarding delivery:\n📍 **Lagos:** 1-2 business days via GIG Logistics\n🚚 **Abuja:** 2-3 business days\n🗺️ **Other states:** 3-5 business days\n\nOnce your order is dispatched, you'll receive a tracking number via WhatsApp.\n\nWant to confirm your order now? I'll send you a secure payment link 💳`,
-  campaign: `Here's your **December Christmas Campaign Strategy** 🎄\n\n**Theme:** "Give the Gift of African Excellence"\n\n**Week 1 (Dec 1-7):** Teaser posts — "Something big is coming to {storeName}"\n**Week 2 (Dec 8-14):** DROP — New holiday collection with limited stock messaging\n**Week 3 (Dec 15-21):** Gift guides + bundle deals (3 items = 20% off)\n**Week 4 (Dec 22-26):** Last-chance messaging + WhatsApp broadcast to past customers\n\n**Estimated revenue uplift:** 35-60% vs a normal month\n\n**Top channels:** WhatsApp broadcast first → Instagram Stories → Feed posts`,
-  default: `Great question! As your AI growth partner, I can help you with:\n\n✍️ **Content creation** — Captions, product descriptions, hashtags\n💰 **Pricing strategy** — Market-rate recommendations for your niche\n💬 **WhatsApp commerce** — Reply templates, broadcast messages\n📊 **Campaign planning** — Seasonal strategies, launch plans\n🎯 **Growth tips** — Platform-specific advice for African creators\n\nWhat would you like to work on today? Ask me anything about your Lummy store 🚀`,
+  caption: `🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just dropped and it is giving EVERYTHING. Bold. Vibrant. Timeless. ✨\n\nSizes S-XL available NOW. Order via the WhatsApp link in bio.\n\nTag a friend who needs this in their wardrobe 💜\n\n#AnkaraFashion #NewDrop #HandmadeStyle #LummyStore`,
+  price: `Based on your market position and niche, here are my pricing recommendations for handmade beaded necklaces:\n\n💎 **Tier 1 — Basic Sets:** $18–$24\n✨ **Tier 2 — Premium Sets:** $35–$48\n👑 **Tier 3 — Custom/Bespoke:** $60–$95\n\n**Why this works:**\n- Your 21k engaged audience values authenticity\n- Handmade commands a 40-60% premium over mass-produced\n- Bundle 2 pieces at 15% discount to increase AOV\n\n**Pro tip:** Always lead with the story — "hand-crafted with care" converts better than just "beaded necklace" 🪡`,
+  whatsapp: `Hi [Customer Name]! 👋 Thanks for reaching out to {storeName}.\n\nRegarding delivery:\n📍 **Local:** 1-2 business days\n🚚 **Nationwide:** 3-5 business days\n🗺️ **International:** 7-14 business days\n\nOnce your order is dispatched, you'll receive a tracking number via WhatsApp.\n\nWant to confirm your order now? I'll send you a secure payment link 💳`,
+  campaign: `Here's your **December Holiday Campaign Strategy** 🎄\n\n**Theme:** "Give the Gift of Something Special"\n\n**Week 1 (Dec 1-7):** Teaser posts — "Something big is coming to {storeName}"\n**Week 2 (Dec 8-14):** DROP — New holiday collection with limited stock messaging\n**Week 3 (Dec 15-21):** Gift guides + bundle deals (3 items = 20% off)\n**Week 4 (Dec 22-26):** Last-chance messaging + WhatsApp broadcast to past customers\n\n**Estimated revenue uplift:** 35-60% vs a normal month\n\n**Top channels:** WhatsApp broadcast first → Instagram Stories → Feed posts`,
+  default: `Great question! As your AI growth partner, I can help you with:\n\n✍️ **Content creation** — Captions, product descriptions, hashtags\n💰 **Pricing strategy** — Market-rate recommendations for your niche\n💬 **WhatsApp commerce** — Reply templates, broadcast messages\n📊 **Campaign planning** — Seasonal strategies, launch plans\n🎯 **Growth tips** — Platform-specific advice for creators worldwide\n\nWhat would you like to work on today? Ask me anything about your Lummy store 🚀`,
 }
 
 function getResponse(prompt: string): string {
@@ -145,17 +145,17 @@ function getResponse(prompt: string): string {
 
 const promptSuggestions = [
   { icon: FileText,       label: "Write caption",       prompt: "Write an Instagram caption for my latest Ankara dress drop" },
-  { icon: Tag,            label: "Price this product",  prompt: "Help me price my handmade beaded necklaces for the Nigerian market" },
+  { icon: Tag,            label: "Price this product",  prompt: "Help me price my handmade beaded necklaces for my market" },
   { icon: MessageCircle,  label: "WhatsApp reply",      prompt: "Write a WhatsApp reply template for customers asking about delivery times" },
   { icon: BarChart3,      label: "Campaign idea",       prompt: "Give me a campaign strategy for Christmas sales this December" },
-  { icon: Sparkles,       label: "Product description", prompt: "Write a compelling product description for a leather crossbody bag (₦18,000)" },
+  { icon: Sparkles,       label: "Product description", prompt: "Write a compelling product description for a leather crossbody bag" },
   { icon: Zap,            label: "Growth tip",          prompt: "What's the best way to convert my Instagram followers into WhatsApp buyers?" },
 ]
 
 const WEEKLY_BRIEF = [
-  { icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10",  title: "Revenue up 18%", body: "Your Ankara Print Dress is driving the spike — restock before May 15 or you'll miss ₦45K+ in potential sales." },
+  { icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10",  title: "Revenue up 18%", body: "Your Ankara Print Dress is driving the spike — restock before inventory runs out or you'll miss significant sales." },
   { icon: Sparkles,   color: "text-brand-purple", bg: "bg-brand-purple/10", title: "3 caption ideas ready", body: "Based on your top-performing posts, I've drafted captions for your next Beaded Set drop, a flash sale, and a customer testimonial reel." },
-  { icon: Star,       color: "text-amber-500",    bg: "bg-amber-500/10",    title: "2 pricing opportunities", body: "Your Leather Mini Bag is underpriced vs market by ~₦3,500. Raising it could add ₦94K/month without losing volume." },
+  { icon: Star,       color: "text-amber-500",    bg: "bg-amber-500/10",    title: "2 pricing opportunities", body: "Your Leather Mini Bag may be underpriced vs market. Raising it could add meaningful revenue without losing volume." },
   { icon: MessageCircle, color: "text-[#25D366]", bg: "bg-[#25D366]/10",   title: "Re-engage 4 VIPs", body: "4 of your highest-spending customers haven't ordered in 45+ days. A personal WhatsApp note with 10% off typically wins 3 of 4 back." },
 ]
 

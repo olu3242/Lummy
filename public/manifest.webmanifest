@@ -1,0 +1,32 @@
+{
+  "name": "Lummy — Creator Commerce",
+  "short_name": "Lummy",
+  "description": "The creator commerce platform. Build your storefront, sell across channels, and grow.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080815",
+  "theme_color": "#6C4EF3",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "shopping", "productivity"],
+  "lang": "en"
+}

@@ -1,9 +1,8 @@
 "use client"
 
 import * as React from "react"
-import Image from "next/image"
 import Link from "next/link"
-import { BRAND } from "@/config/branding"
+import { LummyLogo } from "@/components/branding/lummy-logo"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 
@@ -15,9 +14,14 @@ interface SmartLogoProps {
   showText?: boolean
 }
 
+/**
+ * Session-aware logo link.
+ * Routes unauthenticated users to "/" and authenticated users to "/dashboard".
+ * Uses LummyLogo for the visual rendering — single source of truth.
+ */
 export function SmartLogo({
-  imageClassName = "h-8 w-8 rounded-xl",
-  textClassName = "font-display text-lg font-bold",
+  imageClassName,
+  textClassName,
   className,
   imageSize = 32,
   showText = true,
@@ -33,17 +37,13 @@ export function SmartLogo({
 
   return (
     <Link href={href} className={cn("inline-flex items-center gap-2 group", className)}>
-      <Image
-        src={BRAND.logo}
-        alt={BRAND.name}
-        width={imageSize}
-        height={imageSize}
-        className={imageClassName}
+      <LummyLogo
+        mode={showText ? "full" : "icon"}
+        imageSize={imageSize}
+        imageClassName={imageClassName}
+        textClassName={textClassName}
         priority
       />
-      {showText && (
-        <span className={textClassName}>{BRAND.name}</span>
-      )}
     </Link>
   )
 }

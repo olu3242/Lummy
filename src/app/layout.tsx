@@ -28,7 +28,9 @@ export const metadata: Metadata = {
     icon: BRAND.icon,
     apple: "/apple-icon.png",
     shortcut: "/favicon.ico",
+    other: [{ rel: "manifest", url: "/manifest.webmanifest" }],
   },
+  manifest: "/manifest.webmanifest",
   keywords: [
     "creator commerce",
     "global commerce",
@@ -43,7 +45,7 @@ export const metadata: Metadata = {
     description: "The creator commerce platform for modern creators. Launch, sell, and grow online.",
     images: [{ url: BRAND.logo, width: 800, height: 800, alt: BRAND.name }],
     type: "website",
-    locale: "en_NG",
+    locale: "en_US",
     siteName: BRAND.name,
   },
   twitter: {

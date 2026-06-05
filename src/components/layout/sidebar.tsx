@@ -80,7 +80,7 @@ const navGroups: NavGroup[] = [
       { label: "Calendar", icon: CalendarDays, href: "/dashboard/calendar" },
       { label: "Broadcast", icon: Megaphone, href: "/dashboard/broadcast" },
       { label: "Templates", icon: MessageSquare, href: "/dashboard/templates" },
-      { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "₦63k" },
+      { label: "Refer & Earn", icon: Gift, href: "/dashboard/referrals", badge: "Earn" },
       { label: "Reports", icon: BarChart3, href: "/dashboard/reports" },
       { label: "Link-in-Bio", icon: Link2, href: "/dashboard/links" },
     ],

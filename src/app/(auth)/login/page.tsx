@@ -128,7 +128,7 @@ export default function LoginPage() {
             {/* Floating stat */}
             <div className="absolute -bottom-4 -right-4 glass-card rounded-2xl px-3 py-2 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-brand-green" />
-              <span className="text-white text-xs font-bold">+₦847k</span>
+              <span className="text-white text-xs font-bold">+$12k</span>
             </div>
           </div>
 
@@ -145,7 +145,7 @@ export default function LoginPage() {
           <div className="mt-8 grid grid-cols-3 gap-3">
             {[
               { icon: ShoppingBag, label: "Orders", value: "1,234", color: "text-brand-purple" },
-              { icon: TrendingUp, label: "Revenue", value: "₦847k", color: "text-brand-green" },
+              { icon: TrendingUp, label: "Revenue", value: "$12k", color: "text-brand-green" },
               { icon: MessageCircle, label: "WhatsApp", value: "58%", color: "text-[#25D366]" },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="glass-card rounded-2xl p-3 text-center">

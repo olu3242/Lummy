@@ -40,15 +40,15 @@ function buildPrompt(type: GenerationTypeInput, ctx: ContextInput): string {
   const price = ctx.productPrice?.toLocaleString() ?? "N/A"
   switch (type) {
     case "caption":
-      return `Write a high-converting ${ctx.platform} caption for "${ctx.productName}" priced at ₦${price}. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""} Include a clear CTA, 3-5 relevant hashtags, emojis, max 280 chars for Twitter or 2200 for Instagram.`
+      return `Write a high-converting ${ctx.platform} caption for "${ctx.productName}"${price !== "N/A" ? ` priced at ${price}` : ""}. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""} Include a clear CTA, 3-5 relevant hashtags, emojis, max 280 chars for Twitter or 2200 for Instagram.`
     case "cta":
-      return `Write 3 short WhatsApp CTA button labels for "${ctx.productName}" at ₦${price}. Each label max 20 characters. Make them action-oriented. Tone: ${ctx.tone}.`
+      return `Write 3 short WhatsApp CTA button labels for "${ctx.productName}"${price !== "N/A" ? ` at ${price}` : ""}. Each label max 20 characters. Make them action-oriented. Tone: ${ctx.tone}.`
     case "reply":
       return `Reply professionally to this customer message: "${ctx.customerMessage}". Be helpful, warm, and concise. If about a product, offer to help with the purchase. Max 3 sentences.`
     case "description":
-      return `Write a compelling product description for "${ctx.productName}" at ₦${price}. Tone: ${ctx.tone}. Platform: ${ctx.platform}. ${ctx.additionalContext ?? ""} Max 200 words. Include key benefits, materials/features, and a closing CTA.`
+      return `Write a compelling product description for "${ctx.productName}"${price !== "N/A" ? ` at ${price}` : ""}. Tone: ${ctx.tone}. Platform: ${ctx.platform}. ${ctx.additionalContext ?? ""} Max 200 words. Include key benefits, materials/features, and a closing CTA.`
     case "campaign":
-      return `Create a 3-part content campaign for "${ctx.productName}" targeting African social media. Platforms: Instagram + WhatsApp + TikTok. Include: launch post, mid-campaign engagement post, final urgency post. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""}`
+      return `Create a 3-part content campaign for "${ctx.productName}". Platforms: Instagram + WhatsApp + TikTok. Include: launch post, mid-campaign engagement post, final urgency post. Tone: ${ctx.tone}. ${ctx.additionalContext ?? ""}`
   }
 }
 

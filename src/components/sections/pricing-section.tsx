@@ -11,9 +11,9 @@ import Link from "next/link"
 
 // Annual prices per plan (monthly price × 0.8, billed annually)
 const annualPrices: Record<string, { display: string; saving: string; subtext: string }> = {
-  starter: { display: "Free",    saving: "",            subtext: "Forever"                    },
-  growth:  { display: "₦4,000",  saving: "Save ₦12k/yr", subtext: "per month, billed annually" },
-  pro:     { display: "₦9,600",  saving: "Save ₦28.8k/yr", subtext: "per month, billed annually" },
+  starter: { display: "Free",   saving: "",            subtext: "Forever"                    },
+  growth:  { display: "$8",     saving: "Save $24/yr",  subtext: "per month, billed annually" },
+  pro:     { display: "$19",    saving: "Save $60/yr",  subtext: "per month, billed annually" },
 }
 
 function AnimatedPrice({ price, subtext }: { price: string; subtext: string }) {

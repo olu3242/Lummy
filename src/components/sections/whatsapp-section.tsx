@@ -13,7 +13,7 @@ const messages = [
   },
   {
     from: "auto",
-    text: "Hey! Yes, the Ankara Print Dress is available in size M 🎉\n\nHere's your order summary:\n\n🛍 Ankara Print Dress (Size M)\n💰 ₦25,000\n📦 Delivery: 2–3 days\n\nTap below to confirm your order and pay securely online 👇",
+    text: "Hey! Yes, the Ankara Print Dress is available in size M 🎉\n\nHere's your order summary:\n\n🛍 Ankara Print Dress (Size M)\n💰 $25.00\n📦 Delivery: 2–3 days\n\nTap below to confirm your order and pay securely online 👇",
     time: "10:31 AM",
     isBot: true,
   },
@@ -24,7 +24,7 @@ const messages = [
   },
   {
     from: "system",
-    text: "✅ Payment confirmed · ₦25,000 received",
+    text: "✅ Payment confirmed · $25.00 received",
     time: "10:34 AM",
   },
 ]
@@ -197,7 +197,7 @@ export function WhatsAppSection() {
               <span className="gradient-text">into a sale.</span>
             </h2>
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-lg">
-              African customers buy where they trust — WhatsApp. Lummy automatically generates pre-filled order messages so customers can buy with one tap, and you receive every order neatly.
+              Customers buy where they trust — WhatsApp. Lummy automatically generates pre-filled order messages so customers can buy with one tap, and you receive every order neatly.
             </p>
 
             <div className="mt-8 space-y-4">
