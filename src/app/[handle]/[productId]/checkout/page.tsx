@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { formatMinorMoney } from "@/lib/globalization"
-import { storefrontCreator } from "@/data/mock/storefront"
 
 // ─── Product type for checkout (real DB shape) ────────────────────────────────
 
@@ -447,7 +446,12 @@ export default function CheckoutPage() {
 
     if (paymentMethod === "whatsapp") {
       const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ${totalFormatted}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
-      const waNumber = (product.creatorWhatsApp ?? storefrontCreator.whatsapp).replace(/\D/g, "")
+      const waNumber = (product.creatorWhatsApp ?? "").replace(/\D/g, "")
+      if (!waNumber) {
+        toast({ title: "WhatsApp contact not available for this store", variant: "default" })
+        setPlacing(false)
+        return
+      }
       const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`
       setPlacing(false)
       setStep("confirmation")
