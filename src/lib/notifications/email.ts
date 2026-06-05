@@ -109,7 +109,7 @@ ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;mso-hide:al
     ${content}
   </div>
   <div class="footer">
-    <p>Lummy — Creator Commerce OS for Africa</p>
+    <p>Lummy — Creator commerce for modern businesses</p>
     <p><a href="https://lummy.co" style="color:#6C4EF3">lummy.co</a></p>
   </div>
 </div>

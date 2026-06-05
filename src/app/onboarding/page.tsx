@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
+import { COUNTRY_OPTIONS, SUPPORTED_CURRENCIES, SUPPORTED_LOCALES } from "@/lib/globalization"
 import { completeOnboarding, markStorefrontShared } from "@/server/actions/onboarding"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -49,6 +50,10 @@ interface WizardData {
   whatsapp: string
   niche: string
   location: string
+  country: string
+  currency: string
+  locale: string
+  timezone: string
   productName: string
   productPrice: string
   productDesc: string
@@ -72,6 +77,10 @@ const emptyWizardData: WizardData = {
   whatsapp: "",
   niche: "",
   location: "",
+  country: "US",
+  currency: "USD",
+  locale: "en-US",
+  timezone: "America/New_York",
   productName: "",
   productPrice: "",
   productDesc: "",
@@ -342,10 +351,71 @@ function StepStoreSetup({
           <Input
             value={data.location}
             onChange={(e) => onChange({ location: e.target.value })}
-            placeholder="Lagos, Nigeria"
+            placeholder="City, Country"
             icon={<MapPin className="h-4 w-4" />}
             className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Country</Label>
+            <select
+              value={data.country}
+              onChange={(e) => {
+                const country = COUNTRY_OPTIONS.find((option) => option.code === e.target.value)
+                onChange({
+                  country: e.target.value,
+                  currency: country?.currency ?? data.currency,
+                  locale: country?.locale ?? data.locale,
+                  timezone: country?.timezone ?? data.timezone,
+                })
+              }}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {COUNTRY_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code} className="bg-brand-midnight text-white">{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Currency</Label>
+            <select
+              value={data.currency}
+              onChange={(e) => onChange({ currency: e.target.value })}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {SUPPORTED_CURRENCIES.map((currency) => (
+                <option key={currency} value={currency} className="bg-brand-midnight text-white">{currency}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Language</Label>
+            <select
+              value={data.locale}
+              onChange={(e) => onChange({ locale: e.target.value })}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {SUPPORTED_LOCALES.map((locale) => (
+                <option key={locale} value={locale} className="bg-brand-midnight text-white">{locale}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Timezone</Label>
+            <Input
+              value={data.timezone}
+              onChange={(e) => onChange({ timezone: e.target.value })}
+              placeholder="America/New_York"
+              className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -406,7 +476,7 @@ function StepFirstProduct({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-white/70">Price (₦)</Label>
+              <Label className="text-white/70">Price ({data.currency})</Label>
               <Input
                 value={data.productPrice}
                 onChange={(e) => onChange({ productPrice: e.target.value })}
@@ -535,7 +605,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
         <Building2 className="h-4 w-4 text-white/30 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-white/40 leading-relaxed">
           Your earnings are paid out every <strong className="text-white/60">Tuesday & Friday</strong>.
-          A <strong className="text-white/60">1.5% fee</strong> applies per withdrawal (capped at ₦1,500).
+          Withdrawal fees and settlement timing vary by payment provider and country.
           You&apos;re in full control of when to withdraw.
         </p>
       </div>
@@ -743,6 +813,20 @@ function OnboardingFlow() {
   }, [router])
 
   React.useEffect(() => {
+    if (!hydrated) return
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || emptyWizardData.timezone
+    const browserLocale = navigator.language || emptyWizardData.locale
+    setData((current) => {
+      const locale = SUPPORTED_LOCALES.includes(browserLocale as never) ? browserLocale : current.locale
+      const shouldUpdateLocale = current.locale === emptyWizardData.locale && locale !== current.locale
+      const shouldUpdateTimezone = current.timezone === emptyWizardData.timezone && timezone !== current.timezone
+      return shouldUpdateLocale || shouldUpdateTimezone
+        ? { ...current, locale: shouldUpdateLocale ? locale : current.locale, timezone: shouldUpdateTimezone ? timezone : current.timezone }
+        : current
+    })
+  }, [hydrated])
+
+  React.useEffect(() => {
     if (!hydrated || !userContext) return
 
     const savedAt = new Date().toISOString()
@@ -763,6 +847,10 @@ function OnboardingFlow() {
           whatsapp: data.whatsapp,
           niche: data.niche,
           location: data.location,
+          country: data.country,
+          currency: data.currency,
+          locale: data.locale,
+          timezone: data.timezone,
         },
         updated_at: savedAt,
       }
@@ -830,22 +918,20 @@ function OnboardingFlow() {
 
     if (data.addProduct && data.productName && data.productPrice) {
       const { data: profile } = await supabase
-        .from("creator_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .maybeSingle()
 
-      if (profile?.id) {
+      if (profile?.organization_id) {
         const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
         void Promise.resolve(supabase.from("products").insert({
-          creator_id: profile.id,
-          name: data.productName,
+          organization_id: profile.organization_id,
+          title: data.productName,
           description: data.productDesc || null,
           price: priceKobo,
-          currency: "NGN",
-          type: "physical",
-          category: data.productCategory || "Other",
-          is_published: true,
+          currency: data.currency,
+          status: "active",
         })).catch(console.error)
       }
     }
@@ -883,6 +969,10 @@ function OnboardingFlow() {
       await completeOnboarding({
         fullName: data.storeName || "Creator",
         phone: data.whatsapp,
+        country: data.country,
+        currency: data.currency,
+        locale: data.locale,
+        timezone: data.timezone,
         orgName: data.storeName || "Creator Workspace",
         handle: data.handle,
         productTitle: data.addProduct ? data.productName : undefined,

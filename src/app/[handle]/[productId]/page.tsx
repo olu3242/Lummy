@@ -93,7 +93,7 @@ export default async function ProductDetailPage({
         offers: {
           "@type": "Offer",
           price: String(result.product.price),
-          priceCurrency: result.product.currency ?? "NGN",
+          priceCurrency: result.product.currency ?? "USD",
           availability: "https://schema.org/InStock",
           url: `https://lummy.co/${params.handle}/${params.productId}/checkout`,
         },

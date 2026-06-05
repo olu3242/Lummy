@@ -3,9 +3,9 @@ import { z } from "zod"
 export const createProductSchema = z.object({
   name:              z.string().min(1).max(200),
   description:       z.string().max(2000).optional(),
-  price:             z.number().int().positive(),       // kobo
+  price:             z.number().int().positive(),       // smallest currency unit
   compare_at_price:  z.number().int().positive().optional(),
-  currency:          z.string().default("NGN"),
+  currency:          z.string().default("USD"),
   type:              z.enum(["physical", "digital", "service"]).default("physical"),
   images:            z.array(z.string().url()).default([]),
   stock_quantity:    z.number().int().min(0).optional(),

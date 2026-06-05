@@ -92,7 +92,7 @@ export default async function StorefrontPage({ params }: { params: { handle: str
         return {
           '@type': 'Offer',
           price: String(product.price ?? 0),
-          priceCurrency: product.currency ?? 'NGN',
+          priceCurrency: product.currency ?? 'USD',
           url: `${storefrontUrl}/${product.id}`,
           itemOffered: {
             '@type': 'Product',

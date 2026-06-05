@@ -6,73 +6,46 @@ import { BRAND } from "@/config/branding"
 
 const footerLinks = {
   Company: [
-    { label: `About ${BRAND.name}`, href: "/#features" },
-    { label: `How ${BRAND.name} Works`, href: "/#how-it-works" },
+    { label: "About", href: "/#features" },
     { label: "Careers", href: "/careers" },
-    { label: "Press & Media", href: "/press" },
-    { label: "Brand Assets", href: "/brand-assets" },
-    { label: "Partner Program", href: "/partner-program" },
-    { label: "Affiliate Program", href: "/affiliate-program" },
-    { label: "Contact Us", href: "mailto:support@lummy.com" },
+    { label: "Press", href: "/press" },
+    { label: "Contact", href: "mailto:support@lummy.com" },
+    { label: "Partners", href: "/partner-program" },
+    { label: "Affiliates", href: "/affiliate-program" },
   ],
   Creators: [
-    { label: "Create a Storefront", href: "/signup" },
-    { label: "Discover Creators", href: "/discover" },
-    { label: "Sell Products", href: "/#features" },
-    { label: "Sell Services", href: "/#features" },
-    { label: "Creator Resources", href: "/community-guidelines" },
+    { label: "Storefronts", href: "/signup" },
+    { label: "Products", href: "/#features" },
+    { label: "Growth", href: "/#how-it-works" },
     { label: "Pricing", href: "/pricing" },
     { label: "Success Stories", href: "/#testimonials" },
-    { label: "Help Center", href: "/dashboard/help" },
+    { label: "Discover Creators", href: "/discover" },
   ],
   Support: [
-    { label: "Knowledge Base", href: "/dashboard/help" },
-    { label: "Community", href: "/community-guidelines" },
-    { label: "System Status", href: "/status" },
-    { label: "Report an Issue", href: "/report-abuse" },
-    { label: "Account Recovery", href: "mailto:support@lummy.com" },
+    { label: "Help Center", href: "/dashboard/help" },
+    { label: "Contact Support", href: "mailto:support@lummy.com" },
+    { label: "Status", href: "/status" },
     { label: "Accessibility", href: "/accessibility" },
   ],
   Trust: [
     { label: "Security", href: "/security" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Compliance", href: "/compliance" },
     { label: "Trust Center", href: "/trust" },
-    { label: "Platform Status", href: "/status" },
-    { label: "Compliance Center", href: "/compliance" },
-    { label: "Data Protection", href: "/privacy" },
-    { label: "Responsible AI Use", href: "/trust" },
-    { label: "Incident Reporting", href: "/report-abuse" },
-    { label: "Vulnerability Disclosure", href: "/security" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "/privacy" },
-    { label: "Terms of Service", href: "/terms" },
-    { label: "Acceptable Use Policy", href: "/acceptable-use" },
-    { label: "Cookie Policy", href: "/cookies" },
-    { label: "Data Processing Addendum", href: "/compliance" },
-    { label: "Refund & Cancellation Policy", href: "/refunds" },
-    { label: "Intellectual Property Policy", href: "/intellectual-property" },
-    { label: "DMCA & Copyright Policy", href: "/report-copyright" },
-    { label: "Payments Policy", href: "/legal/payments" },
-    { label: "Merchant Terms", href: "/legal/merchant-terms" },
-    { label: "Platform Fees", href: "/legal/platform-fees" },
-    { label: "Chargebacks", href: "/legal/chargebacks" },
-    { label: "Prohibited Businesses", href: "/legal/prohibited-businesses" },
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Cookies", href: "/cookies" },
+    { label: "Refunds", href: "/refunds" },
+    { label: "Acceptable Use", href: "/acceptable-use" },
   ],
   Compliance: [
-    { label: "GDPR Compliance", href: "/compliance" },
-    { label: "CCPA Privacy Notice", href: "/privacy" },
-    { label: "Cookie Preferences", href: "/cookies" },
-    { label: "Trust & Safety", href: "/trust" },
-    { label: "Security Practices", href: "/security" },
-    { label: "Law Enforcement Requests", href: "mailto:legal@lummy.com" },
-  ],
-  Marketplace: [
-    { label: "Discover Stores", href: "/discover" },
-    { label: "Community Guidelines", href: "/community-guidelines" },
-    { label: "Content Policy", href: "/content-policy" },
-    { label: "Report Abuse", href: "/report-abuse" },
-    { label: "Report Copyright", href: "/report-copyright" },
-    { label: "Report Fraud", href: "/report-fraud" },
+    { label: "Payments", href: "/legal/payments" },
+    { label: "Merchant Terms", href: "/legal/merchant-terms" },
+    { label: "Chargebacks", href: "/legal/chargebacks" },
+    { label: "Prohibited Businesses", href: "/legal/prohibited-businesses" },
+    { label: "Platform Fees", href: "/legal/platform-fees" },
   ],
 }
 
@@ -109,7 +82,7 @@ export function Footer() {
     <footer className="bg-brand-midnight border-t border-white/8">
       {/* Main grid */}
       <div className="container py-16 lg:py-20">
-        <div className="grid grid-cols-2 gap-8 lg:grid-cols-5 xl:grid-cols-8">
+        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4 xl:grid-cols-7">
           {/* Brand col */}
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2 group w-fit">
@@ -117,7 +90,7 @@ export function Footer() {
               <span className="font-display text-xl font-bold text-white">{BRAND.name}</span>
             </Link>
             <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
-              {BRAND.name} provides commerce, storefront, and payment enablement tools for independent creators and businesses.
+              {BRAND.name} helps creators and businesses launch, sell, and grow online from anywhere in the world.
             </p>
             <div className="mt-6 flex items-center gap-3">
               {socials.map(({ icon: Icon, label, href }) => (
@@ -179,7 +152,7 @@ export function Footer() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4">Corporate Information</p>
             <div className="space-y-1.5 text-xs text-white/45">
-              <p>Lummy Technologies Ltd.</p>
+              <p>Lummy Technologies</p>
               <p>Registered Business Information</p>
               <p>Business Registration Number</p>
               <p>Registered Address</p>
@@ -197,14 +170,14 @@ export function Footer() {
       <div className="container py-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-3xl space-y-2">
-            <p className="text-xs text-white/30">© 2025 Lummy Technologies Ltd. All Rights Reserved.</p>
+            <p className="text-xs text-white/30">© 2025 Lummy Technologies. All rights reserved.</p>
             <p className="text-xs leading-5 text-white/30">
-              Lummy provides commerce, storefront, and payment enablement tools for independent creators and businesses.
-              Availability of features may vary by country and payment provider. Users are responsible for complying with
-              applicable local laws, tax obligations, and regulatory requirements.
+              Lummy provides global commerce, storefront, and payment enablement tools for independent creators and businesses.
+              Feature availability may vary by country and payment provider. Users are responsible for complying with applicable
+              local laws, tax obligations, and regulatory requirements.
             </p>
           </div>
-          <p className="text-xs text-white/30">Built for creator commerce.</p>
+          <p className="text-xs text-white/30">Built for creators everywhere.</p>
         </div>
       </div>
     </footer>

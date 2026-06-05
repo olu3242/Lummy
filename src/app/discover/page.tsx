@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MapPin, Search, Sparkles, Star, TrendingUp } from "lucide-react";
 import { BRAND } from "@/config/branding";
+import { formatMinorMoney } from "@/lib/globalization";
 import { DISCOVERY_CATEGORIES, type DiscoverySort, getDiscoveryDirectory } from "@/lib/growth/discovery";
 
 type DiscoverSearchParams = {
@@ -40,10 +41,6 @@ function buildHref(next: Partial<DiscoverSearchParams>) {
   }
   const query = params.toString();
   return query ? `/discover?${query}` : "/discover";
-}
-
-function formatCurrency(value: number) {
-  return `NGN ${Math.round(value / 100).toLocaleString()}`;
 }
 
 export default async function DiscoverPage({ searchParams }: { searchParams: DiscoverSearchParams }) {
@@ -203,7 +200,7 @@ export default async function DiscoverPage({ searchParams }: { searchParams: Dis
                       {store.topProduct ? (
                         <Link href={`/${store.handle}/${store.topProduct.id}`} className="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm hover:bg-muted">
                           <span className="truncate font-medium">{store.topProduct.title}</span>
-                          <span className="text-xs text-muted-foreground">{formatCurrency(store.topProduct.price)}</span>
+                          <span className="text-xs text-muted-foreground">{formatMinorMoney(store.topProduct.price, store.topProduct.currency)}</span>
                         </Link>
                       ) : null}
                     </div>

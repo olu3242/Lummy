@@ -44,7 +44,7 @@ export async function createPaystackCheckoutSession(params: CheckoutParams): Pro
     body: JSON.stringify({
       email: params.customerEmail,
       amount: params.amount,
-      currency: params.currency || 'NGN',
+      currency: params.currency || 'USD',
       reference,
       metadata: params.metadata,
       callback_url: params.successUrl,

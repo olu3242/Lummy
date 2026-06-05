@@ -223,7 +223,7 @@ export const mockPricingPlans: PricingPlan[] = [
   {
     id: "growth",
     name: "Growth",
-    price: "₦5,000",
+    price: "$9",
     priceSubtext: "per month",
     description: "For creators ready to scale.",
     features: [
@@ -243,7 +243,7 @@ export const mockPricingPlans: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "₦15,000",
+    price: "$29",
     priceSubtext: "per month",
     description: "For creator businesses at scale.",
     features: [

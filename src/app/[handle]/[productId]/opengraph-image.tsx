@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og"
 import { BRAND } from "@/config/branding"
 import { storefrontCreator } from "@/data/mock/storefront"
+import { formatMoney } from "@/lib/globalization"
 
 export const runtime = "edge"
 export const alt = `Product on ${BRAND.name}`
@@ -19,6 +20,7 @@ export default async function OGImage({
   const p = product ?? creator.publicProducts[0]
 
   if (!p) return new ImageResponse(<div>Not found</div>, { ...size })
+  const formattedPrice = formatMoney(p.price, (p as { currency?: string }).currency)
 
   return new ImageResponse(
     (
@@ -64,7 +66,7 @@ export default async function OGImage({
             <span style={{ color: "rgba(255,255,255,0.6)", fontSize: 16, lineHeight: 1.5, display: "-webkit-box", WebkitLineClamp: 2, overflow: "hidden" }}>{p.description}</span>
 
             {/* Price */}
-            <span style={{ color: "#a78bfa", fontSize: 32, fontWeight: 900, marginTop: 4 }}>₦{p.price.toLocaleString()}</span>
+            <span style={{ color: "#a78bfa", fontSize: 32, fontWeight: 900, marginTop: 4 }}>{formattedPrice}</span>
 
             {/* Stats */}
             <div style={{ display: "flex", gap: 24, marginTop: 4 }}>

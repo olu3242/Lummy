@@ -1,5 +1,9 @@
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://lummy.co"
 
+function formatAmount(amount: number, currency = "USD") {
+  return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 0 }).format(amount)
+}
+
 export function buildStorefrontUrl(handle: string): string {
   return `${APP_URL}/${handle}`
 }
@@ -18,22 +22,24 @@ export function buildStorefrontShareMessage(storeName: string, handle: string): 
 
 export function buildProductOrderMessage(
   productName: string,
-  priceNgn: number,
+  price: number,
   handle: string,
   productId?: string,
+  currency = "USD",
 ): string {
   const url = buildStorefrontUrl(handle) + (productId ? `?product=${productId}` : "")
-  const price = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(priceNgn)
-  return `Hi! 👋 I'm interested in ordering:\n\n*${productName}* — ${price}\n\nProduct link: ${url}\n\nPlease let me know if it's available 🙏`
+  const formattedPrice = formatAmount(price, currency)
+  return `Hi! 👋 I'm interested in ordering:\n\n*${productName}* — ${formattedPrice}\n\nProduct link: ${url}\n\nPlease let me know if it's available 🙏`
 }
 
 export function buildOrderConfirmationMessage(
   orderNumber: string,
   customerName: string,
-  amountNgn: number,
+  amount: number,
+  currency = "USD",
 ): string {
-  const amount = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(amountNgn / 100)
-  return `Hi ${customerName}! 👋\n\nYour order *#${orderNumber}* (${amount}) has been confirmed. Thank you for shopping with us! 🎉\n\nWe'll be in touch shortly with delivery details.`
+  const formattedAmount = formatAmount(amount / 100, currency)
+  return `Hi ${customerName}! 👋\n\nYour order *#${orderNumber}* (${formattedAmount}) has been confirmed. Thank you for shopping with us! 🎉\n\nWe'll be in touch shortly with delivery details.`
 }
 
 export function buildWhatsAppShareLink(handle: string, storeName: string): string {
@@ -44,10 +50,11 @@ export function buildWhatsAppShareLink(handle: string, storeName: string): strin
 export function buildProductWhatsAppLink(
   creatorPhone: string,
   productName: string,
-  priceNgn: number,
+  price: number,
   handle: string,
   productId?: string,
+  currency = "USD",
 ): string {
-  const msg = buildProductOrderMessage(productName, priceNgn, handle, productId)
+  const msg = buildProductOrderMessage(productName, price, handle, productId, currency)
   return buildWhatsAppLink(creatorPhone, msg)
 }

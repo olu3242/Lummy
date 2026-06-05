@@ -33,10 +33,10 @@ export async function createPendingOrder(input: CreateOrderInput, client?: Retur
   const quantity = Number.isFinite(input.quantity) ? Math.max(1, Math.floor(input.quantity)) : 1;
   const amount = Number(product.data.price) * quantity;
 
-  const order = await supabase.from('orders').insert({ organization_id: input.organizationId, customer_email: input.customerEmail, status: 'pending', amount, currency: product.data.currency || 'NGN', payment_provider: input.provider }).select('*').single();
+  const order = await supabase.from('orders').insert({ organization_id: input.organizationId, customer_email: input.customerEmail, status: 'pending', amount, currency: product.data.currency || 'USD', payment_provider: input.provider }).select('*').single();
   if (order.error) throw order.error;
 
-  const payment = await supabase.from('payments').insert({ order_id: order.data.id, organization_id: input.organizationId, provider: input.provider, amount, currency: product.data.currency || 'NGN', status: 'pending' }).select('*').single();
+  const payment = await supabase.from('payments').insert({ order_id: order.data.id, organization_id: input.organizationId, provider: input.provider, amount, currency: product.data.currency || 'USD', status: 'pending' }).select('*').single();
   if (payment.error) throw payment.error;
 
   return { order: order.data, payment: payment.data, product: product.data, quantity };
@@ -210,7 +210,7 @@ function generateCustomerSummary(input: { totalOrders: number; totalRevenue: num
   notes.push(input.totalOrders >= 2 ? 'Repeat buyer with multiple orders.' : 'Early-stage buyer profile.');
   if (input.abandoned > 0) notes.push(`Abandoned checkout signals: ${input.abandoned}.`);
   if (input.paidOrders > 0) notes.push(`Completed purchases: ${input.paidOrders}.`);
-  if (input.totalRevenue > 0) notes.push(`Total revenue: ₦${Math.round(input.totalRevenue).toLocaleString()}.`);
+  if (input.totalRevenue > 0) notes.push(`Total revenue: ${Math.round(input.totalRevenue).toLocaleString()} in the creator's store currency.`);
   if (input.checkoutGenerated > input.paidOrders) notes.push('Follow-up recommended to improve conversion.');
   return notes.join(' ').slice(0, 240);
 }

@@ -1,10 +1,10 @@
 import { createClient } from '@/lib/supabase/server';
 
-export async function createProduct(organizationId: string, input: { title: string; price: number; description?: string; image_url?: string; status?: string }) {
+export async function createProduct(organizationId: string, input: { title: string; price: number; description?: string; image_url?: string; status?: string; currency?: string }) {
   const supabase = createClient();
   return supabase
     .from('products')
-    .insert({ organization_id: organizationId, title: input.title, price: input.price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active' })
+    .insert({ organization_id: organizationId, title: input.title, price: input.price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active', currency: input.currency ?? 'USD' })
     .select('*')
     .single();
 }

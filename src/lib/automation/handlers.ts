@@ -90,8 +90,9 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     const userId = await resolveUserId(creatorId)
     if (!userId) return
     const amount = payload.amountKobo as number | undefined
+    const currency = payload.currency as string | undefined
     const formatted = amount
-      ? new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(amount / 100)
+      ? new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD", maximumFractionDigits: 0 }).format(amount / 100)
       : "your first sale"
     await notify(userId,
       "First sale! You did it! 🎊",
@@ -120,8 +121,9 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     const userId = await resolveUserId(creatorId)
     if (!userId) return
     const amount = payload.amountKobo as number | undefined
+    const currency = payload.currency as string | undefined
     const formatted = amount
-      ? new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(amount / 100)
+      ? new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD", maximumFractionDigits: 0 }).format(amount / 100)
       : "Payment"
     await notify(userId,
       `${formatted} received! 💰`,
@@ -344,10 +346,13 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     const title    = payload.title as string | undefined
     const oppType  = payload.opportunityType as string | undefined
     const estKobo  = payload.estimatedRevenueKobo as number | undefined
-    const estNGN   = estKobo != null ? `₦${(estKobo / 100).toLocaleString()}` : null
+    const currency = payload.currency as string | undefined
+    const estRevenue = estKobo != null
+      ? new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD", maximumFractionDigits: 0 }).format(estKobo / 100)
+      : null
     await notify(userId,
       "💰 Revenue opportunity detected",
-      `${title ?? "You have a monetization opportunity"}${estNGN ? ` — estimated ${estNGN}` : ""}`,
+      `${title ?? "You have a monetization opportunity"}${estRevenue ? ` — estimated ${estRevenue}` : ""}`,
       "/dashboard/analytics"
     )
     logger.info("[handler] creator_monetization_opportunity", { creatorId, oppType })
@@ -850,9 +855,11 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
     const userId = await resolveUserId(creatorId)
     if (!userId) return
     const action = (payload.recommendedAction as string | undefined)?.replace(/_/g, " ") ?? "reach out"
+    const currency = payload.currency as string | undefined
+    const revenueAtRisk = new Intl.NumberFormat("en-US", { style: "currency", currency: currency ?? "USD", maximumFractionDigits: 0 }).format(((payload.estimatedRevenueLossKobo as number ?? 0) / 100))
     await notify(userId,
       `${payload.customersAtRisk ?? "Several"} customers need re-engagement`,
-      `Recommended action: ${action}. Estimated revenue at risk: ₦${(((payload.estimatedRevenueLossKobo as number ?? 0) / 100)).toLocaleString()}.`,
+      `Recommended action: ${action}. Estimated revenue at risk: ${revenueAtRisk}.`,
       "/dashboard/customers"
     )
     logger.warn("[handler] customer_retention_recovery_needed", { creatorId, customersAtRisk: payload.customersAtRisk })

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
   // Format price for display (prices stored in smallest currency unit)
   const displayPrice = new Intl.NumberFormat("en-NG", {
     style: "currency",
-    currency: row.currency || "NGN",
+    currency: row.currency || "USD",
     maximumFractionDigits: 0,
   }).format(Number(row.price) / 100)
 

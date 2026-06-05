@@ -19,7 +19,7 @@ export type Database = {
         Insert: Partial<Database['public']['Tables']['profiles']['Row']> & { id: string; email: string };
         Update: Partial<Database['public']['Tables']['profiles']['Row']>;
       };
-      organizations: { Row: { id: string; name: string; slug: string; owner_id: string; plan: string; currency: string; country: string; created_at: string }; Insert: Partial<any>; Update: Partial<any> };
+      organizations: { Row: { id: string; name: string; slug: string; owner_id: string; plan: string; currency: string; country: string; currency_code?: string | null; country_code?: string | null; locale?: string | null; timezone?: string | null; created_at: string }; Insert: Partial<any>; Update: Partial<any> };
       organization_members: { Row: { id: string; organization_id: string; user_id: string; role: string; created_at: string }; Insert: Partial<any>; Update: Partial<any> };
       storefronts: { Row: { id: string; organization_id: string; handle: string; bio: string | null; theme: Json | null; store_schema: Json | null; hero_image: string | null; social_links: Json | null; is_active: boolean; created_at: string; updated_at: string | null }; Insert: Partial<any>; Update: Partial<any> };
       products: { Row: { id: string; organization_id: string; title: string; description: string | null; price: number; currency: string; image_url: string | null; status: string; created_at: string }; Insert: Partial<any>; Update: Partial<any> };

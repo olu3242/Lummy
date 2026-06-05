@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(getRuntimeAppUrl()),
   title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
-    "The creator commerce OS for Africa. Build your storefront, sell via WhatsApp, and grow with AI. Post. Chat. Get Paid.",
+    "The creator commerce platform for modern creators. Build your storefront, sell across channels, and grow with trusted commerce tools.",
   icons: {
     icon: BRAND.icon,
     apple: "/apple-icon.png",
@@ -31,8 +31,7 @@ export const metadata: Metadata = {
   },
   keywords: [
     "creator commerce",
-    "Africa",
-    "Nigeria",
+    "global commerce",
     "WhatsApp commerce",
     "creator economy",
     "online store",
@@ -41,7 +40,7 @@ export const metadata: Metadata = {
   ],
   openGraph: {
     title: `${BRAND.name} — ${BRAND.tagline}`,
-    description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    description: "The creator commerce platform for modern creators. Launch, sell, and grow online.",
     images: [{ url: BRAND.logo, width: 800, height: 800, alt: BRAND.name }],
     type: "website",
     locale: "en_NG",
@@ -50,7 +49,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `${BRAND.name} — ${BRAND.tagline}`,
-    description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    description: "The creator commerce platform for modern creators. Launch, sell, and grow online.",
     images: [BRAND.logo],
     creator: "@lummyhq",
   },

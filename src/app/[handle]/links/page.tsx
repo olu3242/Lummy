@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { storefrontCreator, buildWhatsAppUrl, buildStoreWhatsAppUrl } from "@/data/mock/storefront"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 const socialLinks = [
   {
@@ -175,7 +176,8 @@ export default function LinkInBioPage({ params }: { params: { handle: string } }
             </p>
             <div className="grid grid-cols-2 gap-2.5">
               {topProducts.map((product, i) => {
-                const waUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, creatorFirstName)
+                const formattedPrice = formatMoney(product.price, (product as { currency?: string }).currency)
+                const waUrl = buildWhatsAppUrl(creator.whatsapp, product.name, formattedPrice, creatorFirstName)
                 return (
                   <motion.div
                     key={product.id}
@@ -191,7 +193,7 @@ export default function LinkInBioPage({ params }: { params: { handle: string } }
                     </Link>
                     <div className="p-2.5">
                       <p className="text-xs font-semibold line-clamp-1">{product.name}</p>
-                      <p className="text-xs font-bold text-brand-purple mt-0.5">₦{product.price.toLocaleString()}</p>
+                      <p className="text-xs font-bold text-brand-purple mt-0.5">{formattedPrice}</p>
                       <a
                         href={waUrl}
                         target="_blank"

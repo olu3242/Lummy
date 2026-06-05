@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { buildWhatsAppUrl } from "@/data/mock/storefront"
 import { cn } from "@/lib/utils"
+import { formatMinorMoney } from "@/lib/globalization"
 
 interface RealProduct {
   id: string
@@ -83,7 +84,7 @@ export function ProductDetailClient({
     )
   }
 
-  const displayPrice = Math.round(product.price / 100) // kobo → Naira
+  const displayPrice = formatMinorMoney(product.price, product.currency)
   const image = product.image_url ?? "/placeholder-product.jpg"
   const galleryImages = [image]
   const activeImage = galleryImages[selectedImageIndex] ?? image
@@ -91,7 +92,7 @@ export function ProductDetailClient({
 
   const waNumber = (product.creator_whatsapp ?? "").replace(/\D/g, "")
   const whatsappUrl = waNumber
-    ? buildWhatsAppUrl(waNumber, product.name, `₦${displayPrice.toLocaleString()}`, product.store_name.split(" ")[0])
+    ? buildWhatsAppUrl(waNumber, product.name, displayPrice, product.store_name.split(" ")[0])
     : null
 
   return (
@@ -151,7 +152,7 @@ export function ProductDetailClient({
         <div className="px-4 pt-5 space-y-4">
           <div className="flex items-start justify-between gap-2">
             <h1 className="font-display text-2xl font-extrabold leading-snug">{product.name}</h1>
-            <p className="font-display text-2xl font-extrabold text-brand-purple flex-shrink-0">₦{displayPrice.toLocaleString()}</p>
+            <p className="font-display text-2xl font-extrabold text-brand-purple flex-shrink-0">{displayPrice}</p>
           </div>
           {product.description ? (
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
@@ -176,7 +177,7 @@ export function ProductDetailClient({
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {relatedProducts.map((item) => {
-                  const itemPrice = Math.round(item.price / 100)
+                  const itemPrice = formatMinorMoney(item.price, item.currency)
                   return (
                     <Link
                       key={item.id}
@@ -194,7 +195,7 @@ export function ProductDetailClient({
                       </div>
                       <div className="space-y-1 p-3">
                         <p className="line-clamp-2 text-xs font-semibold leading-snug">{item.name}</p>
-                        <p className="text-xs font-bold text-brand-purple">₦{itemPrice.toLocaleString()}</p>
+                        <p className="text-xs font-bold text-brand-purple">{itemPrice}</p>
                       </div>
                     </Link>
                   )
@@ -228,7 +229,7 @@ export function ProductDetailClient({
             <Link href={`/${handle}/${productId}/checkout`} className="flex-1">
               <Button size="xl" className="w-full gap-2">
                 <CreditCard className="h-5 w-5" />
-                Buy Now — ₦{displayPrice.toLocaleString()}
+                Buy Now — {displayPrice}
               </Button>
             </Link>
             {whatsappUrl && (

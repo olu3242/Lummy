@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { formatMinorMoney } from "@/lib/globalization"
 import { storefrontCreator } from "@/data/mock/storefront"
 
 // ─── Product type for checkout (real DB shape) ────────────────────────────────
@@ -21,6 +22,7 @@ interface CheckoutProduct {
   id: string
   name: string
   price: number        // in kobo/smallest unit
+  currency: string
   image: string
   creatorId: string
   creatorWhatsApp?: string
@@ -109,7 +111,7 @@ function StepIndicator({ current }: { current: CheckoutStep }) {
 // ─── Order Summary Sidebar ─────────────────────────────────────────────────────
 
 function OrderSummary({ product, qty, form }: {
-  product: { name: string; image: string; price: number; category?: string }
+  product: { name: string; image: string; price: number; currency: string; category?: string }
   qty: number
   form: CustomerForm
 }) {
@@ -129,22 +131,22 @@ function OrderSummary({ product, qty, form }: {
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-snug">{product.name}</p>
           {product.category && <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>}
-          <p className="text-sm font-bold text-brand-purple mt-1">₦{product.price.toLocaleString()} × {qty}</p>
+          <p className="text-sm font-bold text-brand-purple mt-1">{formatMinorMoney(product.price, product.currency)} × {qty}</p>
         </div>
       </div>
 
       {/* Pricing breakdown */}
       <div className="p-4 space-y-2">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span>
+          <span>Subtotal</span><span>{formatMinorMoney(subtotal, product.currency)}</span>
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
           <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Delivery</span>
-          <span>₦{delivery.toLocaleString()}</span>
+          <span>{formatMinorMoney(delivery, product.currency)}</span>
         </div>
         <div className="flex justify-between text-sm font-extrabold border-t border-border pt-2 mt-2">
           <span>Total</span>
-          <span className="text-brand-purple">₦{total.toLocaleString()}</span>
+          <span className="text-brand-purple">{formatMinorMoney(total, product.currency)}</span>
         </div>
       </div>
 
@@ -251,11 +253,12 @@ function PaymentStep({
 }: {
   method: PaymentMethod
   setMethod: (m: PaymentMethod) => void
-  product: { name: string; price: number }
+  product: { name: string; price: number; currency: string }
   form: CustomerForm
   qty: number
 }) {
   const total = product.price * qty + DELIVERY_FEE
+  const totalFormatted = formatMinorMoney(total, product.currency)
 
   return (
     <motion.div key="payment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -320,7 +323,7 @@ function PaymentStep({
       <div className="rounded-2xl bg-muted/50 border border-border p-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">You&apos;re paying</p>
-          <p className="font-display font-extrabold text-xl text-brand-purple">₦{total.toLocaleString()}</p>
+          <p className="font-display font-extrabold text-xl text-brand-purple">{totalFormatted}</p>
         </div>
         <ShieldCheck className="h-8 w-8 text-brand-green opacity-60" />
       </div>
@@ -404,6 +407,7 @@ export default function CheckoutPage() {
             id:               data.id,
             name:             data.name,
             price:            Number(data.price ?? 0),
+            currency:         data.currency ?? "USD",
             image:            data.image_url ?? "/placeholder-product.jpg",
             creatorId:        data.creator_id,
             creatorWhatsApp:  data.creator_whatsapp,
@@ -426,6 +430,7 @@ export default function CheckoutPage() {
   // Use real product price or fall back to 0 while loading
   const productPrice = product?.price ?? 0
   const total = productPrice * qty + DELIVERY_FEE
+  const totalFormatted = product ? formatMinorMoney(total, product.currency) : formatMinorMoney(total)
 
   const detailsValid = form.name.trim() && form.phone.trim() && form.address.trim() && form.city.trim()
 
@@ -441,7 +446,7 @@ export default function CheckoutPage() {
     setPlacing(true)
 
     if (paymentMethod === "whatsapp") {
-      const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ₦${total.toLocaleString()}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
+      const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ${totalFormatted}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
       const waNumber = (product.creatorWhatsApp ?? storefrontCreator.whatsapp).replace(/\D/g, "")
       const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`
       setPlacing(false)
@@ -569,7 +574,7 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold truncate max-w-[160px]">{product.name}</p>
-                    <p className="text-xs text-brand-purple font-bold">₦{product.price.toLocaleString()}</p>
+                    <p className="text-xs text-brand-purple font-bold">{formatMinorMoney(product.price, product.currency)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -613,7 +618,7 @@ export default function CheckoutPage() {
                   ) : paymentMethod === "whatsapp" ? (
                     <><MessageCircle className="h-4 w-4 fill-white" />Order via WhatsApp</>
                   ) : (
-                    <><Lock className="h-4 w-4" />Pay ₦{total.toLocaleString()}</>
+                    <><Lock className="h-4 w-4" />Pay {totalFormatted}</>
                   )}
                 </Button>
               )}

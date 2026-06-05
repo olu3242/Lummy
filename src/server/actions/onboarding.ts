@@ -16,6 +16,8 @@ export async function completeOnboarding(input: {
   phone: string;
   country?: string;
   currency?: string;
+  locale?: string;
+  timezone?: string;
   orgName: string;
   handle: string;
   productTitle?: string;
@@ -28,6 +30,17 @@ export async function completeOnboarding(input: {
 
   await saveOnboardingProfile({ full_name: input.fullName, phone: input.phone, country: input.country, currency: input.currency, onboarding_step: 'organization' });
   const organization = await ensureOrganizationForUser({ userId: auth.user.id, orgName: input.orgName, country: input.country, currency: input.currency });
+  await supabase
+    .from('organizations')
+    .update({
+      country: input.country ?? 'US',
+      currency: input.currency ?? 'USD',
+      country_code: input.country ?? 'US',
+      currency_code: input.currency ?? 'USD',
+      locale: input.locale ?? 'en-US',
+      timezone: input.timezone ?? 'UTC',
+    })
+    .eq('id', organization.id);
 
   const storefront = await upsertStorefront(organization.id, { handle: input.handle });
   if (storefront.error) throw storefront.error;
@@ -44,7 +57,7 @@ export async function completeOnboarding(input: {
       .eq('title', input.productTitle)
       .maybeSingle();
     if (!existing) {
-      const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription });
+      const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription, currency: input.currency ?? 'USD' });
       if (product.error) throw product.error;
     }
   }

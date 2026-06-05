@@ -239,7 +239,7 @@ export async function createPaymentLink(opts: {
     const body = {
       email:    opts.customerEmail,
       amount:   opts.amountKobo,
-      currency: opts.currency ?? "NGN",
+      currency: opts.currency ?? "USD",
       reference,
       metadata: {
         orderId:        opts.orderId,

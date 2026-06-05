@@ -28,6 +28,7 @@ export type DiscoveryStore = {
     id: string;
     title: string;
     price: number;
+    currency: string;
     imageUrl: string | null;
   } | null;
 };
@@ -92,7 +93,7 @@ export async function getDiscoveryDirectory(input: DiscoveryInput = {}) {
     orgIds.length
       ? supabase
           .from("products")
-          .select("id,organization_id,title,price,image_url,status,created_at")
+          .select("id,organization_id,title,price,currency,image_url,status,created_at")
           .in("organization_id", orgIds)
           .eq("status", "active")
           .order("created_at", { ascending: false })
@@ -122,8 +123,8 @@ export async function getDiscoveryDirectory(input: DiscoveryInput = {}) {
   if (profilesResult.error) throw profilesResult.error;
   if (creatorProfilesResult.error) throw creatorProfilesResult.error;
 
-  const productsByOrg = new Map<string, Array<{ id: string; title: string; price: number; image_url: string | null }>>();
-  for (const product of (productsResult.data ?? []) as Array<{ id: string; organization_id: string; title: string; price: number; image_url: string | null }>) {
+  const productsByOrg = new Map<string, Array<{ id: string; title: string; price: number; currency: string | null; image_url: string | null }>>();
+  for (const product of (productsResult.data ?? []) as Array<{ id: string; organization_id: string; title: string; price: number; currency: string | null; image_url: string | null }>) {
     const rows = productsByOrg.get(product.organization_id) ?? [];
     rows.push(product);
     productsByOrg.set(product.organization_id, rows);
@@ -164,6 +165,7 @@ export async function getDiscoveryDirectory(input: DiscoveryInput = {}) {
             id: products[0].id,
             title: products[0].title,
             price: Number(products[0].price),
+            currency: products[0].currency ?? "USD",
             imageUrl: products[0].image_url,
           }
         : null,

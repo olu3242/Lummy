@@ -126,8 +126,8 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
             owner_id: user.id,
             name: organizationName,
             slug: await uniqueOrgSlug(supabase, user.id, organizationName),
-            country: "NG",
-            currency: "NGN",
+            country: "US",
+            currency: "USD",
           })
           .select("id")
           .single();

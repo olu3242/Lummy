@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 import { StorefrontRenderer } from "@/store/renderer/storefront-renderer"
 import { migrateToStoreSchema } from "@/store/schema/migrate"
 import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
@@ -33,7 +34,8 @@ function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
     id: p.id,
     name: p.title,
     description: p.description ?? "",
-    price: Math.round(p.price / 100), // kobo → Naira for display
+    price: Math.round(p.price / 100),
+    currency: p.currency || "USD",
     image: p.image_url ?? "/placeholder-product.jpg",
     category: "General",
     status: p.status === "active" ? "active" : "draft",
@@ -71,7 +73,8 @@ function QuickViewModal({
   product: StorefrontProduct; handle: string; whatsapp: string; creatorName: string; onClose: () => void
 }) {
   const creatorFirstName = creatorName.split(" ")[0] || "there"
-  const whatsappUrl = whatsapp ? buildWhatsAppUrl(whatsapp, product.name, `₦${product.price.toLocaleString()}`, creatorFirstName) : ""
+  const formattedPrice = formatMoney(product.price, product.currency)
+  const whatsappUrl = whatsapp ? buildWhatsAppUrl(whatsapp, product.name, formattedPrice, creatorFirstName) : ""
   const isOutOfStock = product.stock === 0
 
   React.useEffect(() => {
@@ -114,7 +117,7 @@ function QuickViewModal({
               <Badge variant="brand" size="sm" className="mb-1.5">{product.category}</Badge>
               <h2 className="font-display text-xl font-extrabold leading-snug">{product.name}</h2>
             </div>
-            <p className="font-display text-xl font-extrabold text-brand-purple flex-shrink-0">₦{product.price.toLocaleString()}</p>
+            <p className="font-display text-xl font-extrabold text-brand-purple flex-shrink-0">{formattedPrice}</p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{product.description}</p>
 

@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
       const paymentRow = await supabase
         .from('payments')
-        .select('amount')
+        .select('amount,currency')
         .eq('id', metadata.paymentId)
         .eq('organization_id', metadata.organizationId)
         .maybeSingle()
@@ -77,12 +77,13 @@ export async function POST(req: Request) {
         revenueAmount: Number(paymentRow.data?.amount || 0),
       })
 
-      const amountNgn = Number(paymentRow.data?.amount || 0)
-      const amountFormatted = new Intl.NumberFormat("en-NG", {
+      const paymentCurrency = (paymentRow.data as { currency?: string | null } | null)?.currency ?? "USD"
+      const amountValue = Number(paymentRow.data?.amount || 0)
+      const amountFormatted = new Intl.NumberFormat("en-US", {
         style: "currency",
-        currency: "NGN",
+        currency: paymentCurrency,
         maximumFractionDigits: 0,
-      }).format(amountNgn)
+      }).format(amountValue)
       const sdkCtx = { tenantId: metadata.organizationId, correlationId }
       const admin = createAdminClient()
 
@@ -154,7 +155,8 @@ export async function POST(req: Request) {
       void emitEvent('payment_received', sdkCtx, {
         orderId: metadata.orderId,
         paymentId: metadata.paymentId,
-        amountKobo: amountNgn * 100,
+        amountKobo: amountValue * 100,
+        currency: paymentCurrency,
         amountFormatted,
         correlationId,
       }, `payment_received:${metadata.paymentId}`)
