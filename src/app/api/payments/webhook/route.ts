@@ -25,7 +25,13 @@ export async function POST(req: Request) {
   })
 
   try {
-    const detectedProvider = detectProviderFromHeaders(headers)
+    let detectedProvider: string
+    try {
+      detectedProvider = detectProviderFromHeaders(headers)
+    } catch {
+      logApiEvent('warn', 'payments.webhook_processing_failed', { correlationId, message: 'Unable to resolve payment provider from webhook headers' })
+      return errorResponse(400, 'UNSUPPORTED_PAYMENT_PROVIDER', 'Unable to resolve payment provider from webhook headers', correlationId)
+    }
     if (detectedProvider !== 'stripe' && detectedProvider !== 'paystack') {
       return errorResponse(400, 'UNSUPPORTED_PAYMENT_PROVIDER', 'Unsupported payment provider', correlationId)
     }
