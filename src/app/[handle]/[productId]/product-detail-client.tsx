@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils"
 interface RealProduct {
   id: string
   name: string
+  description: string | null
   price: number
   currency: string
   image_url: string | null
@@ -23,6 +24,13 @@ interface RealProduct {
   creator_whatsapp: string | null
   store_name: string
   in_stock: boolean
+  related_products: Array<{
+    id: string
+    name: string
+    price: number
+    currency: string
+    image_url: string | null
+  }>
 }
 
 export function ProductDetailClient({
@@ -79,6 +87,7 @@ export function ProductDetailClient({
   const image = product.image_url ?? "/placeholder-product.jpg"
   const galleryImages = [image]
   const activeImage = galleryImages[selectedImageIndex] ?? image
+  const relatedProducts = product.related_products ?? []
 
   const waNumber = (product.creator_whatsapp ?? "").replace(/\D/g, "")
   const whatsappUrl = waNumber
@@ -144,6 +153,9 @@ export function ProductDetailClient({
             <h1 className="font-display text-2xl font-extrabold leading-snug">{product.name}</h1>
             <p className="font-display text-2xl font-extrabold text-brand-purple flex-shrink-0">₦{displayPrice.toLocaleString()}</p>
           </div>
+          {product.description ? (
+            <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+          ) : null}
 
           {/* Delivery */}
           <div className="flex gap-3 p-3.5 rounded-2xl bg-muted/50 border border-border">
@@ -153,6 +165,43 @@ export function ProductDetailClient({
               <p className="text-muted-foreground mt-0.5">Lagos: 1–2 days · Other states: 3–5 days</p>
             </div>
           </div>
+
+          {relatedProducts.length > 0 ? (
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold">You may also like</h2>
+                <Link href={`/${handle}`} className="text-xs font-medium text-brand-purple hover:underline">
+                  View store
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {relatedProducts.map((item) => {
+                  const itemPrice = Math.round(item.price / 100)
+                  return (
+                    <Link
+                      key={item.id}
+                      href={`/${handle}/${item.id}`}
+                      className="overflow-hidden rounded-2xl border border-border bg-background transition-colors hover:bg-accent"
+                    >
+                      <div className="relative aspect-square bg-muted">
+                        <Image
+                          src={item.image_url ?? "/placeholder-product.jpg"}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                      <div className="space-y-1 p-3">
+                        <p className="line-clamp-2 text-xs font-semibold leading-snug">{item.name}</p>
+                        <p className="text-xs font-bold text-brand-purple">₦{itemPrice.toLocaleString()}</p>
+                      </div>
+                    </Link>
+                  )
+                })}
+              </div>
+            </section>
+          ) : null}
 
           {/* Seller */}
           <Link href={`/${handle}`} className="flex items-center gap-3 p-3.5 rounded-2xl border border-border hover:bg-accent transition-colors">

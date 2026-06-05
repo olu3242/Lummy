@@ -8,6 +8,16 @@ import { createClient } from '@/lib/supabase/server'
 import { DEFAULT_SCHEMA } from '@/store/schema/defaults'
 import type { StoreSchema } from '@/store/schema/types'
 
+type PublishedProduct = {
+  id: string
+  title?: string | null
+  name?: string | null
+  description?: string | null
+  price?: number | string | null
+  currency?: string | null
+  image_url?: string | null
+}
+
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
   const storefront = await getPublishedStorefrontByHandle(params.handle)
   if (!storefront) {
@@ -64,18 +74,55 @@ export default async function StorefrontPage({ params }: { params: { handle: str
   const profile = profileResult && !profileResult.error
     ? profileResult.data as { full_name?: string | null; avatar_url?: string | null; phone?: string | null } | null
     : null
+  const storefrontUrl = `https://lummy.co/${params.handle}`
+  const publishedProducts = (products ?? []) as PublishedProduct[]
+  const storeSchemaJson = {
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    name: storeName,
+    url: storefrontUrl,
+    description: storefront.bio || `${storeName} on ${BRAND.name}`,
+    image: storefront.hero_image ?? profile?.avatar_url ?? undefined,
+    sameAs: Object.values((storefront.social_links as Record<string, string> | null) ?? {}).filter(Boolean),
+    hasOfferCatalog: {
+      '@type': 'OfferCatalog',
+      name: `${storeName} products`,
+      itemListElement: publishedProducts.map((product) => {
+        const productName = product.title ?? product.name ?? 'Product'
+        return {
+          '@type': 'Offer',
+          price: String(product.price ?? 0),
+          priceCurrency: product.currency ?? 'NGN',
+          url: `${storefrontUrl}/${product.id}`,
+          itemOffered: {
+            '@type': 'Product',
+            name: productName,
+            description: product.description ?? undefined,
+            image: product.image_url ?? undefined,
+            url: `${storefrontUrl}/${product.id}`,
+          },
+        }
+      }),
+    },
+  }
   return (
-    <StorefrontClient
-      handle={params.handle}
-      storeName={storeName}
-      bio={storefront.bio ?? ''}
-      products={products ?? []}
-      storeSchema={storefrontData.store_schema ?? (fallbackSchema as unknown as import('@/lib/supabase/types').Json | null)}
-      whatsappNumber={profile?.phone ?? null}
-      creatorName={profile?.full_name ?? storeName}
-      avatarUrl={profile?.avatar_url ?? null}
-      coverUrl={storefront.hero_image ?? null}
-      socialLinks={(storefront.social_links as Record<string, string> | null) ?? null}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(storeSchemaJson) }}
+      />
+      <StorefrontClient
+        handle={params.handle}
+        storeName={storeName}
+        bio={storefront.bio ?? ''}
+        products={products ?? []}
+        storeSchema={storefrontData.store_schema ?? (fallbackSchema as unknown as import('@/lib/supabase/types').Json | null)}
+        whatsappNumber={profile?.phone ?? null}
+        creatorName={profile?.full_name ?? storeName}
+        avatarUrl={profile?.avatar_url ?? null}
+        coverUrl={storefront.hero_image ?? null}
+        socialLinks={(storefront.social_links as Record<string, string> | null) ?? null}
+      />
+    </>
   )
 }

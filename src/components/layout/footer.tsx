@@ -17,6 +17,7 @@ const footerLinks = {
   ],
   Creators: [
     { label: "Create a Storefront", href: "/signup" },
+    { label: "Discover Creators", href: "/discover" },
     { label: "Sell Products", href: "/#features" },
     { label: "Sell Services", href: "/#features" },
     { label: "Creator Resources", href: "/community-guidelines" },
@@ -66,6 +67,7 @@ const footerLinks = {
     { label: "Law Enforcement Requests", href: "mailto:legal@lummy.com" },
   ],
   Marketplace: [
+    { label: "Discover Stores", href: "/discover" },
     { label: "Community Guidelines", href: "/community-guidelines" },
     { label: "Content Policy", href: "/content-policy" },
     { label: "Report Abuse", href: "/report-abuse" },
