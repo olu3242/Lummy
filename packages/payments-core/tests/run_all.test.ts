@@ -24,16 +24,17 @@ beforeEach(() => {
 class InMemoryDB {
   rows: Record<string, any>[] = []
   async findOne(table: string, where: Record<string, any>) {
-    return this.rows.find(r => Object.keys(where).every(k => r[k] === where[k])) || null
+    const row = this.rows.find(r => Object.keys(where).every(k => r[k] === where[k])) || null
+    return { data: row, error: null }
   }
   async insert(table: string, obj: Record<string, any>) {
     this.rows.push(obj)
-    return obj
+    return { data: obj, error: null }
   }
   async update(table: string, where: Record<string, any>, updates: Record<string, any>) {
-    const row = this.rows.find(r => Object.keys(where).every(k => r[k] === where[k]))
+    const row = this.rows.find(r => Object.keys(where).every(k => r[k] === where[k])) || null
     if (row) Object.assign(row, updates)
-    return row
+    return { data: row, error: null }
   }
 }
 
@@ -52,7 +53,7 @@ test('webhook handling: paystack signature verification and normalization', asyn
   process.env.PAYSTACK_SECRET_KEY = 'test_paystack_secret'
 
   const fakeRaw = JSON.stringify({ id: 'tx_999', reference: 'ref_999', status: 'settled', amount: 2000, currency: 'NGN' })
-  const paystackSig = crypto.createHmac('sha256', process.env.PAYSTACK_SECRET_KEY as string).update(fakeRaw).digest('hex')
+  const paystackSig = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY as string).update(fakeRaw).digest('hex')
   const fakeHeaders = { 'x-paystack-signature': paystackSig }
 
   const tx = await handleProviderWebhook(db as any, 'paystack', fakeHeaders as any, fakeRaw, 'corr_webhook')
