@@ -110,6 +110,18 @@ export function useStoreSchema() {
     }
   }, [schema])
 
+  const persist = useCallback(async (nextSchema: StoreSchema) => {
+    const res = await fetch("/api/store/schema", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ schema: nextSchema }),
+    })
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null) as { error?: string } | null
+      throw new Error(payload?.error ?? "Could not sync store schema.")
+    }
+  }, [])
+
   const reset = useCallback(() => {
     setSchema(DEFAULT_SCHEMA)
     toast({ title: "Reset complete", description: "Store reset to defaults." })
@@ -141,6 +153,7 @@ export function useStoreSchema() {
     updateSEO,
     updateHours,
     save,
+    persist,
     reset,
   }
 }

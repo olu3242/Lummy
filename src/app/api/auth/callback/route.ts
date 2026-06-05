@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createServerClient } from "@supabase/ssr"
+import { ensureCreatorRuntimeContext } from "@/repositories/runtime-bootstrap-repository"
 
 // Supabase PKCE auth code exchange — called after email confirmation / OAuth.
 // IMPORTANT: Uses request-cookie-aware client that attaches session cookies
@@ -44,19 +45,12 @@ export async function GET(request: NextRequest) {
   const user = sessionData?.user
 
   if (user) {
-    // Upsert profile — picks up full_name from Google user_metadata on first OAuth sign-in
+    // Email and OAuth converge here: profile, organization, membership, and
+    // onboarding state are created before route selection.
     try {
-      await supabase.from("profiles").upsert(
-        {
-          id: user.id,
-          email: user.email!,
-          full_name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? null,
-          avatar_url: user.user_metadata?.avatar_url ?? null,
-        },
-        { onConflict: "id", ignoreDuplicates: false },
-      )
-    } catch (profileErr) {
-      console.error("[auth/callback] profile upsert failed:", profileErr)
+      await ensureCreatorRuntimeContext(supabase, user)
+    } catch (bootstrapErr) {
+      console.error("[auth/callback] runtime bootstrap failed:", bootstrapErr)
     }
   }
 

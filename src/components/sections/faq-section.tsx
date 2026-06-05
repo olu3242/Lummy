@@ -26,10 +26,10 @@ export function FAQSection() {
               <span className="gradient-text">We have answers.</span>
             </h2>
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-sm">
-              Everything you need to know about selling on Lummy. Can&apos;t find your answer?
+              Clear answers for creators deciding whether to start selling with Lummy today.
             </p>
             <button className="mt-4 text-sm text-primary font-semibold hover:underline">
-              Chat with our team →
+              Start selling free →
             </button>
           </motion.div>
 

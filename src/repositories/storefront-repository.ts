@@ -4,6 +4,24 @@ const RESERVED_STOREFRONT_HANDLES = new Set(['admin', 'api', 'app', 'dashboard',
 
 const normalizeHandle = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
 
+function fallbackHandle(input: { existingHandle?: string | null; storeName?: string; email?: string | null; userId: string }) {
+  const fromExisting = normalizeHandle(input.existingHandle ?? '');
+  if (fromExisting && !RESERVED_STOREFRONT_HANDLES.has(fromExisting)) return fromExisting;
+  const fromStore = normalizeHandle(input.storeName ?? '');
+  if (fromStore && !RESERVED_STOREFRONT_HANDLES.has(fromStore)) return fromStore;
+  const fromEmail = normalizeHandle(input.email?.split('@')[0] ?? '');
+  if (fromEmail && !RESERVED_STOREFRONT_HANDLES.has(fromEmail)) return fromEmail;
+  return `creator-${input.userId.slice(0, 8)}`;
+}
+
+async function availableHandle(supabase: ReturnType<typeof createClient>, organizationId: string, handle: string, userId: string) {
+  const clean = normalizeHandle(handle);
+  const clash = await supabase.from('storefronts').select('organization_id').eq('handle', clean).neq('organization_id', organizationId).limit(1);
+  if (clash.error) throw clash.error;
+  if ((clash.data?.length ?? 0) === 0) return clean;
+  return `${clean}-${userId.slice(0, 6)}`;
+}
+
 export async function upsertStorefront(organizationId: string, payload: { handle: string; bio?: string; hero_image?: string }) {
   const supabase = createClient();
   const cleanHandle = normalizeHandle(payload.handle);
@@ -46,6 +64,12 @@ export async function updateStorefrontForCurrentUser(input: {
   if (!membership.data?.organization_id) throw new Error('No organization context');
 
   const orgId = membership.data.organization_id;
+  const existing = await supabase
+    .from('storefronts')
+    .select('handle')
+    .eq('organization_id', orgId)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
 
   const patch: Record<string, unknown> = {};
 
@@ -67,6 +91,13 @@ export async function updateStorefrontForCurrentUser(input: {
     const orgUpdate = await supabase.from('organizations').update({ name: input.storeName }).eq('id', orgId);
     if (orgUpdate.error) throw orgUpdate.error;
   }
+
+  patch.handle = await availableHandle(
+    supabase,
+    orgId,
+    String(patch.handle ?? fallbackHandle({ existingHandle: existing.data?.handle, storeName: input.storeName, email: auth.user.email, userId: auth.user.id })),
+    auth.user.id,
+  );
 
   const storefront = await supabase
     .from('storefronts')

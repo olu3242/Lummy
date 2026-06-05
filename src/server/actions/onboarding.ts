@@ -97,3 +97,46 @@ export async function completeOnboarding(input: {
 
   return { organizationId: organization.id };
 }
+
+export async function markStorefrontShared() {
+  const supabase = createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error('Unauthorized');
+
+  const existing = await supabase
+    .from('onboarding_states')
+    .select('organization_id, metadata')
+    .eq('user_id', auth.user.id)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
+
+  const previousMetadata =
+    existing.data?.metadata && typeof existing.data.metadata === 'object'
+      ? existing.data.metadata as Record<string, unknown>
+      : {};
+  const previousActivation =
+    previousMetadata.activation && typeof previousMetadata.activation === 'object'
+      ? previousMetadata.activation as Record<string, unknown>
+      : {};
+
+  const sharedAt = new Date().toISOString();
+  const result = await supabase.from('onboarding_states').upsert(
+    {
+      user_id: auth.user.id,
+      organization_id: existing.data?.organization_id ?? null,
+      current_step: 'completed',
+      completed: true,
+      metadata: {
+        ...previousMetadata,
+        activation: {
+          ...previousActivation,
+          storefront_shared_at: sharedAt,
+          storefront_shared_channel: 'whatsapp',
+        },
+      },
+      updated_at: sharedAt,
+    },
+    { onConflict: 'user_id' },
+  );
+  if (result.error) throw result.error;
+}

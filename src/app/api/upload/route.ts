@@ -12,17 +12,26 @@ export async function POST(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  // Resolve creator profile id
-  const { data: profile } = await supabase
+  const membership = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (membership.error) return NextResponse.json({ error: membership.error.message }, { status: 500 })
+
+  const { data: legacyProfile } = await supabase
     .from("creator_profiles")
     .select("id")
     .eq("user_id", user.id)
-    .single()
+    .maybeSingle()
 
-  if (!profile?.id) return NextResponse.json({ error: "Creator profile not found" }, { status: 404 })
+  const ownerPath = membership.data?.organization_id ?? legacyProfile?.id ?? user.id
 
   // 30 uploads per minute per creator
-  const rl = checkRateLimit(getRateLimitKey("upload", request, profile.id), 30)
+  const rl = checkRateLimit(getRateLimitKey("upload", request, ownerPath), 30)
   if (!rl.allowed) {
     return NextResponse.json(
       { error: "Upload rate limit exceeded" },
@@ -53,10 +62,10 @@ export async function POST(request: NextRequest) {
 
   if (type === "product" && productId) {
     bucket = BUCKETS.productImages
-    path = buildProductPath(profile.id, productId, `${timestamp}.${ext}`)
+    path = buildProductPath(ownerPath, productId, `${timestamp}.${ext}`)
   } else {
     bucket = BUCKETS.creatorAssets
-    path = buildCreatorPath(profile.id, `${type ?? "upload"}-${timestamp}.${ext}`)
+    path = buildCreatorPath(ownerPath, `${type ?? "upload"}-${timestamp}.${ext}`)
   }
 
   const result = await uploadFile(bucket, path, file)

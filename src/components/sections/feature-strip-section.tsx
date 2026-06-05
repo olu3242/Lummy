@@ -3,94 +3,61 @@
 import { motion } from "framer-motion"
 import {
   Store,
-  MessageCircle,
-  BarChart3,
+  Globe2,
+  ClipboardList,
   Users,
-  Sparkles,
+  Lightbulb,
   CreditCard,
-  Share2,
-  Wallet,
-  Bot,
+  ArrowRight,
   ShieldCheck,
 } from "lucide-react"
+import Link from "next/link"
 
 const features = [
   {
     icon: Store,
-    title: "Creator Storefronts",
-    description: "A beautiful, mobile-first store at your own URL. Products, services, and digital goods in one place.",
+    title: "Professional Presence",
+    description: "Look credible from day one with a storefront that makes your brand feel ready to buy from.",
     color: "text-brand-purple",
     bg: "bg-brand-purple/10",
     border: "border-brand-purple/20",
   },
   {
-    icon: MessageCircle,
-    title: "WhatsApp Commerce",
-    description: "Turn every DM into a sale. Auto-generated WhatsApp order flows that convert followers to buyers.",
+    icon: Globe2,
+    title: "Sell Anywhere",
+    description: "Share your store across Instagram, TikTok, WhatsApp, email, or anywhere your audience already finds you.",
     color: "text-[#25D366]",
     bg: "bg-[#25D366]/10",
     border: "border-[#25D366]/20",
   },
   {
-    icon: BarChart3,
-    title: "Analytics Dashboard",
-    description: "Real-time data on clicks, views, conversions, top products, and campaign performance.",
+    icon: CreditCard,
+    title: "Get Paid Faster",
+    description: "Make buying simple and secure so interested customers can move from intent to payment quickly.",
     color: "text-brand-coral",
     bg: "bg-brand-coral/10",
     border: "border-brand-coral/20",
   },
   {
-    icon: Users,
-    title: "CRM Lite",
-    description: "Customer profiles, order history, smart segmentation, and follow-up reminders.",
+    icon: ClipboardList,
+    title: "Stay Organized",
+    description: "Manage products, orders, and customers in one place instead of bouncing between scattered tools.",
     color: "text-amber-400",
     bg: "bg-amber-400/10",
     border: "border-amber-400/20",
   },
   {
-    icon: Sparkles,
-    title: "AI Growth Assistant",
-    description: "Claude-powered AI that writes your captions, CTAs, product descriptions, and reply templates.",
+    icon: Lightbulb,
+    title: "Grow with Confidence",
+    description: "Use intelligent recommendations to improve offers, communicate clearly, and make better business decisions.",
     color: "text-brand-indigo",
     bg: "bg-brand-indigo/10",
     border: "border-brand-indigo/20",
   },
   {
-    icon: CreditCard,
-    title: "Paystack Payments",
-    description: "Cards, bank transfer, USSD, and mobile money. Payouts in 24 hours. No setup fees.",
-    color: "text-cyan-400",
-    bg: "bg-cyan-400/10",
-    border: "border-cyan-400/20",
-  },
-  {
-    icon: Share2,
-    title: "Sellable Posts",
-    description: "Tag any post with a product. Your content becomes a shoppable storefront experience.",
-    color: "text-pink-400",
-    bg: "bg-pink-400/10",
-    border: "border-pink-400/20",
-  },
-  {
-    icon: Wallet,
-    title: "Instant Payouts",
-    description: "Money goes straight to your bank account within 24 hours. No holding periods.",
-    color: "text-brand-green",
-    bg: "bg-brand-green/10",
-    border: "border-brand-green/20",
-  },
-  {
-    icon: Bot,
-    title: "AI Campaigns",
-    description: "Generate complete campaign strategies, timing recommendations, and copy in seconds.",
-    color: "text-violet-400",
-    bg: "bg-violet-400/10",
-    border: "border-violet-400/20",
-  },
-  {
     icon: ShieldCheck,
-    title: "Secure & Compliant",
-    description: "PCI-DSS compliant payments. NDPR-ready data handling. Enterprise-grade security.",
+    title: "Build Trust",
+    description: "Give buyers a safer, more polished purchase experience that reflects well on your business.",
     color: "text-teal-400",
     bg: "bg-teal-400/10",
     border: "border-teal-400/20",
@@ -120,15 +87,15 @@ export function FeatureStripSection() {
           className="text-center mb-16"
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">
-            Everything you need
+            Benefits
           </p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            One OS for your entire
+            More than a link.
             <br />
-            <span className="gradient-text">creator business.</span>
+            <span className="gradient-text">A better way to sell.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            Stop juggling 10 tools. Lummy brings storefronts, payments, WhatsApp commerce, CRM, and AI into a single, beautifully simple platform.
+            Lummy gives creators the confidence, clarity, and simple tools needed to turn interest into real sales.
           </p>
         </motion.div>
 
@@ -138,7 +105,7 @@ export function FeatureStripSection() {
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, margin: "-60px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {features.map((feat) => {
             const Icon = feat.icon
@@ -157,6 +124,12 @@ export function FeatureStripSection() {
             )
           })}
         </motion.div>
+
+        <div className="mt-10 text-center">
+          <Link href="/signup" className="inline-flex items-center gap-1.5 rounded-xl bg-brand-purple px-5 py-3 text-sm font-bold text-white hover:bg-brand-purple/90 transition-colors">
+            Start selling today <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
       </div>
     </section>
   )

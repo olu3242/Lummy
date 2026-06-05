@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion, useInView } from "framer-motion"
-import { ArrowRight, Zap, MessageCircle } from "lucide-react"
+import { ArrowRight, Zap, ShieldCheck } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 function LiveCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
@@ -66,24 +66,24 @@ export function CTASection() {
           </h2>
 
           <p className="mt-6 text-xl text-white/50 leading-relaxed max-w-xl mx-auto">
-            Join 2,000+ African creators who are building real income from their audiences. Set up your store in minutes — no code, no stress.
+            Create a professional storefront, share it with your audience, and give customers a simple way to buy from you today.
           </p>
 
           {/* CTAs */}
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/signup">
               <Button size="xl" variant="glow" className="group">
-                Create Your Free Store
+                Start Selling Free
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
             <Button size="xl" variant="outline-white">
-              <MessageCircle className="h-5 w-5" />
-              Talk to the Team
+              <ShieldCheck className="h-5 w-5" />
+              See How It Works
             </Button>
           </div>
 
-          <p className="mt-6 text-sm text-white/30">Free forever · No credit card · Setup in 5 minutes</p>
+          <p className="mt-6 text-sm text-white/30">Free plan · No credit card · Built for fast launches</p>
 
           {/* Animated stats */}
           <motion.div
@@ -94,9 +94,9 @@ export function CTASection() {
             className="mt-12 flex flex-wrap items-center justify-center gap-8"
           >
             {[
-              { value: 500, suffix: "M+", prefix: "₦", label: "Revenue processed" },
-              { value: 2000, suffix: "+",  prefix: "",  label: "Active creators"   },
-              { value: 49,   suffix: "★",  prefix: "4.", label: "Average rating"   },
+              { value: 3, suffix: "x", prefix: "", label: "more repeat customers" },
+              { value: 1, suffix: "",  prefix: "", label: "place to manage sales"   },
+              { value: 24, suffix: "/7",  prefix: "", label: "storefront availability"   },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
                 <p className="font-display text-2xl font-extrabold text-white">
@@ -116,7 +116,7 @@ export function CTASection() {
             className="mt-8 inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/10 bg-white/5 text-xs text-white/60"
           >
             <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
-            <span className="font-semibold text-white">47</span> creators opened stores in the last 24 hours
+            Your next customer should know where to buy. Launch your storefront today.
           </motion.div>
         </motion.div>
       </div>

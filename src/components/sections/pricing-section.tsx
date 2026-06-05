@@ -61,7 +61,7 @@ export function PricingSection() {
             <span className="gradient-text">Scale when you&apos;re ready.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-            No hidden fees. No lock-in. Cancel anytime. Your first storefront is always free.
+            Start with the essentials, then upgrade when you need more support, customization, and growth tools.
           </p>
 
           {/* Billing toggle */}
@@ -173,7 +173,7 @@ export function PricingSection() {
                       variant={plan.popular ? "default" : "outline"}
                       className="w-full"
                     >
-                      {plan.cta}
+                      {plan.id === "starter" ? "Start Selling Free" : plan.id === "growth" ? "Start Growing Today" : "Launch at Scale"}
                     </Button>
                   </Link>
                 </div>
@@ -212,9 +212,9 @@ export function PricingSection() {
           className="mt-10 text-center"
         >
           <p className="text-sm text-muted-foreground">
-            Running a large creator business or agency?{" "}
+            Running a larger creator business or agency?{" "}
             <button className="text-primary font-semibold hover:underline">
-              Talk to us about Enterprise →
+              Get launch support →
             </button>
           </p>
         </motion.div>

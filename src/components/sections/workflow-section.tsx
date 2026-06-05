@@ -1,21 +1,40 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Share2, Store, MessageCircle, Wallet, ArrowRight } from "lucide-react"
-import { mockWorkflowSteps } from "@/data/mock"
+import Link from "next/link"
+import { Store, MessageCircle, TrendingUp, ArrowRight } from "lucide-react"
 
 const iconMap: Record<string, React.ElementType> = {
-  Share2,
   Store,
   MessageCircle,
-  Wallet,
+  TrendingUp,
 }
+
+const valueLoop = [
+  {
+    step: "01",
+    title: "Launch",
+    description: "Create your storefront, add your offers, and give customers a simple place to buy from you.",
+    icon: "Store",
+  },
+  {
+    step: "02",
+    title: "Engage",
+    description: "Build stronger relationships with buyers so one-time interest becomes repeat business.",
+    icon: "MessageCircle",
+  },
+  {
+    step: "03",
+    title: "Grow",
+    description: "Increase revenue with tools designed to help you learn what works and scale with confidence.",
+    icon: "TrendingUp",
+  },
+]
 
 const stepColors = [
   { icon: "text-brand-purple", bg: "bg-brand-purple/10", border: "border-brand-purple/20", num: "text-brand-purple", line: "from-brand-purple/40" },
   { icon: "text-brand-coral", bg: "bg-brand-coral/10", border: "border-brand-coral/20", num: "text-brand-coral", line: "from-brand-coral/40" },
   { icon: "text-[#25D366]", bg: "bg-[#25D366]/10", border: "border-[#25D366]/20", num: "text-[#25D366]", line: "from-[#25D366]/40" },
-  { icon: "text-brand-green", bg: "bg-brand-green/10", border: "border-brand-green/20", num: "text-brand-green", line: "from-brand-green/40" },
 ]
 
 export function WorkflowSection() {
@@ -31,25 +50,25 @@ export function WorkflowSection() {
           className="text-center mb-16"
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">
-            How it works
+            Creator value loop
           </p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            From post to profit
+            Launch faster.
             <br />
-            <span className="gradient-text">in four steps.</span>
+            <span className="gradient-text">Sell smarter. Grow stronger.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-lg mx-auto">
-            No tech skills needed. No complicated setup. Just create, list, share, and collect your money.
+            Lummy keeps the business loop simple so creators can focus on customers, offers, and growth.
           </p>
         </motion.div>
 
         {/* Steps */}
         <div className="relative">
           {/* Connector line (desktop) */}
-          <div className="hidden lg:block absolute top-16 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+          <div className="hidden lg:block absolute top-16 left-[16%] right-[16%] h-px bg-gradient-to-r from-transparent via-border to-transparent" />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-4">
-            {mockWorkflowSteps.map((step, i) => {
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-5">
+            {valueLoop.map((step, i) => {
               const Icon = iconMap[step.icon]
               const colors = stepColors[i]
               return (
@@ -73,14 +92,14 @@ export function WorkflowSection() {
                   </div>
 
                   {/* Arrow between steps (mobile/tablet) */}
-                  {i < mockWorkflowSteps.length - 1 && (
+                  {i < valueLoop.length - 1 && (
                     <div className="hidden sm:flex lg:hidden absolute -right-3 top-5 z-10 items-center justify-center">
                       <ArrowRight className="h-5 w-5 text-border" />
                     </div>
                   )}
 
-                  <h3 className="font-display text-lg font-bold mb-2">{step.title}</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed max-w-[200px]">
+                  <h3 className="font-display text-xl font-bold mb-2">{step.title}</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed max-w-[260px]">
                     {step.description}
                   </p>
                 </motion.div>
@@ -99,8 +118,10 @@ export function WorkflowSection() {
         >
           <div className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-brand-purple/5 border border-brand-purple/15 text-sm text-muted-foreground">
             <span className="w-2 h-2 rounded-full bg-brand-green animate-pulse" />
-            Average time from sign-up to first sale:{" "}
-            <span className="font-bold text-foreground ml-1">under 15 minutes</span>
+            Ready to turn your audience into customers?{" "}
+            <Link href="/signup" className="font-bold text-foreground ml-1 hover:text-primary transition-colors">
+              Launch your business today
+            </Link>
           </div>
         </motion.div>
       </div>

@@ -5,6 +5,28 @@ import { errorResponse, getCorrelationId, logApiEvent } from "@/lib/ops-observab
 const RESERVED_STOREFRONT_HANDLES = new Set(["admin", "api", "app", "dashboard", "login", "signup", "onboarding", "www"])
 const normalizeHandle = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9._-]/g, "")
 
+function fallbackHandle(input: { storefrontHandle?: string | null; organizationName?: string | null; email?: string | null; userId: string }) {
+  const fromExisting = normalizeHandle(input.storefrontHandle ?? "")
+  if (fromExisting && !RESERVED_STOREFRONT_HANDLES.has(fromExisting)) return fromExisting
+
+  const fromOrg = normalizeHandle(input.organizationName ?? "")
+  if (fromOrg && !RESERVED_STOREFRONT_HANDLES.has(fromOrg)) return fromOrg
+
+  const emailName = input.email?.split("@")[0]
+  const fromEmail = normalizeHandle(emailName ?? "")
+  if (fromEmail && !RESERVED_STOREFRONT_HANDLES.has(fromEmail)) return fromEmail
+
+  return `creator-${input.userId.slice(0, 8)}`
+}
+
+async function availableHandle(supabase: ReturnType<typeof createClient>, organizationId: string, handle: string, userId: string) {
+  const clean = normalizeHandle(handle)
+  const clash = await supabase.from("storefronts").select("organization_id").eq("handle", clean).neq("organization_id", organizationId).limit(1)
+  if (clash.error) throw clash.error
+  if ((clash.data?.length ?? 0) === 0) return clean
+  return `${clean}-${userId.slice(0, 6)}`
+}
+
 async function getCurrentContext(supabase: ReturnType<typeof createClient>, userId: string) {
   const [profile, membership] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
@@ -105,6 +127,12 @@ export async function PATCH(req: Request) {
       if (body.storefront?.store_schema !== undefined) storefrontPatch.store_schema = body.storefront.store_schema
 
       if (Object.keys(storefrontPatch).length > 0) {
+        storefrontPatch.handle = await availableHandle(supabase, organizationId, String(storefrontPatch.handle ?? fallbackHandle({
+          storefrontHandle: context.storefront?.handle,
+          organizationName: body.organization?.name ?? context.organization?.name,
+          email: auth.user.email,
+          userId: auth.user.id,
+        })), auth.user.id)
         storefrontPatch.updated_at = new Date().toISOString()
         const storefrontUpdate = await supabase
           .from("storefronts")

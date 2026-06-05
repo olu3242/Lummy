@@ -37,7 +37,7 @@ const ACCENT_COLORS = [
   { name: "Fuchsia", value: "#D946EF" },
 ]
 
-const FONTS = [
+const FONTS: { value: StoreSettings["font"]; label: string; desc: string }[] = [
   { value: "inter",    label: "Inter",    desc: "Clean & modern" },
   { value: "playfair", label: "Playfair", desc: "Elegant serif" },
   { value: "poppins",  label: "Poppins",  desc: "Rounded & friendly" },
@@ -84,7 +84,7 @@ interface StoreHours {
 
 interface StoreSettings {
   accent: string
-  font: string
+  font: "inter" | "playfair" | "poppins" | "mono"
   layout: LayoutValue
   sections: StoreSection[]
   announcement: AnnouncementBar
@@ -325,11 +325,29 @@ export default function StorePage() {
             hero_image: storeDetails.coverUrl,
             social_links: storeDetails.socialLinks,
             theme: settings,
+            store_schema: {
+              ...storeSchema.schema,
+              theme: {
+                ...storeSchema.schema.theme,
+                accent: settings.accent,
+                font: settings.font,
+                layout: settings.layout,
+              },
+            },
           },
         }),
       })
       const payload = await res.json()
       if (!res.ok) throw new Error(payload.error || "Failed to save storefront")
+      await storeSchema.persist({
+        ...storeSchema.schema,
+        theme: {
+          ...storeSchema.schema.theme,
+          accent: settings.accent,
+          font: settings.font,
+          layout: settings.layout,
+        },
+      })
       setSaving(false)
       toast({ title: "Store saved!", description: "Your changes are live on the storefront.", variant: "success" })
     } catch (error) {

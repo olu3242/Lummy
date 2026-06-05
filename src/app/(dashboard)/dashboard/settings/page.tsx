@@ -61,8 +61,6 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   )
 }
 
-const PROFILE_KEY = "lummy_settings_profile"
-const STORE_KEY = "lummy_settings_store"
 const NOTIF_KEY = "lummy_settings_notifications"
 
 type ProfileForm = {
@@ -179,7 +177,6 @@ function ProfileSection() {
       })
       const payload = await res.json()
       if (!res.ok) throw new Error(payload.error || "Failed to save profile")
-      saveLS(PROFILE_KEY, form)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
       toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
@@ -319,7 +316,6 @@ function StoreSection() {
       })
       const payload = await res.json()
       if (!res.ok) throw new Error(payload.error || 'Failed to save storefront settings')
-      saveLS(STORE_KEY, form)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
       toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })

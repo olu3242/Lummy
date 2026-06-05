@@ -61,6 +61,12 @@ export default function LoginPage() {
         setShakeKey(k => k + 1)
         return
       }
+      const bootstrap = await fetch("/api/account/bootstrap", { method: "POST" })
+      if (!bootstrap.ok) {
+        setError("We couldn't prepare your creator workspace. Please try again.")
+        setShakeKey(k => k + 1)
+        return
+      }
       const { data: profile } = await supabase
         .from("profiles")
         .select("onboarding_completed, organization_id")

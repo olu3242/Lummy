@@ -31,7 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
-import { completeOnboarding } from "@/server/actions/onboarding"
+import { completeOnboarding, markStorefrontShared } from "@/server/actions/onboarding"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -548,7 +548,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
   )
 }
 
-function StepPreview({ data }: { data: WizardData }) {
+function StepPreview({ data, hasShared }: { data: WizardData; hasShared: boolean }) {
   const [copied, setCopied] = React.useState(false)
   const storeUrl = `lummy.co/${data.handle || "your-store"}`
 
@@ -606,7 +606,7 @@ function StepPreview({ data }: { data: WizardData }) {
           { done: true, label: "Store created" },
           { done: !!data.whatsapp, label: "WhatsApp connected" },
           { done: data.addProduct && !!data.productName, label: "First product added" },
-          { done: false, label: "Share your store link" },
+          { done: hasShared, label: "Share your store link" },
           { done: false, label: "Get your first order" },
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-3">
@@ -655,6 +655,7 @@ function OnboardingFlow() {
   const [data, setData] = React.useState<WizardData>(emptyWizardData)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
+  const [hasSharedStorefront, setHasSharedStorefront] = React.useState(false)
   const [lastSavedAt, setLastSavedAt] = React.useState<string | null>(null)
   const [restored, setRestored] = React.useState(false)
   const [userContext, setUserContext] = React.useState<{ id: string; email: string | null } | null>(null)
@@ -875,7 +876,7 @@ function OnboardingFlow() {
 
   const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
 
-  const submitOnboarding = async () => {
+  const submitOnboarding = async (options: { redirect?: boolean } = { redirect: true }) => {
     try {
       setIsSubmitting(true)
       setSubmitError(null)
@@ -889,12 +890,34 @@ function OnboardingFlow() {
         productDescription: data.addProduct ? data.productDesc : undefined,
       })
       try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
-      window.location.href = "/dashboard"
+      if (options.redirect !== false) {
+        window.location.href = "/dashboard"
+      }
+      return true
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to complete onboarding")
+      return false
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const shareStorefront = async () => {
+    const completed = await submitOnboarding({ redirect: false })
+    if (!completed) return
+
+    try {
+      await markStorefrontShared()
+      setHasSharedStorefront(true)
+    } catch {
+      // Non-fatal: the share link still opens, and setup has already completed.
+    }
+
+    const origin = window.location.origin
+    const storefrontUrl = `${origin}/${data.handle}`
+    const message = `${data.storeName || "My Lummy store"} is live: ${storefrontUrl}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer")
+    window.location.href = "/dashboard"
   }
 
   if (!hydrated) return null
@@ -965,7 +988,7 @@ function OnboardingFlow() {
               {step === 2 && <StepStoreSetup data={data} onChange={update} />}
               {step === 3 && <StepFirstProduct data={data} onChange={update} />}
               {step === 4 && <StepBankSetup data={data} onChange={update} />}
-              {step === 5 && <StepPreview data={data} />}
+              {step === 5 && <StepPreview data={data} hasShared={hasSharedStorefront} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -1002,11 +1025,11 @@ function OnboardingFlow() {
             </Button>
           ) : (
             <div className="flex-1 flex flex-col gap-3">
-              <Button size="lg" className="w-full gap-2" onClick={submitOnboarding} disabled={isSubmitting}>
+              <Button size="lg" className="w-full gap-2" onClick={() => void submitOnboarding()} disabled={isSubmitting}>
                 {isSubmitting ? "Completing setup..." : "Go to Dashboard"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button variant="whatsapp" size="lg" className="w-full gap-2">
+              <Button variant="whatsapp" size="lg" className="w-full gap-2" onClick={() => void shareStorefront()} disabled={isSubmitting}>
                 <MessageCircle className="h-5 w-5 fill-white" />
                 Share Store on WhatsApp
               </Button>

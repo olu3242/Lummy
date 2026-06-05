@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { randomUUID } from 'crypto'
 import { Sparkles, ArrowRight, Plus, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
@@ -14,9 +15,12 @@ import { logApiEvent } from '@/lib/ops-observability'
 export const dynamic = 'force-dynamic'
 
 export default async function DashboardPage() {
-  const correlationId = crypto.randomUUID()
+  const correlationId = randomUUID()
   const supabase = createClient()
-  const { data: auth } = await supabase.auth.getUser()
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    logApiEvent('error', 'dashboard.auth_query_failed', { correlationId, message: authError.message })
+  }
   if (!auth.user) redirect('/login')
 
   const { data: profileRaw, error: profileError } = await supabase

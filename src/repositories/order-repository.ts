@@ -24,8 +24,8 @@ type CreateOrderInput = {
   provider: 'stripe' | 'paystack';
 };
 
-export async function createPendingOrder(input: CreateOrderInput) {
-  const supabase = createClient();
+export async function createPendingOrder(input: CreateOrderInput, client?: ReturnType<typeof createClient>) {
+  const supabase = client ?? createClient();
   const product = await supabase.from('products').select('id,title,price,currency,organization_id,status').eq('id', input.productId).eq('organization_id', input.organizationId).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data || product.data.status !== 'active') throw new Error('Product unavailable');

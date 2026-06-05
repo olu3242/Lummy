@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 type LogLevel = 'info' | 'warn' | 'error';
 
 export function getCorrelationId(req: Request) {
-  return req.headers.get('x-correlation-id') || crypto.randomUUID();
+  return req.headers.get('x-correlation-id') || randomUUID();
 }
 
 export function logApiEvent(level: LogLevel, event: string, details: Record<string, unknown>) {

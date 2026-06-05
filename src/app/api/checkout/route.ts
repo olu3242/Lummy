@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
 import { createPaymentSession } from '../../../../packages/payments-core/src/orchestrator';
 import { resolveProvider } from '../../../../packages/payments-core/src/provider-router';
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   try {
     validatePublicRuntimeEnv();
     const body = await req.json();
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     const storefront = await supabase.from('storefronts').select('organization_id,is_active,handle').eq('handle', body.handle).maybeSingle();
     if (storefront.error || !storefront.data?.is_active) {
@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       customerEmail: body.customer?.email || 'guest@lummy.local',
       quantity: body.quantity || 1,
       provider,
-    });
+    }, supabase);
 
     const successUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=success`);
     const cancelUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=cancelled`);
