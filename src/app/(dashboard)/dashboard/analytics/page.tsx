@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ const whatsappFunnel = [
 ]
 
 const kpiStats = [
-  { label: "Total Revenue",    value: "₦5.1M",  change: "+18%",  up: true,  icon: TrendingUp,    color: "text-brand-purple", prevValue: "₦4.3M" },
+  { label: "Total Revenue",    value: "$5.1M",  change: "+18%",  up: true,  icon: TrendingUp,    color: "text-brand-purple", prevValue: "$4.3M" },
   { label: "Total Orders",     value: "885",    change: "+24%",  up: true,  icon: ShoppingBag,   color: "text-brand-green",  prevValue: "714" },
   { label: "Store Views",      value: "39.7K",  change: "+31%",  up: true,  icon: Eye,           color: "text-brand-coral",  prevValue: "30.3K" },
   { label: "Conversion Rate",  value: "2.23%",  change: "-0.3%", up: false, icon: MessageCircle, color: "text-amber-500",    prevValue: "2.53%" },
@@ -97,7 +98,7 @@ const kpiStats = [
 
 interface AIInsight { type: "success" | "warning" | "tip"; title: string; body: string }
 const AI_INSIGHTS: AIInsight[] = [
-  { type: "success", title: "Best revenue month on record",    body: "Nov 2026 (₦623K) is your highest ever. Dec is projected at ₦718K — keep the momentum with a year-end push." },
+  { type: "success", title: "Best revenue month on record",    body: "Nov 2026 is your highest revenue month ever. Dec is projected even higher — keep the momentum with a year-end push." },
   { type: "warning", title: "Conversion rate declining",       body: "At 2.23%, your conversion is down 0.3pp. More visitors are browsing but not clicking 'Order' — review your product CTAs." },
   { type: "tip",     title: "Peak hours are 6–8pm weekdays",   body: "38% of orders come in between 6pm–8pm. Schedule broadcasts and new-drop announcements for 5:30pm to catch peak intent." },
   { type: "success", title: "WhatsApp drives 58% of traffic",  body: "Your link-in-bio WhatsApp CTA is working. Customers from WhatsApp convert at 3.1× vs direct — double down on it." },
@@ -174,7 +175,7 @@ function RevenueGoalCard({ currentRevenue }: { currentRevenue: number }) {
       {editing ? (
         <div className="mb-4">
           <div className="flex items-center gap-0">
-            <div className="flex items-center px-3 h-9 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">₦</div>
+            <div className="flex items-center px-3 h-9 rounded-l-xl border border-r-0 border-border bg-muted text-sm text-muted-foreground">$</div>
             <input autoFocus value={inputVal} onChange={e => setInputVal(e.target.value.replace(/\D/g, ""))}
               onKeyDown={e => e.key === "Enter" && saveGoal()} placeholder="e.g. 1000000"
               className="flex-1 h-9 px-3 rounded-r-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
@@ -184,8 +185,8 @@ function RevenueGoalCard({ currentRevenue }: { currentRevenue: number }) {
       ) : (
         <div className="flex items-end justify-between mb-3">
           <div>
-            <p className="font-display text-2xl font-extrabold">₦{currentRevenue.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground">of ₦{goal.toLocaleString()} goal</p>
+            <p className="font-display text-2xl font-extrabold">{formatMoney(currentRevenue)}</p>
+            <p className="text-xs text-muted-foreground">of {formatMoney(goal)} goal</p>
           </div>
           <p className={cn("font-display text-3xl font-extrabold", achieved ? "text-brand-green" : "text-brand-purple")}>{pct}%</p>
         </div>
@@ -198,7 +199,7 @@ function RevenueGoalCard({ currentRevenue }: { currentRevenue: number }) {
               className={cn("h-full rounded-full", achieved ? "bg-brand-green" : "bg-brand-purple")} />
           </div>
           {!achieved
-            ? <p className="text-xs text-muted-foreground"><strong className="text-foreground">₦{remaining.toLocaleString()}</strong> to go — you&apos;re on track! Keep pushing 🚀</p>
+            ? <p className="text-xs text-muted-foreground"><strong className="text-foreground">{formatMoney(remaining)}</strong> to go — you&apos;re on track! Keep pushing 🚀</p>
             : <p className="text-xs text-brand-green font-semibold">You&apos;ve crushed your May goal. Set a new one! 🏆</p>
           }
         </>
@@ -216,7 +217,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
       {payload.map(p => (
         <p key={p.dataKey} style={{ color: p.color }} className="flex items-center gap-2">
           <span className="w-20 text-muted-foreground capitalize">{p.dataKey}:</span>
-          <span className="font-semibold">{p.dataKey === "revenue" || p.dataKey === "prev" || p.dataKey === "aov" ? `₦${Number(p.value).toLocaleString()}` : p.value.toLocaleString()}</span>
+          <span className="font-semibold">{p.dataKey === "revenue" || p.dataKey === "prev" || p.dataKey === "aov" ? formatMoney(Number(p.value)) : p.value.toLocaleString()}</span>
         </p>
       ))}
     </div>
@@ -225,7 +226,7 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 
 function exportAnalyticsCSV(period: "3m" | "6m" | "12m", data: { month: string; revenue: number; orders: number; views: number; aov: number; prev?: number }[]) {
   const slice = period === "3m" ? data.slice(-3) : period === "6m" ? data.slice(-6) : data
-  const header = ["Month", "Revenue (₦)", "Orders", "Store Views", "AOV (₦)"]
+  const header = ["Month", "Revenue ($)", "Orders", "Store Views", "AOV ($)"]
   const rows = slice.map(r => [r.month, r.revenue, r.orders, r.views, r.aov].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
@@ -254,7 +255,7 @@ function AOVSparkline({ data }: { data: { aov: number }[] }) {
   return (
     <div className="flex items-end gap-3">
       <div>
-        <p className="font-display text-2xl font-extrabold">₦{latest.toLocaleString()}</p>
+        <p className="font-display text-2xl font-extrabold">{formatMoney(latest)}</p>
         <div className={cn("flex items-center gap-1 mt-0.5 text-xs font-semibold", up ? "text-brand-green" : "text-brand-coral")}>
           {up ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
           {up ? "+" : ""}{(((latest - prev) / prev) * 100).toFixed(1)}% vs last month
@@ -288,7 +289,7 @@ function ChannelRevenuePanel() {
               <span className="text-xs font-semibold">{ch.channel}</span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs font-bold">₦{(ch.revenue / 1000).toFixed(0)}K</span>
+              <span className="text-xs font-bold">{formatCompactMoney(ch.revenue)}</span>
               <span className="text-[10px] text-muted-foreground w-8 text-right">{ch.pct}%</span>
             </div>
           </div>
@@ -303,7 +304,7 @@ function ChannelRevenuePanel() {
         </div>
       ))}
       <p className="text-[11px] text-muted-foreground pt-2 border-t border-border">
-        Total YTD: <strong className="text-foreground">₦{(total / 1000000).toFixed(2)}M</strong>
+        Total YTD: <strong className="text-foreground">{formatCompactMoney(total)}</strong>
       </p>
     </div>
   )
@@ -363,7 +364,7 @@ function DayOfWeekChart() {
               <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 <div className="bg-card border border-border rounded-lg px-2 py-1 text-[10px] whitespace-nowrap shadow-lg">
                   <p className="font-semibold">{d.day}</p>
-                  <p className="text-muted-foreground">₦{(d.revenue / 1000).toFixed(0)}K · {d.orders} orders</p>
+                  <p className="text-muted-foreground">{formatCompactMoney(d.revenue)} · {d.orders} orders</p>
                 </div>
               </div>
               <div className="relative w-full flex flex-col justify-end" style={{ height: "80px" }}>
@@ -384,7 +385,7 @@ function DayOfWeekChart() {
       </div>
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-border">
         <p className="text-[11px] text-muted-foreground">
-          Best day: <strong className="text-foreground">{bestDay.day}</strong> — avg ₦{(bestDay.revenue / 1000).toFixed(0)}K/week
+          Best day: <strong className="text-foreground">{bestDay.day}</strong> — avg {formatCompactMoney(bestDay.revenue)}/week
         </p>
         <p className="text-[11px] text-muted-foreground">
           Weekends earn <strong className="text-foreground">2.1×</strong> weekday avg

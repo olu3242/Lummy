@@ -53,7 +53,7 @@ async function fetchOrder(orderId: string): Promise<TrackingOrder | null> {
       courier: "",
       trackingRef: order.id.slice(0, 8).toUpperCase(),
       timeline: [
-        { status: "confirmed",  label: "Order Confirmed",  desc: "Payment confirmed and order received.", time: new Date(order.created_at).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" }), done: true },
+        { status: "confirmed",  label: "Order Confirmed",  desc: "Payment confirmed and order received.", time: new Date(order.created_at).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }), done: true },
         { status: "processing", label: "Being Prepared",   desc: "Seller is preparing your item.",         time: "", done: ["processing","shipped","delivered"].includes(trackStatus) },
         { status: "shipped",    label: "Out for Delivery",  desc: "Your order is on its way.",               time: "", done: ["shipped","delivered"].includes(trackStatus) },
         { status: "delivered",  label: "Delivered",         desc: "Your order has been delivered. Enjoy! 🎉", time: "", done: trackStatus === "delivered" },

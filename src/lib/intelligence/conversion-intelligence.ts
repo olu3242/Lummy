@@ -14,7 +14,7 @@ import { generateCorrelationId } from "@/lib/observability/correlation"
 import type { IntelligenceRunResult } from "./intelligence-events"
 
 const HIGH_VALUE_ORDER_COUNT = 3        // 3+ orders = high value customer
-const HIGH_VALUE_LTV_KOBO = 50_000_00   // ₦50,000+ lifetime = high value
+const HIGH_VALUE_LTV_KOBO = 50_000_00   // $500+ lifetime in minor units = high value
 const REENGAGEMENT_DAYS = 30            // customer silent 30 days = needs reengagement
 const ABANDONED_SPIKE_RATIO = 0.40      // >40% checkout abandonment = bottleneck
 

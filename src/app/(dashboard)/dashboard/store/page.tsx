@@ -103,7 +103,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   font: "inter",
   layout: "grid-3",
   sections: DEFAULT_SECTIONS,
-  announcement: { enabled: false, text: "🎉 Free delivery on orders above ₦15,000!", ctaLabel: "Shop now", ctaUrl: "", style: "purple" },
+  announcement: { enabled: false, text: "🎉 Free delivery on orders above $15!", ctaLabel: "Shop now", ctaUrl: "", style: "purple" },
   seo: { title: "", description: "", keywords: "" },
   hours: {
     enabled: false,
@@ -113,7 +113,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   customDomain: "",
   showReviews: true,
   showStock: true,
-  currency: "NGN",
+  currency: "USD",
 }
 
 type StoreDetails = {
@@ -604,12 +604,25 @@ export default function StorePage() {
                     />
                   </div>
                 ))}
+                <div className="space-y-1.5 pt-1 border-t border-border">
+                  <label className="text-xs font-semibold">Store Currency</label>
+                  <p className="text-[10px] text-muted-foreground">All prices on your storefront will display in this currency</p>
+                  <select
+                    value={settings.currency}
+                    onChange={e => update({ currency: e.target.value })}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors"
+                  >
+                    {(["USD","GBP","EUR","CAD","AUD","NGN","ZAR","KES","GHS"] as const).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Revenue", value: "₦2.85M", icon: ShoppingBag, color: "text-brand-green" },
+                  { label: "Revenue", value: "$2.85k", icon: ShoppingBag, color: "text-brand-green" },
                   { label: "Orders", value: "1,234", icon: Package, color: "text-brand-purple" },
                   { label: "Views", value: "18,429", icon: Eye, color: "text-brand-coral" },
                   { label: "Rating", value: "0★", icon: Star, color: "text-amber-500" },

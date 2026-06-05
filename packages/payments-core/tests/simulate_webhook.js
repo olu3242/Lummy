@@ -15,7 +15,7 @@ async function run() {
   }
 
   const fakeHeaders = { 'x-paystack-signature': 'sig' }
-  const fakeRaw = JSON.stringify({ id: 'tx_123', reference: 'ref_123', status: 'settled', amount: 1000, currency: 'NGN' })
+  const fakeRaw = JSON.stringify({ id: 'tx_123', reference: 'ref_123', status: 'settled', amount: 1000, currency: 'USD' })
 
   const tx = await handleProviderWebhook(db, 'paystack', fakeHeaders, fakeRaw, 'corr_1')
   console.log('Result:', tx)

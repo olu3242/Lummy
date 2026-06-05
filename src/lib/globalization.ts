@@ -1,5 +1,7 @@
-export const SUPPORTED_CURRENCIES = ["USD", "CAD", "GBP", "EUR", "NGN", "KES", "GHS", "ZAR", "AED", "INR", "AUD"] as const;
+export const SUPPORTED_CURRENCIES = ["USD", "GBP", "EUR", "CAD", "AUD", "NGN", "ZAR", "KES", "GHS"] as const;
 export const SUPPORTED_LOCALES = ["en-US", "en-GB", "fr-FR", "fr-CA", "es-ES", "pt-BR", "ar-AE"] as const;
+
+export const DEFAULT_CURRENCY = "USD";
 
 export const COUNTRY_OPTIONS = [
   { code: "US", label: "United States", currency: "USD", locale: "en-US", timezone: "America/New_York" },
@@ -31,4 +33,14 @@ export function formatMoney(amount: number, currency?: string | null, locale = "
 
 export function formatMinorMoney(amount: number, currency?: string | null, locale = "en-US") {
   return formatMoney(Math.round(amount / 100), currency, locale);
+}
+
+export function formatCompactMoney(amount: number, currency?: string | null, locale = "en-US"): string {
+  const cur = normalizeCurrency(currency);
+  const symbol = new Intl.NumberFormat(locale, { style: "currency", currency: cur, maximumFractionDigits: 0 })
+    .formatToParts(0)
+    .find(p => p.type === "currency")?.value ?? cur;
+  if (amount >= 1_000_000) return `${symbol}${(amount / 1_000_000).toFixed(1)}M`;
+  if (amount >= 1_000) return `${symbol}${(amount / 1_000).toFixed(1)}k`;
+  return formatMoney(amount, currency, locale);
 }

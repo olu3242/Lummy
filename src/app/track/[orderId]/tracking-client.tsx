@@ -8,6 +8,7 @@ import {
   CheckCircle2, Clock, Package, Truck, Home, MessageCircle,
   Share2, CheckCheck, ArrowLeft, MapPin, Phone, Copy,
 } from "lucide-react"
+import { formatMoney } from "@/lib/globalization"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -221,7 +222,7 @@ export function TrackingClient({ orderId, initialOrder }: { orderId: string; ini
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm leading-snug">{order.product.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Qty: {order.product.qty}</p>
-            <p className="font-display font-bold text-brand-purple mt-1">₦{order.product.price.toLocaleString()}</p>
+            <p className="font-display font-bold text-brand-purple mt-1">{formatMoney(order.product.price)}</p>
           </div>
         </motion.div>
 

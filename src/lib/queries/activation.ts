@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import { createAdminClient } from "@/lib/supabase/server"
+import { formatMinorMoney } from "@/lib/globalization"
 
 export interface ActivationStep {
   id: string
@@ -190,10 +191,10 @@ export async function notifyStorefrontPublished(userId: string, handle: string):
   } catch { /* best-effort */ }
 }
 
-export async function notifyFirstSale(userId: string, amountNgn: number): Promise<void> {
+export async function notifyFirstSale(userId: string, amountMinor: number, currency = "USD"): Promise<void> {
   try {
     const supabase = createAdminClient()
-    const formatted = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(amountNgn / 100)
+    const formatted = formatMinorMoney(amountMinor, currency)
     await supabase.from("notifications").insert({
       user_id: userId,
       title: "You made your first sale! 🎊",

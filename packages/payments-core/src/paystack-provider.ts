@@ -86,7 +86,7 @@ export class PaystackProvider implements PaymentProviderInterface {
       provider: 'paystack',
       status,
       amount: Number(raw.amount || 0),
-      currency: String(raw.currency || 'NGN').toUpperCase(),
+      currency: String(raw.currency || 'USD').toUpperCase(),
       providerReference: String(raw.reference || raw.provider_reference || ''),
       metadata: raw.metadata || {},
     }

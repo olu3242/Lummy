@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney } from "@/lib/globalization"
 import type { InboxMessage, InboxFilter } from "@/lib/whatsapp/inbox"
 import { detectIntent, generateSuggestedReply } from "@/lib/ai-conversion"
 import { buildWhatsAppLink, buildStorefrontShareMessage } from "@/lib/whatsapp/share"
@@ -220,11 +221,7 @@ function QuickReplyPanel({
               Select product to send
             </p>
             {products.slice(0, 6).map(p => {
-              const displayPrice = new Intl.NumberFormat("en-NG", {
-                style: "currency",
-                currency: p.currency || "NGN",
-                maximumFractionDigits: 0,
-              }).format(p.price / 100)
+              const displayPrice = formatMoney(p.price / 100, p.currency || "USD")
               return (
                 <button
                   key={p.id}

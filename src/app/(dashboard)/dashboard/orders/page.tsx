@@ -18,6 +18,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetBo
 import { type OrderStatus, type DashboardOrder } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 const statusConfig: Record<OrderStatus, { label: string; className: string; icon: React.ElementType }> = {
   pending:    { label: "Pending",    className: "bg-amber-500/10 text-amber-500 border-amber-500/20",          icon: Clock      },
@@ -221,7 +222,7 @@ function OrderDetailDrawer({ order, onClose, onStatusChange }: {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{order.product.name}</p>
-                <p className="font-display font-bold text-brand-purple">₦{order.amount.toLocaleString()}</p>
+                <p className="font-display font-bold text-brand-purple">{formatMoney(order.amount, order.currency ?? "USD")}</p>
               </div>
             </div>
           </div>
@@ -347,7 +348,7 @@ function OrderRow({ order, onClick, selected, onSelect }: {
           <p className="text-xs truncate max-w-[130px]">{order.product.name}</p>
         </div>
       </TableCell>
-      <TableCell><p className="text-sm font-bold">₦{order.amount.toLocaleString()}</p></TableCell>
+      <TableCell><p className="text-sm font-bold">{formatMoney(order.amount, order.currency ?? "USD")}</p></TableCell>
       <TableCell>
         <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", status.className)}>
           {status.label}
@@ -370,7 +371,7 @@ function OrderRow({ order, onClick, selected, onSelect }: {
 }
 
 function exportCSV(orders: DashboardOrder[]) {
-  const headers = ["Order #", "Date", "Customer", "Phone", "Product", "Amount (₦)", "Status", "Source", "Delivery Address"]
+  const headers = ["Order #", "Date", "Customer", "Phone", "Product", "Amount", "Status", "Source", "Delivery Address"]
   const rows = orders.map(o => [o.orderNumber, o.createdAt, o.customer.name, o.customer.phone, o.product.name, o.amount, o.status, o.source, `"${o.deliveryAddress}"`])
   const csv = [headers, ...rows].map(r => r.join(",")).join("\n")
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
@@ -541,9 +542,9 @@ export default function OrdersPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Revenue (last 5)", value: `₦${Math.round(todayRevenue/1000)}k`, icon: TrendingUp, color: "text-brand-purple", sub: <RevSparkline /> },
+          { label: "Revenue (last 5)", value: formatCompactMoney(todayRevenue), icon: TrendingUp, color: "text-brand-purple", sub: <RevSparkline /> },
           { label: "Pending orders",   value: pendingCount,                          icon: Clock,       color: pendingCount > 0 ? "text-amber-500" : "text-brand-green", sub: <p className="text-[10px] text-muted-foreground">{pendingCount > 0 ? "Needs attention" : "All clear"}</p> },
-          { label: "Avg order value",  value: `₦${avgOrderValue.toLocaleString()}`,  icon: ShoppingBag, color: "text-brand-green",  sub: <p className="text-[10px] text-muted-foreground">Across all orders</p> },
+          { label: "Avg order value",  value: formatMoney(avgOrderValue),             icon: ShoppingBag, color: "text-brand-green",  sub: <p className="text-[10px] text-muted-foreground">Across all orders</p> },
           { label: "Fulfilment rate",  value: `${fulfilmentRate}%`,                  icon: CheckCheck,  color: "text-brand-green",  sub: <p className="text-[10px] text-muted-foreground">{deliveredCount} delivered</p> },
         ].map((kpi, i) => (
           <motion.div key={kpi.label} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}

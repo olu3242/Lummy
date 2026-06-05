@@ -104,7 +104,7 @@ export async function getCreatorMetrics(creatorId: string): Promise<DashboardMet
   })
 
   const revenueByMonth = Object.entries(byMonth).map(([month, v]) => ({
-    month: new Intl.DateTimeFormat("en-NG", { month: "short" }).format(new Date(`${month}-01`)),
+    month: new Intl.DateTimeFormat("en-US", { month: "short" }).format(new Date(`${month}-01`)),
     revenue: Math.round(v.revenue / 100),
     orders: v.orders,
   }))

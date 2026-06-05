@@ -7,6 +7,7 @@ import { RecentOrders } from "@/components/dashboard/recent-orders"
 import { TopProducts } from "@/components/dashboard/top-products"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { getAiConversionSummary, getCustomerMemorySummary, getDashboardOpsSummary, getDashboardPaymentSummary, getGrowthIntelligenceSummary } from "@/repositories/order-repository"
+import { formatMoney } from "@/lib/globalization"
 
 const emptyPaymentSummary = {
   totalRevenue: 0,
@@ -69,7 +70,7 @@ export async function DashboardOverview() {
     safeQuery(getGrowthIntelligenceSummary, emptyGrowth),
   ])
   const stats = [
-    { id: "revenue", label: "Total Revenue", value: `₦${summary.totalRevenue.toLocaleString()}`, rawValue: summary.totalRevenue, change: summary.totalOrders > 0 ? `${summary.conversionRate}% paid` : "0% paid", trend: "up" as const, icon: "Wallet", color: "text-brand-green", bg: "bg-brand-green/10" },
+    { id: "revenue", label: "Total Revenue", value: formatMoney(summary.totalRevenue), rawValue: summary.totalRevenue, change: summary.totalOrders > 0 ? `${summary.conversionRate}% paid` : "0% paid", trend: "up" as const, icon: "Wallet", color: "text-brand-green", bg: "bg-brand-green/10" },
     { id: "orders", label: "Total Orders", value: summary.totalOrders.toLocaleString(), rawValue: summary.totalOrders, change: `${summary.paidOrders} paid · ${summary.pendingPayments} pending`, trend: "up" as const, icon: "ShoppingBag", color: "text-brand-purple", bg: "bg-brand-purple/10" },
     { id: "failed", label: "Failed Payments", value: summary.failedPayments.toLocaleString(), rawValue: summary.failedPayments, change: summary.failedPayments > 0 ? "Needs review" : "Healthy", trend: summary.failedPayments > 0 ? "down" as const : "up" as const, icon: "TrendingUp", color: "text-amber-500", bg: "bg-amber-500/10" },
   ]
@@ -90,7 +91,7 @@ export async function DashboardOverview() {
 
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Pending revenue</p><p className="text-xl font-bold">₦{summary.pendingRevenue.toLocaleString()}</p></div>
+        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Pending revenue</p><p className="text-xl font-bold">{formatMoney(summary.pendingRevenue)}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Unpaid orders</p><p className="text-xl font-bold">{ops.unpaidOrders}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Stale inquiries</p><p className="text-xl font-bold">{ops.staleInquiries}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Webhook issues</p><p className="text-xl font-bold">{ops.webhookIssues}</p></div>

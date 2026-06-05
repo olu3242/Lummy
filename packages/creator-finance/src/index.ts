@@ -1,4 +1,4 @@
-export type Currency = 'NGN'|'USD'|'GBP';
+export type Currency = 'USD'|'GBP'|'EUR'|'CAD'|'AUD'|'NGN'|'ZAR'|'KES'|'GHS';
 export type WalletBalance = { tenantId:string; currency:Currency; available:number; pending:number };
 export class WalletService { private balances = new Map<string, WalletBalance>(); upsert(balance: WalletBalance){ this.balances.set(`${balance.tenantId}:${balance.currency}`, balance); return balance; } }
 export class CommissionCalculator { compute(amount:number, rateBps:number){ return Math.round(amount*rateBps)/10000; } }

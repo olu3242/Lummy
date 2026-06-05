@@ -114,7 +114,7 @@ export async function getRevenueOpportunities(creatorId: string): Promise<Revenu
       productName: p.name,
       currentPriceKobo: p.price,
       niche: "general",
-      currency: p.currency ?? "NGN",
+      currency: p.currency ?? "USD",
     })
     if (suggestion.suggestedPrice > suggestion.currentPrice) {
       opps.push({

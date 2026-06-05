@@ -42,8 +42,8 @@ test('idempotency: repeated initialize returns same provider reference', async (
   const db = new InMemoryDB()
   const metadata = { organizationId: 'org_test', idempotencyKey: 'idem_test_1' }
 
-  const res1 = await createPaymentSession(db as any, 'paystack', { amount: 1000, currency: 'NGN', metadata, customerEmail: 'a@b.test' }, 'corr_1')
-  const res2 = await createPaymentSession(db as any, 'paystack', { amount: 1000, currency: 'NGN', metadata, customerEmail: 'a@b.test' }, 'corr_1')
+  const res1 = await createPaymentSession(db as any, 'paystack', { amount: 1000, currency: 'USD', metadata, customerEmail: 'a@b.test' }, 'corr_1')
+  const res2 = await createPaymentSession(db as any, 'paystack', { amount: 1000, currency: 'USD', metadata, customerEmail: 'a@b.test' }, 'corr_1')
 
   expect(res1.providerReference).toEqual(res2.providerReference)
 })
@@ -52,7 +52,7 @@ test('webhook handling: paystack signature verification and normalization', asyn
   const db = new InMemoryDB()
   process.env.PAYSTACK_SECRET_KEY = 'test_paystack_secret'
 
-  const fakeRaw = JSON.stringify({ id: 'tx_999', reference: 'ref_999', status: 'settled', amount: 2000, currency: 'NGN' })
+  const fakeRaw = JSON.stringify({ id: 'tx_999', reference: 'ref_999', status: 'settled', amount: 2000, currency: 'USD' })
   const paystackSig = crypto.createHmac('sha512', process.env.PAYSTACK_SECRET_KEY as string).update(fakeRaw).digest('hex')
   const fakeHeaders = { 'x-paystack-signature': paystackSig }
 

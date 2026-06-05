@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { createClient } from "@/lib/supabase/server"
+import { formatCompactMoney } from "@/lib/globalization"
 
 type TopProduct = {
   id: string
@@ -84,7 +85,7 @@ export async function TopProducts() {
               <div className="flex items-center justify-between mb-1">
                 <p className="text-xs font-semibold truncate pr-2">{product.title}</p>
                 <p className="text-xs font-bold text-brand-green flex-shrink-0">
-                  ₦{(product.revenue / 1000).toFixed(0)}k
+                  {formatCompactMoney(product.revenue)}
                 </p>
               </div>
               <Progress

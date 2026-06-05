@@ -31,21 +31,21 @@ const typeConfig: Record<ActivityType, { icon: React.ElementType; bg: string; co
 }
 
 const INITIAL_ACTIVITIES: Activity[] = [
-  { id: "a1",  type: "order",    title: "New order",        body: "Chidi N. ordered Ankara Print Dress ×2",       time: "2 min ago",  href: "/dashboard/orders",          amount: 50000 },
+  { id: "a1",  type: "order",    title: "New order",        body: "Chidi N. ordered Ankara Print Dress ×2",       time: "2 min ago",  href: "/dashboard/orders",          amount: 40 },
   { id: "a2",  type: "whatsapp", title: "WhatsApp click",   body: "Funmi A. clicked your Leather Mini Bag link",  time: "5 min ago"  },
   { id: "a3",  type: "review",   title: "5-star review",    body: "Amaka O. left a review on Beaded Necklace Set",time: "12 min ago", href: "/dashboard/reviews"  },
   { id: "a4",  type: "order",    title: "Order delivered",  body: "Tunde B.'s Dashiki Shirt marked as delivered",  time: "31 min ago", href: "/dashboard/orders"           },
   { id: "a5",  type: "customer", title: "New customer",     body: "Ngozi M. joined from your Instagram link",      time: "1h ago",     href: "/dashboard/crm"     },
   { id: "a6",  type: "whatsapp", title: "WhatsApp click",   body: "3 people clicked Perfume Collection Box",       time: "1h ago"     },
-  { id: "a7",  type: "payout",   title: "Payout sent",      body: "₦125,000 deposited to GTBank ••4521",          time: "2h ago",     href: "/dashboard/payouts",         amount: 125000 },
-  { id: "a8",  type: "order",    title: "New order",        body: "Kemi A. ordered Beaded Necklace Set ×1",       time: "3h ago",     href: "/dashboard/orders",          amount: 8500  },
+  { id: "a7",  type: "payout",   title: "Payout sent",      body: "$125 deposited to bank ••4521",                time: "2h ago",     href: "/dashboard/payouts",         amount: 125 },
+  { id: "a8",  type: "order",    title: "New order",        body: "Kemi A. ordered Beaded Necklace Set ×1",       time: "3h ago",     href: "/dashboard/orders",          amount: 8  },
   { id: "a9",  type: "review",   title: "4-star review",    body: "Emeka I. reviewed Aso-Oke Fila",               time: "4h ago",     href: "/dashboard/reviews"  },
   { id: "a10", type: "system",   title: "AI brief ready",   body: "Your weekly growth brief has 3 new tips",      time: "5h ago",     href: "/dashboard/ai"      },
 ]
 
 const NEW_ACTIVITY: Activity = {
   id: "a0", type: "order", title: "New order", body: "Blessing E. ordered Silk Blouse ×1", time: "Just now",
-  href: "/dashboard/orders", amount: 14500,
+  href: "/dashboard/orders", amount: 14,
 }
 
 export function ActivityFeed() {
@@ -110,7 +110,7 @@ export function ActivityFeed() {
                     </div>
                     <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed truncate">{activity.body}</p>
                     {activity.amount && (
-                      <p className="text-[11px] font-bold text-brand-purple mt-0.5">₦{activity.amount.toLocaleString()}</p>
+                      <p className="text-[11px] font-bold text-brand-purple mt-0.5">${activity.amount.toLocaleString()}</p>
                     )}
                   </div>
                 </Wrapper>

@@ -18,6 +18,9 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { mockProducts } from "@/data/mock/dashboard"
+import { formatMoney } from "@/lib/globalization"
+
+const DISPLAY_CURRENCY = "USD"
 
 const RECENT_CUSTOMERS = [
   { id: "c1", name: "Adaeze Okonkwo",  phone: "+234 803 456 7890" },
@@ -35,8 +38,8 @@ const NIGERIAN_STATES = [
   "Niger","Ogun","Ondo","Osun","Oyo","Plateau","Rivers","Sokoto","Taraba","Yobe","Zamfara",
 ]
 
-const DELIVERY_FEE = 1500
-const FREE_DELIVERY_THRESHOLD = 50000
+const DELIVERY_FEE = 5
+const FREE_DELIVERY_THRESHOLD = 50
 const TAX_RATE = 0 // optional VAT, 0 by default
 
 type PaymentMethod = "cash" | "transfer" | "paystack" | "whatsapp"
@@ -82,9 +85,9 @@ const PROMO_CODES: Record<string, number> = {
 }
 
 function buildConfirmationMsg(items: OrderItem[], customer: CustomerForm, total: number, payment: PaymentMethod, orderId: string): string {
-  const itemLines = items.map(i => `• ${i.name} × ${i.qty} — ₦${(i.price * i.qty).toLocaleString()}`).join("\n")
+  const itemLines = items.map(i => `• ${i.name} × ${i.qty} — ${formatMoney(i.price * i.qty, DISPLAY_CURRENCY)}`).join("\n")
   const payNote = payment === "cash" ? "Cash on delivery" : payment === "transfer" ? "Bank transfer" : payment === "paystack" ? "Payment link sent" : "WhatsApp payment"
-  return `🛍️ *Order Confirmed*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ₦${total.toLocaleString()} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
+  return `🛍️ *Order Confirmed*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ${formatMoney(total, DISPLAY_CURRENCY)} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
 }
 
 function ProductPicker({ selected, onAdd, onClose }: {
@@ -137,7 +140,7 @@ function ProductPicker({ selected, onAdd, onClose }: {
                     <p className="text-[10px] text-muted-foreground">{p.category} · {p.stock !== null ? `${p.stock} in stock` : "Unlimited"}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-xs font-bold text-brand-purple">₦{p.price.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-brand-purple">{formatMoney(p.price, p.currency ?? DISPLAY_CURRENCY)}</p>
                     {added && <Badge variant="brand" size="sm">Added</Badge>}
                   </div>
                 </button>
@@ -180,7 +183,7 @@ function CustomItemModal({ onAdd, onClose }: {
               className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
           </div>
           <div>
-            <label className="text-xs font-semibold block mb-1.5">Price (₦) *</label>
+            <label className="text-xs font-semibold block mb-1.5">Price ({DISPLAY_CURRENCY}) *</label>
             <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="5000" min="0"
               className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
           </div>
@@ -432,7 +435,7 @@ export default function NewOrderPage() {
                           <p className="text-xs font-semibold truncate">{item.name}</p>
                           {item.isCustom && <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full bg-brand-purple/10 text-brand-purple">custom</span>}
                         </div>
-                        <p className="text-xs text-brand-purple font-bold">₦{item.price.toLocaleString()}</p>
+                        <p className="text-xs text-brand-purple font-bold">{formatMoney(item.price, DISPLAY_CURRENCY)}</p>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button onClick={() => changeQty(item.productId, -1)}
@@ -445,7 +448,7 @@ export default function NewOrderPage() {
                           <Plus className="h-3 w-3" />
                         </button>
                       </div>
-                      <p className="text-xs font-bold w-20 text-right">₦{(item.price * item.qty).toLocaleString()}</p>
+                      <p className="text-xs font-bold w-20 text-right">{formatMoney(item.price * item.qty, DISPLAY_CURRENCY)}</p>
                       <button onClick={() => removeItem(item.productId)} className="p-1 rounded-lg hover:bg-brand-coral/10 hover:text-brand-coral text-muted-foreground transition-colors">
                         <X className="h-3.5 w-3.5" />
                       </button>
@@ -598,7 +601,7 @@ export default function NewOrderPage() {
                   {items.map(i => (
                     <div key={i.productId} className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground truncate flex-1">{i.name} × {i.qty}</span>
-                      <span className="font-semibold ml-2">₦{(i.price * i.qty).toLocaleString()}</span>
+                      <span className="font-semibold ml-2">{formatMoney(i.price * i.qty, DISPLAY_CURRENCY)}</span>
                     </div>
                   ))}
 
@@ -607,7 +610,7 @@ export default function NewOrderPage() {
                     <div className="space-y-1 pt-1">
                       <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>Free delivery progress</span>
-                        <span className="font-semibold">₦{(FREE_DELIVERY_THRESHOLD - subtotal).toLocaleString()} away</span>
+                        <span className="font-semibold">{formatMoney(FREE_DELIVERY_THRESHOLD - subtotal, DISPLAY_CURRENCY)} away</span>
                       </div>
                       <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                         <motion.div className="h-full bg-brand-green rounded-full"
@@ -620,12 +623,12 @@ export default function NewOrderPage() {
                   <div className="border-t border-border pt-3 space-y-1.5">
                     <div className="flex justify-between text-xs text-muted-foreground">
                       <span>Subtotal</span>
-                      <span>₦{subtotal.toLocaleString()}</span>
+                      <span>{formatMoney(subtotal, DISPLAY_CURRENCY)}</span>
                     </div>
                     {promoApplied && (
                       <div className="flex justify-between text-xs text-brand-green">
                         <span className="flex items-center gap-1"><Tag className="h-3 w-3" /> {promoApplied.code} ({promoApplied.pct}% off)</span>
-                        <span>−₦{discountAmt.toLocaleString()}</span>
+                        <span>−{formatMoney(discountAmt, DISPLAY_CURRENCY)}</span>
                       </div>
                     )}
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -634,7 +637,7 @@ export default function NewOrderPage() {
                       </span>
                       {deliveryFee === 0
                         ? <span className="text-brand-green font-semibold">Free 🎉</span>
-                        : <span>₦{deliveryFee.toLocaleString()}</span>
+                        : <span>{formatMoney(deliveryFee, DISPLAY_CURRENCY)}</span>
                       }
                     </div>
                     {deliveryDate && (
@@ -645,7 +648,7 @@ export default function NewOrderPage() {
                     )}
                     <div className="flex justify-between text-sm font-bold border-t border-border pt-2">
                       <span>Total</span>
-                      <span className="text-brand-purple">₦{total.toLocaleString()}</span>
+                      <span className="text-brand-purple">{formatMoney(total, DISPLAY_CURRENCY)}</span>
                     </div>
                   </div>
                 </>

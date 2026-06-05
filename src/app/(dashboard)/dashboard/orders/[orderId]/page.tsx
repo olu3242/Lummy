@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge"
 import { mockOrders, type OrderStatus, type DashboardOrder } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney } from "@/lib/globalization"
 
 const statusConfig: Record<OrderStatus, { label: string; color: string; bg: string; border: string; icon: React.ElementType }> = {
   pending:    { label: "Pending",    color: "text-amber-500",     bg: "bg-amber-500/10",      border: "border-amber-500/20",      icon: Clock       },
@@ -454,21 +455,21 @@ export default function OrderDetailPage() {
                   <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Size: M</span>
                   <span className="text-[10px] text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Black</span>
                 </div>
-                <p className="font-display font-bold text-brand-purple mt-2 text-lg">₦{order.amount.toLocaleString()}</p>
+                <p className="font-display font-bold text-brand-purple mt-2 text-lg">{formatMoney(order.amount, order.currency ?? "USD")}</p>
               </div>
             </div>
             <div className="mt-5 pt-4 border-t border-border space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
-                <span className="font-semibold">₦{order.amount.toLocaleString()}</span>
+                <span className="font-semibold">{formatMoney(order.amount, order.currency ?? "USD")}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery fee</span>
-                <span className="font-semibold">₦1,500</span>
+                <span className="font-semibold">{formatMoney(5, order.currency ?? "USD")}</span>
               </div>
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="font-bold">Total</span>
-                <span className="font-display font-extrabold text-brand-purple">₦{(order.amount + 1500).toLocaleString()}</span>
+                <span className="font-display font-extrabold text-brand-purple">{formatMoney(order.amount + 5, order.currency ?? "USD")}</span>
               </div>
             </div>
           </motion.div>
@@ -730,7 +731,7 @@ export default function OrderDetailPage() {
               </div>
               <div className="flex justify-between pt-2 border-t border-border">
                 <span className="font-bold">Total paid</span>
-                <span className="font-display font-extrabold text-brand-purple">₦{(order.amount + 1500).toLocaleString()}</span>
+                <span className="font-display font-extrabold text-brand-purple">{formatMoney(order.amount + 5, order.currency ?? "USD")}</span>
               </div>
             </div>
           </motion.div>

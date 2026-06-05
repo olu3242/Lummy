@@ -50,8 +50,8 @@ export async function runCreatorAcquisitionEngine(): Promise<ScalingCoordination
     }
 
     // Emit opportunities for high-revenue, low-creator niches (max 3)
-    const REVENUE_THRESHOLD_KOBO = 100_000 * 100  // ₦100k in kobo
-    const REVENUE_PER_CREATOR    = 50_000 * 100   // ₦50k per creator in kobo
+    const REVENUE_THRESHOLD_KOBO = 100_000 * 100  // ~$100 threshold in minor units
+    const REVENUE_PER_CREATOR    = 50_000 * 100   // ~$50 per creator in minor units
 
     let opportunityCount = 0
     for (const [niche, total30dRevenue] of nicheRevenue.entries()) {

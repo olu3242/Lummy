@@ -73,7 +73,7 @@ export async function runScalingPriorityEngine(): Promise<ScalingCoordinationRun
       }, {
         bottleneckType: "payment_failures",
         severity,
-        estimatedRevenueLossKobo: paymentFailCount * 5_000_000, // ₦50k avg per failure in kobo
+        estimatedRevenueLossKobo: paymentFailCount * 5_000_000, // ~$50 avg per failure in minor units
         recommendedAction: "Audit Paystack integration and retry logic for failed payment events",
         snapshotDate: today,
       }, `scaling_bottleneck:payment_failures:${today}`)

@@ -16,7 +16,7 @@ export async function generateStorefrontSuggestions(opts: {
   currency?: string
 }): Promise<StorefrontSuggestion[]> {
   try {
-    const prompt = `Creator: ${opts.creatorName}, niche: ${opts.niche}, currency: ${opts.currency ?? "NGN"}.
+    const prompt = `Creator: ${opts.creatorName}, niche: ${opts.niche}, currency: ${opts.currency ?? "USD"}.
 Current bio: "${opts.currentBio ?? "None"}"
 Products: ${opts.productNames?.slice(0, 5).join(", ") ?? "None listed"}
 
