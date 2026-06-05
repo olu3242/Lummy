@@ -51,7 +51,6 @@ export async function POST(req: Request) {
 
     const session = await createPaymentSession(createPaymentDatabaseAdapter(supabase as never), provider, { amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl }, correlationId)
 
-    // ensure order/payment record references provider reference
     if (session.providerReference) {
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
     }

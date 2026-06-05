@@ -37,7 +37,8 @@ const nextConfig = {
   transpilePackages: [
     "@lummy/db-core",
     "@lummy/shared-types",
-    "@lummy/payments-core"
+    "@lummy/payments-core",
+    ...parseEnvList('TRANSPILE_PACKAGES'),
   ],
 
   async redirects() {
