@@ -255,7 +255,7 @@ export default function SignupPage() {
                   {/* Name */}
                   <div className="space-y-1.5">
                     <Label htmlFor="name" className="text-white/70">Full name</Label>
-                    <Input id="name" type="text" placeholder="Sade Okoye" icon={<User className="h-4 w-4" />}
+                    <Input id="name" type="text" placeholder="Your name" icon={<User className="h-4 w-4" />}
                       className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple" required
                       value={fullName} onChange={(e) => setFullName(e.target.value)} />
                   </div>
@@ -269,7 +269,7 @@ export default function SignupPage() {
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30 text-sm pointer-events-none z-10">lummy.co/</span>
                       <input
                         id="handle" value={handle} onChange={e => onHandleChange(e.target.value)}
-                        placeholder="sade.styles" required
+                        placeholder="your-store" required
                         className="w-full h-11 pl-[88px] pr-9 rounded-xl border border-white/10 bg-white/5 text-white text-sm placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-brand-purple/60"
                       />
                       <div className="absolute right-3 top-1/2 -translate-y-1/2">

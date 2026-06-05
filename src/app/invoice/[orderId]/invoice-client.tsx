@@ -44,10 +44,10 @@ function getMockInvoice(orderId: string): InvoiceData {
     dueDate: "May 8, 2026",
     status: statusMap[orderId] ?? "confirmed",
     seller: {
-      name: "Sade Adeyemi",
-      store: "Sade's Boutique",
+      name: "Creator",
+      store: "Your Store",
       phone: "+234 803 456 7890",
-      handle: "sade",
+      handle: "your-store",
       address: "14 Bode Thomas Street, Surulere, Lagos",
     },
     customer: {
@@ -60,7 +60,7 @@ function getMockInvoice(orderId: string): InvoiceData {
       { name: "Matching Headwrap", category: "Accessories", qty: 1, unitPrice: 3500 },
     ],
     deliveryFee: 2500,
-    notes: "Thank you for shopping with Sade's Boutique! 💜 Please reach out on WhatsApp if you have any questions.",
+    notes: "Thank you for shopping with Your Store! 💜 Please reach out on WhatsApp if you have any questions.",
   }
 }
 
@@ -81,7 +81,7 @@ export function InvoiceClient({ orderId }: { orderId: string }) {
   }
 
   const whatsappUrl = `https://wa.me/${invoice.customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-    `Hi ${invoice.customer.name.split(" ")[0]}! Here's your invoice (${invoice.invoiceNumber}) from Sade's Boutique — Total: ₦${total.toLocaleString()}. View it here: ${typeof window !== "undefined" ? window.location.href : ""}`
+    `Hi ${invoice.customer.name.split(" ")[0]}! Here's your invoice (${invoice.invoiceNumber}) from ${invoice.seller.store} — Total: ₦${total.toLocaleString()}. View it here: ${typeof window !== "undefined" ? window.location.href : ""}`
   )}`
 
   return (

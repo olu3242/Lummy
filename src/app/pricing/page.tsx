@@ -334,9 +334,9 @@ export default function PricingPage() {
                 Create your free store
               </Button>
             </Link>
-            <Link href="/sade.styles">
+            <Link href="/signup">
               <Button size="lg" variant="outline" className="gap-2 border-white/30 text-white hover:bg-white/10 px-6">
-                See a live example
+                Start setup
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

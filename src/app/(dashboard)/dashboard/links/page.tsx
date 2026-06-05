@@ -65,12 +65,12 @@ const QUICK_SOCIALS = [
 const LINKS_KEY = "lummy_bio_links"
 
 const DEFAULT_LINKS: LinkItem[] = [
-  { id: "L1", type: "store",  label: "Shop My Store 🛍",    url: "https://lummy.co/sade.styles",           icon: "store",     enabled: true,  clicks: 1243, views: 4890, dailyClicks: [145, 162, 178, 190, 201, 188, 179] },
+  { id: "L1", type: "store",  label: "Shop My Store 🛍",    url: "https://lummy.co/your-store",            icon: "store",     enabled: true,  clicks: 0, views: 0, dailyClicks: [0, 0, 0, 0, 0, 0, 0] },
   { id: "L2", type: "social", label: "Chat on WhatsApp",    url: "https://wa.me/2348012345678",            icon: "whatsapp",  enabled: true,  clicks: 892,  views: 3210, dailyClicks: [112, 124, 131, 128, 138, 129, 130] },
-  { id: "L3", type: "social", label: "Follow on Instagram", url: "https://instagram.com/sade.styles",      icon: "instagram", enabled: true,  clicks: 567,  views: 2850, dailyClicks: [72, 81, 84, 87, 93, 80, 70]  },
-  { id: "L4", type: "social", label: "Follow on TikTok",   url: "https://tiktok.com/@sade.styles",        icon: "tiktok",    enabled: true,  clicks: 341,  views: 1920, dailyClicks: [42, 50, 55, 48, 52, 47, 47]  },
-  { id: "L5", type: "custom", label: "New Collection Drop", url: "https://lummy.co/sade.styles?filter=new",icon: "zap",       enabled: true,  clicks: 228,  views: 1100, dailyClicks: [28, 34, 39, 33, 36, 30, 28]  },
-  { id: "L6", type: "social", label: "Twitter / X",        url: "https://twitter.com/sade_styles",        icon: "twitter",   enabled: false, clicks: 89,   views: 720,  dailyClicks: [10, 14, 12, 13, 15, 12, 13]  },
+  { id: "L3", type: "social", label: "Follow on Instagram", url: "https://instagram.com/yourhandle",       icon: "instagram", enabled: false, clicks: 0, views: 0, dailyClicks: [0, 0, 0, 0, 0, 0, 0] },
+  { id: "L4", type: "social", label: "Follow on TikTok",   url: "https://tiktok.com/@yourhandle",         icon: "tiktok",    enabled: false, clicks: 0, views: 0, dailyClicks: [0, 0, 0, 0, 0, 0, 0] },
+  { id: "L5", type: "custom", label: "New Collection Drop", url: "https://lummy.co/your-store?filter=new", icon: "zap",       enabled: false, clicks: 0, views: 0, dailyClicks: [0, 0, 0, 0, 0, 0, 0] },
+  { id: "L6", type: "social", label: "Twitter / X",        url: "https://twitter.com/yourhandle",         icon: "twitter",   enabled: false, clicks: 0, views: 0, dailyClicks: [0, 0, 0, 0, 0, 0, 0] },
 ]
 
 function loadLinks(): LinkItem[] {
@@ -138,8 +138,8 @@ function PhonePreview({ links, handle }: { links: LinkItem[]; handle: string }) 
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 bg-foreground/20 rounded-b-xl z-10" />
         <div className="h-full overflow-y-auto scrollbar-hide bg-gradient-to-b from-brand-purple/10 via-background to-background pt-8 px-2.5 pb-4 space-y-2">
           <div className="text-center py-2">
-            <div className="w-10 h-10 rounded-full bg-brand-purple mx-auto mb-1.5 flex items-center justify-center text-white font-bold text-sm">S</div>
-            <p className="text-[9px] font-bold truncate">Sade&apos;s Boutique</p>
+            <div className="w-10 h-10 rounded-full bg-brand-purple mx-auto mb-1.5 flex items-center justify-center text-white font-bold text-sm">Y</div>
+            <p className="text-[9px] font-bold truncate">Your Store</p>
             <div className="flex items-center justify-center gap-0.5">
               <p className="text-[8px] text-muted-foreground">@{handle}</p>
               <BadgeCheck className="h-2.5 w-2.5 text-brand-purple" />
@@ -439,7 +439,7 @@ export default function LinksPage() {
     setLinks(loadLinks())
   }, [])
 
-  const handle = "sade.styles"
+  const handle = "your-store"
   const bioUrl = `https://lummy.co/${handle}/links`
 
   React.useEffect(() => { saveLinks(links) }, [links])

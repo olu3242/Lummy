@@ -84,7 +84,7 @@ const PROMO_CODES: Record<string, number> = {
 function buildConfirmationMsg(items: OrderItem[], customer: CustomerForm, total: number, payment: PaymentMethod, orderId: string): string {
   const itemLines = items.map(i => `• ${i.name} × ${i.qty} — ₦${(i.price * i.qty).toLocaleString()}`).join("\n")
   const payNote = payment === "cash" ? "Cash on delivery" : payment === "transfer" ? "Bank transfer" : payment === "paystack" ? "Payment link sent" : "WhatsApp payment"
-  return `🛍️ *Order Confirmed — Sade's Boutique*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ₦${total.toLocaleString()} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
+  return `🛍️ *Order Confirmed*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ₦${total.toLocaleString()} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
 }
 
 function ProductPicker({ selected, onAdd, onClose }: {

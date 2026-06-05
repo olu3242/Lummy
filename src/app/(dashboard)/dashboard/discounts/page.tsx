@@ -105,7 +105,7 @@ function buildPromoMessage(d: Discount): string {
   const min = d.minOrder ? ` on orders above ₦${d.minOrder.toLocaleString()}` : ""
   const expiry = d.expires ? ` (expires ${new Date(d.expires).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""
   const flash = d.isFlash ? "\n⏰ *FLASH SALE — Limited time only!*" : ""
-  return `🎉 Special offer!\n\nUse code *${d.code}* to get ${discount}${min}${expiry}.${flash}\n\nShop now 👉 lummy.co/sade.styles\n\nDM to order! 💜`
+  return `🎉 Special offer!\n\nUse code *${d.code}* to get ${discount}${min}${expiry}.${flash}\n\nShop now 👉 {storeUrl}\n\nDM to order! 💜`
 }
 
 function generateCode(prefix: string): string {

@@ -38,7 +38,7 @@ const TOOLS = [
       { key: "tone",     label: "Tone",             placeholder: "e.g. Hype, Elegant, Playful", optional: true },
     ],
     generate: (f: Record<string, string>) =>
-      `🔥 ${(f.occasion || "NEW DROP").toUpperCase()} ALERT!\n\nMeet the ${f.product} — she's giving EVERYTHING. Bold. Premium. Unapologetically African. ✨\n\nLimited stock available now. Order via the WhatsApp link in bio 👆 — last drop sold out in 48hrs 🏃🏾‍♀️\n\nTag someone who needs this in their wardrobe 💜\n\n#${(f.product || "").replace(/\s+/g, "")} #LagosStyle #AfricanFashion #MadeInNigeria #${(f.occasion || "NewDrop").replace(/\s+/g, "")} #SadeStyles`,
+      `🔥 ${(f.occasion || "NEW DROP").toUpperCase()} ALERT!\n\nMeet the ${f.product} — it's giving EVERYTHING. Bold. Premium. Unapologetically African. ✨\n\nLimited stock available now. Order via the WhatsApp link in bio 👆 — last drop sold out fast.\n\nTag someone who needs this in their wardrobe 💜\n\n#${(f.product || "").replace(/\s+/g, "")} #LagosStyle #AfricanFashion #MadeInNigeria #${(f.occasion || "NewDrop").replace(/\s+/g, "")} #LummyStore`,
   },
   {
     id: "hashtags",
@@ -105,7 +105,7 @@ const TOOLS = [
       { key: "price",   label: "Price (₦)",         placeholder: "e.g. 24000", optional: true },
     ],
     generate: (f: Record<string, string>) =>
-      `🔔 RESTOCK ALERT — ${(f.product || "").toUpperCase()}!\n\nYou asked, I delivered! 🙏🏾\n\nThe ${f.product} is BACK IN STOCK — only ${f.qty || "limited"} units available. ${f.price ? `Price: ₦${parseInt(f.price).toLocaleString()}` : ""}\n\n⚡ First come, first served. The last batch sold out in under 3 days.\n\n📲 Tap the link in bio or DM me "RESTOCK" to order now.\n\nDon't miss out this time! 🛍️💜\n\n#Restock #BackInStock #${(f.product || "").replace(/\s+/g, "")} #LimitedUnits #SadeStyles`,
+      `🔔 RESTOCK ALERT — ${(f.product || "").toUpperCase()}!\n\nYou asked, I delivered! 🙏🏾\n\nThe ${f.product} is BACK IN STOCK — only ${f.qty || "limited"} units available. ${f.price ? `Price: ₦${parseInt(f.price).toLocaleString()}` : ""}\n\n⚡ First come, first served. The last batch sold out quickly.\n\n📲 Tap the link in bio or DM me "RESTOCK" to order now.\n\nDon't miss out this time! 🛍️💜\n\n#Restock #BackInStock #${(f.product || "").replace(/\s+/g, "")} #LimitedUnits #LummyStore`,
   },
   {
     id: "broadcast",
@@ -120,17 +120,17 @@ const TOOLS = [
       { key: "segment", label: "Customer segment", placeholder: "e.g. All customers, VIPs, Inactive 30+ days", optional: true },
     ],
     generate: (f: Record<string, string>) =>
-      `Hi {firstName}! 👋\n\nIt's Sade from Sade's Store — I've got something special for you today 🎁\n\n✨ ${f.goal || "Big announcement"}: ${f.offer || "exclusive offer just for you"}.\n\n${f.segment?.toLowerCase().includes("vip") ? "As one of our VIP customers, you get first access before we open to everyone else. 💜" : "This is going out to a small group of our most loyal customers — consider yourself part of the inner circle! 🤝"}\n\nReply "YES" to claim your spot or tap the link below 👇\n\n⏰ This offer expires in 24 hours — don't sleep on it!\n\nThank you for always supporting Sade's Store. You mean the world to me 🙏🏾`,
+      `Hi {firstName}! 👋\n\nIt's {storeName} — I've got something special for you today 🎁\n\n✨ ${f.goal || "Big announcement"}: ${f.offer || "exclusive offer just for you"}.\n\n${f.segment?.toLowerCase().includes("vip") ? "As one of our VIP customers, you get first access before we open to everyone else. 💜" : "This is going out to a small group of our most loyal customers — consider yourself part of the inner circle! 🤝"}\n\nReply "YES" to claim your spot or tap the link below 👇\n\n⏰ This offer expires in 24 hours.\n\nThank you for always supporting {storeName}. You mean the world to me 🙏🏾`,
   },
 ] as const
 
 // ─── Mock responses ───────────────────────────────────────────────────────────
 
 const mockResponses: Record<string, string> = {
-  caption: `🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just dropped and she's giving EVERYTHING. Bold. Vibrant. Unapologetically African. ✨\n\nSizes S–XL available NOW. Order via the WhatsApp link in bio 👆 — last drop sold out in 48hrs 🏃🏾‍♀️\n\nTag a friend who needs this in their wardrobe 💜\n\n#AnkaraFashion #LagosStyle #AfricanPrint #SadeStyles #MadeInNigeria`,
+  caption: `🔥 NEW DROP ALERT!\n\nThis Ankara Print Dress just dropped and it is giving EVERYTHING. Bold. Vibrant. Unapologetically African. ✨\n\nSizes S-XL available NOW. Order via the WhatsApp link in bio.\n\nTag a friend who needs this in their wardrobe 💜\n\n#AnkaraFashion #LagosStyle #AfricanPrint #LummyStore #MadeInNigeria`,
   price: `Based on your market position and niche, here are my pricing recommendations for handmade beaded necklaces:\n\n💎 **Tier 1 — Basic Sets:** ₦7,000–₦9,000\n✨ **Tier 2 — Premium Sets:** ₦12,000–₦16,000\n👑 **Tier 3 — Custom/Bespoke:** ₦20,000–₦35,000\n\n**Why this works:**\n- Your 21k engaged audience values authenticity\n- Handmade commands a 40-60% premium over mass-produced\n- Bundle 2 pieces at 15% discount to increase AOV\n\n**Pro tip:** Always lead with the story — "hand-crafted in Enugu" converts better than just "beaded necklace" 🪡`,
-  whatsapp: `Hi [Customer Name]! 👋 Thanks for reaching out to Sade's Store.\n\nRegarding delivery:\n📍 **Lagos:** 1–2 business days via GIG Logistics\n🚚 **Abuja:** 2–3 business days\n🗺️ **Other states:** 3–5 business days\n\nOnce your order is dispatched, you'll receive a tracking number via WhatsApp.\n\nWant to confirm your order now? I'll send you a secure payment link 💳`,
-  campaign: `Here's your **December Christmas Campaign Strategy** 🎄\n\n**Theme:** "Give the Gift of African Excellence"\n\n**Week 1 (Dec 1-7):** Teaser posts — "Something big is coming to Sade's Store"\n**Week 2 (Dec 8-14):** DROP — New holiday collection with limited stock messaging\n**Week 3 (Dec 15-21):** Gift guides + bundle deals (3 items = 20% off)\n**Week 4 (Dec 22-26):** Last-chance messaging + WhatsApp broadcast to past customers\n\n**Estimated revenue uplift:** 35–60% vs a normal month\n\n**Top channels:** WhatsApp broadcast first → Instagram Stories → Feed posts`,
+  whatsapp: `Hi [Customer Name]! 👋 Thanks for reaching out to {storeName}.\n\nRegarding delivery:\n📍 **Lagos:** 1-2 business days via GIG Logistics\n🚚 **Abuja:** 2-3 business days\n🗺️ **Other states:** 3-5 business days\n\nOnce your order is dispatched, you'll receive a tracking number via WhatsApp.\n\nWant to confirm your order now? I'll send you a secure payment link 💳`,
+  campaign: `Here's your **December Christmas Campaign Strategy** 🎄\n\n**Theme:** "Give the Gift of African Excellence"\n\n**Week 1 (Dec 1-7):** Teaser posts — "Something big is coming to {storeName}"\n**Week 2 (Dec 8-14):** DROP — New holiday collection with limited stock messaging\n**Week 3 (Dec 15-21):** Gift guides + bundle deals (3 items = 20% off)\n**Week 4 (Dec 22-26):** Last-chance messaging + WhatsApp broadcast to past customers\n\n**Estimated revenue uplift:** 35-60% vs a normal month\n\n**Top channels:** WhatsApp broadcast first → Instagram Stories → Feed posts`,
   default: `Great question! As your AI growth partner, I can help you with:\n\n✍️ **Content creation** — Captions, product descriptions, hashtags\n💰 **Pricing strategy** — Market-rate recommendations for your niche\n💬 **WhatsApp commerce** — Reply templates, broadcast messages\n📊 **Campaign planning** — Seasonal strategies, launch plans\n🎯 **Growth tips** — Platform-specific advice for African creators\n\nWhat would you like to work on today? Ask me anything about your Lummy store 🚀`,
 }
 
@@ -296,7 +296,7 @@ export default function AIPage() {
   const [messages, setMessages] = React.useState<Message[]>([
     {
       role: "assistant",
-      content: "Hey Sade! 👋 I'm your Lummy AI assistant, powered by Claude. I know your store, your niche, and your audience.\n\nAsk me to write captions, plan campaigns, suggest prices, or draft WhatsApp reply templates. Or switch to the **Tools** tab for dedicated generators. What are we working on today?",
+      content: "Hey creator! 👋 I'm your Lummy AI assistant. I can help with your store, niche, and audience.\n\nAsk me to write captions, plan campaigns, suggest prices, or draft WhatsApp reply templates. Or switch to the **Tools** tab for dedicated generators. What are we working on today?",
       id: "init",
     },
   ])
@@ -510,7 +510,7 @@ export default function AIPage() {
                 <Bot className="h-4.5 w-4.5 text-brand-purple" />
               </div>
               <div>
-                <p className="text-sm font-bold mb-1.5">Summary for Sade</p>
+                <p className="text-sm font-bold mb-1.5">Creator summary</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Strong week — revenue is up 18% and your WhatsApp conversion hit 78%. Two products need your immediate attention: the Ankara Print Dress is close to stockout and the Beaded Necklace Set is already out. Act on restocking before you lose momentum. Your top opportunity this week is re-engaging 4 dormant VIP customers.
                 </p>

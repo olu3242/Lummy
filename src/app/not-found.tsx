@@ -9,7 +9,7 @@ import { SmartLogo } from "@/components/shared/smart-logo"
 const links = [
   { label: "Go home",          href: "/",              icon: Home,            desc: "Back to the landing page" },
   { label: "Open dashboard",   href: "/dashboard",     icon: LayoutDashboard, desc: "Manage your store" },
-  { label: "Browse a store",   href: "/sade.styles",   icon: ShoppingBag,     desc: "See a sample storefront" },
+  { label: "Create a store",   href: "/signup",        icon: ShoppingBag,     desc: "Start your own storefront" },
 ]
 
 export default function NotFound() {

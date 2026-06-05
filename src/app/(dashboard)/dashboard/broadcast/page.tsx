@@ -115,15 +115,15 @@ const TEMPLATES: MessageTemplate[] = [
 
 const HISTORY: BroadcastRecord[] = [
   { id: "b1", message: "New arrivals just dropped! Check out the latest...", segment: "All customers", recipients: 1247, sentAt: "Dec 8, 2024 · 10:23am", delivered: 1189, read: 876 },
-  { id: "b2", message: "Hi! We miss you at Sade's Store! It's been a while...", segment: "At risk", recipients: 187, sentAt: "Nov 30, 2024 · 3:15pm", delivered: 179, read: 134 },
+  { id: "b2", message: "Hi! We miss you at your favorite store! It's been a while...", segment: "At risk", recipients: 187, sentAt: "Nov 30, 2024 · 3:15pm", delivered: 179, read: 134 },
   { id: "b3", message: "⚡ FLASH SALE — 24 hours only, up to 30% off...", segment: "VIP", recipients: 89, sentAt: "Nov 25, 2024 · 9:00am", delivered: 87, read: 82 },
   { id: "b4", message: "You're one of our top customers — VIP early access...", segment: "Repeat buyers", recipients: 412, sentAt: "Nov 15, 2024 · 2:00pm", delivered: 398, read: 301 },
 ]
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const STORE_NAME = "Sade's Store"
-const STORE_URL = "lummy.co/sade.styles"
+const STORE_NAME = "Your Store"
+const STORE_URL = "lummy.co/your-store"
 const DRAFT_KEY = "lummy_broadcast_draft"
 
 function previewMessage(body: string, firstName = "Kemi") {

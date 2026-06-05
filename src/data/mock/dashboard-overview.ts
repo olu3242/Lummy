@@ -138,7 +138,7 @@ export const topActions: TopAction[] = [
 ]
 
 export const overviewMeta: OverviewMeta = {
-  handle: "sade.styles",
+  handle: "your-store",
   focusRefreshLabel: "updates hourly",
   focusRefreshIcon: Clock3,
   trackerIcon: Target,

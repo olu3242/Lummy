@@ -53,9 +53,9 @@ function getMockOrder(orderId: string): TrackingOrder {
       qty: 1,
     },
     seller: {
-      name: "Sade's Boutique",
+      name: "Your Store",
       phone: "+2348034567890",
-      handle: "sade",
+      handle: "your-store",
     },
     customer: {
       name: "Amaka O.",
@@ -75,7 +75,7 @@ function getMockOrder(orderId: string): TrackingOrder {
       {
         status: "processing",
         label: "Being Prepared",
-        desc: "Sade's Boutique is packaging your item.",
+        desc: "Your Store is packaging your item.",
         time: idx >= 1 ? "May 2, 10:30 AM" : "",
         done: idx >= 1,
       },

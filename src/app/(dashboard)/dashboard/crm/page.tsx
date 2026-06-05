@@ -245,7 +245,7 @@ function ReengagementQueue({ customers }: { customers: Customer[] }) {
             {sent.has(c.id) ? (
               <CheckCircle2 className="h-4 w-4 text-brand-green flex-shrink-0" />
             ) : (
-              <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We miss you at Sade's Boutique! It's been a while since your last order. Come check out what's new — we have beautiful pieces just added 🛍✨`)}`}
+              <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We miss you! It's been a while since your last order. Come check out what's new — we have beautiful pieces just added 🛍✨`)}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => markSent(c.id)}
                 className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-[#25D366] text-white hover:bg-[#22c55e] transition-colors">
@@ -422,7 +422,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
   const buildWA = (c: Customer) => {
     const clean = c.phone.replace(/\D/g, "")
     const firstName = c.name.split(" ")[0]
-    const text = encodeURIComponent(`Hi ${firstName}! 👋 It's Sade from Sade's Boutique. We have new arrivals you might love based on your last order (${c.lastProduct}). Come see! 🛍`)
+    const text = encodeURIComponent(`Hi ${firstName}! 👋 We have new arrivals you might love based on your last order (${c.lastProduct}). Come see! 🛍`)
     return `https://wa.me/${clean}?text=${text}`
   }
 
@@ -716,7 +716,7 @@ export default function CRMPage() {
     toast({ title: `Opening ${targets.length} WhatsApp chats…`, description: "Your browser may block multiple tabs. Allow popups if prompted.", variant: "default" })
     targets.slice(0, 5).forEach(c => {
       const clean = c.phone.replace(/\D/g, "")
-      const text = encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 It's Sade from Sade's Boutique. We have exciting news for you! 🛍`)
+      const text = encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We have exciting news for you! 🛍`)
       window.open(`https://wa.me/${clean}?text=${text}`, "_blank")
     })
   }

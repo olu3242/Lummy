@@ -706,7 +706,7 @@ export default function HelpPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-[11px] font-semibold text-muted-foreground mb-1">Your name</label>
-                      <input value={ticketName} onChange={e => setTicketName(e.target.value)} required placeholder="Sade Adeyemi"
+                      <input value={ticketName} onChange={e => setTicketName(e.target.value)} required placeholder="Creator Name"
                         className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
                     </div>
                     <div>

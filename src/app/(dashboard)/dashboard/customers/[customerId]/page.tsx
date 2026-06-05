@@ -346,7 +346,7 @@ export default function CustomerProfilePage() {
   const buildWA = (msg?: string) => {
     const clean = customer.phone.replace(/\D/g, "")
     const firstName = customer.name.split(" ")[0]
-    const text = msg ?? `Hi ${firstName}! 👋 It's Sade from Sade's Boutique. We have new arrivals you might love based on your last order (${customer.lastProduct}). Come see! 🛍`
+    const text = msg ?? `Hi ${firstName}! 👋 We have new arrivals you might love based on your last order (${customer.lastProduct}). Come see! 🛍`
     return `https://wa.me/${clean}?text=${encodeURIComponent(text)}`
   }
 

@@ -502,7 +502,7 @@ export default function ProductDetailPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#25D366]/30 bg-[#25D366]/5 text-[#25D366] text-xs font-medium hover:bg-[#25D366]/10 transition-colors">
               <MessageCircle className="h-3.5 w-3.5 fill-[#25D366]/60" /> Share on WhatsApp
             </a>
-            <a href={`/sade.styles/${product.id}`} target="_blank" rel="noopener noreferrer"
+            <a href={`/dashboard/store`} target="_blank" rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border text-xs font-medium hover:bg-accent transition-colors">
               <ExternalLink className="h-3.5 w-3.5" /> View on store
             </a>

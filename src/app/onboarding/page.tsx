@@ -274,7 +274,7 @@ function StepStoreSetup({
           <Input
             value={data.storeName}
             onChange={(e) => onChange({ storeName: e.target.value })}
-            placeholder="Sade's Fashion Store"
+            placeholder="Your Fashion Store"
             icon={<Store className="h-4 w-4" />}
             className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
           />
@@ -292,7 +292,7 @@ function StepStoreSetup({
             <Input
               value={data.handle}
               onChange={(e) => onChange({ handle: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "") })}
-              placeholder="sade.styles"
+              placeholder="your-store"
               icon={<AtSign className="h-4 w-4" />}
               className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple pl-[88px]"
             />

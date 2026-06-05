@@ -81,7 +81,7 @@ export function WhatsAppSection() {
                     S
                   </div>
                   <div>
-                    <p className="text-white text-xs font-semibold">Sade&apos;s Store</p>
+                    <p className="text-white text-xs font-semibold">Your Store</p>
                     <p className="text-white/40 text-[10px]">online · via Lummy</p>
                   </div>
                   <MessageCircle className="ml-auto h-4 w-4 text-[#25D366]" />

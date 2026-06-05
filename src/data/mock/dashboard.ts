@@ -317,8 +317,8 @@ export const mockOrders: DashboardOrder[] = [
 // ─── Store settings (mock creator profile) ────────────────────────────────────
 
 export const mockCreatorProfile = {
-  name: "Sade Okoye",
-  handle: "sade.styles",
+  name: "Creator",
+  handle: "your-store",
   email: "sade@example.com",
   phone: "+234 803 456 7890",
   whatsapp: "+234 803 456 7890",
@@ -327,8 +327,8 @@ export const mockCreatorProfile = {
   location: "Lagos, Nigeria",
   avatar: images.creators.sade,
   cover: images.covers.fashion,
-  storeName: "Sade's Store",
-  storeUrl: "lummy.co/sade.styles",
+  storeName: "Your Store",
+  storeUrl: "lummy.co/your-store",
   verified: true,
   joinedAt: "2024-02-10",
   stats: {
@@ -339,7 +339,7 @@ export const mockCreatorProfile = {
     reviewCount: 312,
   },
   socialLinks: {
-    instagram: "@sade.styles",
+    instagram: "@yourhandle",
     tiktok: "@sadeafro",
     twitter: "@sade_styles",
   },
