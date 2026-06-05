@@ -1,4 +1,6 @@
 import type { Metadata } from "next"
+
+export const dynamic = "force-dynamic"
 import Image from "next/image"
 import Link from "next/link"
 import { BRAND } from "@/config/branding"
