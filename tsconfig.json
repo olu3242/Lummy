@@ -16,7 +16,9 @@
     "plugins": [{ "name": "next" }],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@lummy/db-core": ["./packages/db-core/src/index.ts"],
+      "@lummy/ai-runtime": ["./packages/ai-runtime/src/index.ts"]
     }
   },
   "include": [

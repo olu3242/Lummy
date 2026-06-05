@@ -38,7 +38,7 @@ export default async function AIOperationsPage() {
           <div>
             <h2 className="text-lg font-semibold">Prompt Governance</h2>
             <div className="mt-3 space-y-2">
-              {prompts.map((prompt) => (
+              {(prompts as unknown as Array<{ key: string; version: string; environment: string; approved: boolean }>).map((prompt) => (
                 <div key={`${prompt.key}:${prompt.version}`} className="rounded border border-slate-800 px-4 py-3">
                   <div className="font-medium text-slate-100">{prompt.key}</div>
                   <div className="text-sm text-slate-400">v{prompt.version} · {prompt.environment} · {prompt.approved ? 'approved' : 'blocked'}</div>
