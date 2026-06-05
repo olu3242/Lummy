@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getRuntimeAppUrl } from "@/lib/runtime-config"
 import { markPaymentCompleted } from "@/repositories/order-repository"
 
 const PAYSTACK_API = "https://api.paystack.co"
@@ -7,11 +8,12 @@ const PAYSTACK_API = "https://api.paystack.co"
 // Called by Paystack as callback_url after payment (GET) or manually via POST
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
+  const appUrl = getRuntimeAppUrl(request.url)
   const reference = searchParams.get("reference")
   if (!reference) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?payment=invalid`)
+    return NextResponse.redirect(`${appUrl}/?payment=invalid`)
   }
-  return verifyAndRedirect(reference)
+  return verifyAndRedirect(reference, appUrl)
 }
 
 export async function POST(request: NextRequest) {
@@ -19,10 +21,10 @@ export async function POST(request: NextRequest) {
   if (!body.reference) {
     return NextResponse.json({ error: "Missing reference" }, { status: 400 })
   }
-  return verifyAndRedirect(body.reference)
+  return verifyAndRedirect(body.reference, getRuntimeAppUrl(request.url))
 }
 
-async function verifyAndRedirect(reference: string): Promise<NextResponse> {
+async function verifyAndRedirect(reference: string, appUrl: string): Promise<NextResponse> {
   const supabase = createClient()
 
   // 1. Verify with Paystack
@@ -42,7 +44,7 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
   }
 
   if (!data.status || !data.data) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/?payment=failed`)
+    return NextResponse.redirect(`${appUrl}/?payment=failed`)
   }
 
   const tx = data.data
@@ -58,8 +60,6 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
       await supabase.from("transactions").update({ status: "failed" }).eq("id", transactionId)
     }
     // Redirect back to the storefront if we can identify it, otherwise home
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
-    if (!appUrl) throw new Error('Missing NEXT_PUBLIC_APP_URL')
     if (orderId) {
       const orderRow = await supabase
         .from("orders")
@@ -73,9 +73,6 @@ async function verifyAndRedirect(reference: string): Promise<NextResponse> {
     }
     return NextResponse.redirect(`${appUrl}/?payment=failed`)
   }
-
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL
-  if (!appUrl) throw new Error('Missing NEXT_PUBLIC_APP_URL')
 
   // 2. Mark payment completed — handles both payments table (checkout flow) and
   //    legacy transactions table (initiate flow). paymentId is the payments row ID.

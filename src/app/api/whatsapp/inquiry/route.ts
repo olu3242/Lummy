@@ -6,11 +6,10 @@ import { createPendingOrder, upsertConversionAttribution, upsertCustomerMemoryFr
 import { createPaystackCheckoutSession } from '@/lib/payments/paystack/provider';
 import { createStripeCheckoutSession } from '@/lib/payments/stripe/provider';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
+import { getRuntimeAppUrl } from '@/lib/runtime-config';
 
-function buildRedirect(path: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) throw new Error('Missing NEXT_PUBLIC_APP_URL');
-  return `${appUrl}${path}`;
+function buildRedirect(req: Request, path: string) {
+  return `${getRuntimeAppUrl(req.url)}${path}`;
 }
 
 export async function POST(req: Request) {
@@ -50,8 +49,8 @@ export async function POST(req: Request) {
       const created = await createPendingOrder({ organizationId: orgId, productId: body.productId, customerEmail: body.customerEmail || 'guest@lummy.local', quantity: 1, provider });
       const metadata = { orderId: created.order.id, paymentId: created.payment.id, organizationId: orgId, productId: created.product.id, quantity: '1' };
       const session = provider === 'stripe'
-        ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) })
-        : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) });
+        ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(req, `/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(req, `/track/${created.order.id}?status=cancelled`) })
+        : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(req, `/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(req, `/track/${created.order.id}?status=cancelled`) });
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
       await supabase.from('customer_interactions').update({ associated_checkout_id: created.order.id, checkout_association: created.order.id, conversion_status: 'checkout_generated' }).eq('id', interaction.data.id).eq('org_id', orgId);
       await supabase.from('conversion_recovery_queue').insert({ org_id: orgId, interaction_id: interaction.data.id, checkout_id: created.order.id, recovery_stage: 'initial', recovery_status: 'pending' });

@@ -361,9 +361,9 @@ export default function SignupPage() {
 
                 <motion.p {...fadeUp(0.32)} className="mt-5 text-center text-xs text-white/25">
                   By signing up, you agree to our{" "}
-                  <Link href="#" className="text-white/40 hover:text-white/60 underline">Terms</Link>
+                  <Link href="/terms" className="text-white/40 hover:text-white/60 underline">Terms</Link>
                   {" & "}
-                  <Link href="#" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
+                  <Link href="/privacy" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
                 </motion.p>
               </motion.div>
             )}

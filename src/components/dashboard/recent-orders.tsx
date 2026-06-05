@@ -11,7 +11,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 }
 
 export async function RecentOrders({ limit = 6 }: { limit?: number }) {
-  const payments = await getDashboardPayments(limit)
+  const payments = await getDashboardPayments(limit).catch((error) => {
+    console.error("[RecentOrders]", error)
+    return []
+  })
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">

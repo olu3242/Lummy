@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { getRuntimeAppUrl } from "@/lib/runtime-config"
 import { initiatePaymentSchema } from "@/lib/validations/payment"
 import type { ProductRow, OrderRow, TransactionRow } from "@/lib/supabase/types"
 
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
             { display_name: "Product",       variable_name: "product_name", value: product.name },
           ],
         },
-        callback_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/payments/verify`,
+        callback_url: `${getRuntimeAppUrl(request.url)}/api/payments/verify`,
       }),
     })
 

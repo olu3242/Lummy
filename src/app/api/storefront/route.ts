@@ -9,17 +9,23 @@ export async function GET(req: Request) {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) return errorResponse(401, 'UNAUTHORIZED', 'Unauthorized', correlationId);
 
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) {
-    logApiEvent('error', 'storefront.profile_lookup_failed', { correlationId, message: profile.error.message });
-    return errorResponse(400, 'PROFILE_LOOKUP_FAILED', 'Profile lookup failed', correlationId);
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (membership.error) {
+    logApiEvent('error', 'storefront.membership_lookup_failed', { correlationId, message: membership.error.message });
+    return errorResponse(400, 'MEMBERSHIP_LOOKUP_FAILED', 'Membership lookup failed', correlationId);
   }
-  if (!profile.data?.organization_id) return errorResponse(400, 'NO_ORGANIZATION', 'No organization', correlationId);
+  if (!membership.data?.organization_id) return errorResponse(400, 'NO_ORGANIZATION', 'No organization', correlationId);
 
   const storefront = await supabase
     .from('storefronts')
     .select('*')
-    .eq('organization_id', profile.data.organization_id)
+    .eq('organization_id', membership.data.organization_id)
     .maybeSingle();
 
   if (storefront.error) {

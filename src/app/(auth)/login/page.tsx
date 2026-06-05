@@ -279,9 +279,9 @@ export default function LoginPage() {
 
           <motion.p {...fadeUp(0.3)} className="mt-6 text-center text-xs text-white/25">
             By logging in, you agree to our{" "}
-            <Link href="#" className="text-white/40 hover:text-white/60 underline">Terms</Link>
+            <Link href="/terms" className="text-white/40 hover:text-white/60 underline">Terms</Link>
             {" "}and{" "}
-            <Link href="#" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
+            <Link href="/privacy" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
           </motion.p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { Syne, DM_Sans } from "next/font/google"
 import { ThemeProvider } from "@/components/providers/theme-provider"
 import { BRAND } from "@/config/branding"
+import { getRuntimeAppUrl } from "@/lib/runtime-config"
 import "./globals.css"
 
 const syne = Syne({
@@ -19,7 +20,7 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://lummy.co"),
+  metadataBase: new URL(getRuntimeAppUrl()),
   title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
     "The creator commerce OS for Africa. Build your storefront, sell via WhatsApp, and grow with AI. Post. Chat. Get Paid.",

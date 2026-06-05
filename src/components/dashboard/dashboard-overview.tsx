@@ -8,12 +8,66 @@ import { TopProducts } from "@/components/dashboard/top-products"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { getAiConversionSummary, getCustomerMemorySummary, getDashboardOpsSummary, getDashboardPaymentSummary, getGrowthIntelligenceSummary } from "@/repositories/order-repository"
 
+const emptyPaymentSummary = {
+  totalRevenue: 0,
+  pendingRevenue: 0,
+  totalOrders: 0,
+  paidOrders: 0,
+  pendingPayments: 0,
+  failedPayments: 0,
+  conversionRate: 0,
+  sources: [] as Array<{ name: string; value: number; color: string }>,
+  recentRevenue: [] as Array<{ label: string; revenue: number; orders: number }>,
+}
+
+const emptyAiSummary = {
+  activeInquiries: 0,
+  pricingRequests: 0,
+  checkoutGenerated: 0,
+  abandoned: 0,
+  recovered: 0,
+  checkoutReady: 0,
+  aiInsights: [] as string[],
+}
+
+const emptyCustomerMemory = {
+  repeatCustomers: 0,
+  highValueCustomers: 0,
+  inactiveCustomers: 0,
+  abandonedBuyers: 0,
+  recentBuyers: 0,
+  opportunities: [] as string[],
+}
+
+const emptyOps = { staleInquiries: 0, unpaidOrders: 0, webhookIssues: 0, recoveryPending: 0 }
+
+const emptyGrowth = {
+  topProduct: null as null | { id: string; title: string; revenue: number; orders: number },
+  lowPerformingProducts: [] as Array<{ id: string; title: string; orders: number }>,
+  repeatPurchaseProducts: [] as Array<{ id: string; title: string; repeatOrders: number }>,
+  highValueSegment: "none",
+  reorderOpportunities: [] as string[],
+  upsellOpportunities: [] as string[],
+  growthInsights: [] as string[],
+}
+
+async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await query()
+  } catch (error) {
+    console.error("[DashboardOverview]", error)
+    return fallback
+  }
+}
+
 export async function DashboardOverview() {
-  const summary = await getDashboardPaymentSummary()
-  const aiSummary = await getAiConversionSummary()
-  const customerMemory = await getCustomerMemorySummary()
-  const ops = await getDashboardOpsSummary()
-  const growth = await getGrowthIntelligenceSummary()
+  const [summary, aiSummary, customerMemory, ops, growth] = await Promise.all([
+    safeQuery(getDashboardPaymentSummary, emptyPaymentSummary),
+    safeQuery(getAiConversionSummary, emptyAiSummary),
+    safeQuery(getCustomerMemorySummary, emptyCustomerMemory),
+    safeQuery(getDashboardOpsSummary, emptyOps),
+    safeQuery(getGrowthIntelligenceSummary, emptyGrowth),
+  ])
   const stats = [
     { id: "revenue", label: "Total Revenue", value: `₦${summary.totalRevenue.toLocaleString()}`, rawValue: summary.totalRevenue, change: summary.totalOrders > 0 ? `${summary.conversionRate}% paid` : "0% paid", trend: "up" as const, icon: "Wallet", color: "text-brand-green", bg: "bg-brand-green/10" },
     { id: "orders", label: "Total Orders", value: summary.totalOrders.toLocaleString(), rawValue: summary.totalOrders, change: `${summary.paidOrders} paid · ${summary.pendingPayments} pending`, trend: "up" as const, icon: "ShoppingBag", color: "text-brand-purple", bg: "bg-brand-purple/10" },

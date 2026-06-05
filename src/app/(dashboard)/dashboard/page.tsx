@@ -21,10 +21,10 @@ export default async function DashboardPage() {
 
   const { data: profileRaw, error: profileError } = await supabase
     .from('profiles')
-    .select('full_name,onboarding_completed,organization_id')
+    .select('full_name,onboarding_completed')
     .eq('id', auth.user.id)
     .maybeSingle()
-  const profile = profileRaw as { full_name: string | null; onboarding_completed: boolean; organization_id: string | null } | null
+  const profile = profileRaw as { full_name: string | null; onboarding_completed: boolean } | null
 
   if (profileError) {
     // Log but do NOT redirect — a transient DB/RLS error should not loop the user to onboarding.
@@ -37,20 +37,18 @@ export default async function DashboardPage() {
   if (profile && profile.onboarding_completed === false) {
     redirect('/onboarding')
   }
-  if (profile && !profile.organization_id) {
-    redirect('/onboarding?reason=no-org')
-  }
   // No profile row at all — new signup without a trigger; send to onboarding to set up
   if (!profile && !profileError) {
     redirect('/onboarding')
   }
 
-  const membership = profile?.organization_id ? await supabase
+  const membership = await supabase
     .from('organization_members')
     .select('organization_id')
-    .eq('organization_id', profile.organization_id)
     .eq('user_id', auth.user.id)
-    .maybeSingle() : null
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
 
   if (membership?.error) {
     // Membership query failed — log and continue rather than redirecting to onboarding
@@ -58,33 +56,19 @@ export default async function DashboardPage() {
   }
 
   // Self-heal: profile.organization_id is set but membership row is missing.
-  if (profile?.organization_id && membership && !membership.error && !membership.data) {
-    const orgExists = await supabase
-      .from('organizations')
-      .select('id')
-      .eq('id', profile.organization_id)
-      .maybeSingle()
-
-    if (orgExists.data?.id) {
-      await supabase
-        .from('organization_members')
-        .upsert({ organization_id: profile.organization_id, user_id: auth.user.id, role: 'owner' }, { onConflict: 'organization_id,user_id' })
-      logApiEvent('warn', 'dashboard.membership_self_healed', { correlationId, orgId: profile.organization_id, userId: auth.user.id })
-    } else {
-      // Org is gone — clear stale FK and redirect to onboarding (only case where we redirect on org issue)
-      await supabase.from('profiles').update({ organization_id: null, onboarding_completed: false }).eq('id', auth.user.id)
-      redirect('/onboarding')
-    }
+  if (!membership.error && !membership.data && profile?.onboarding_completed) {
+    redirect('/onboarding?reason=no-org')
   }
 
   const firstName = (profile?.full_name || auth.user.email || 'Creator').split(' ')[0]
-  const storefront = profile?.organization_id ? await supabase
+  const organizationId = membership.data?.organization_id ?? null
+  const storefront = organizationId ? await supabase
     .from('storefronts')
     .select('handle')
-    .eq('organization_id', profile.organization_id)
+    .eq('organization_id', organizationId)
     .maybeSingle() : null
   if (storefront?.error) {
-    logApiEvent('warn', 'dashboard.storefront_query_failed', { correlationId, message: storefront.error.message, orgId: profile?.organization_id })
+    logApiEvent('warn', 'dashboard.storefront_query_failed', { correlationId, message: storefront.error.message, orgId: organizationId })
   }
   const resolvedTopActions = resolveTopActions(topActions, storefront?.data?.handle ?? 'dashboard')
 

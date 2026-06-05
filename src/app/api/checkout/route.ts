@@ -3,16 +3,12 @@ import { createClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
 import { createPaymentSession } from '../../../../packages/payments-core/src/orchestrator';
 import { resolveProvider } from '../../../../packages/payments-core/src/provider-router';
-import { validateProviderRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
+import { getRuntimeAppUrl, validateProviderRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
 import { createPaymentDatabaseAdapter } from '@/lib/payments/payment-db-adapter';
 
-function buildRedirectUrl(path: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    throw new Error('Missing NEXT_PUBLIC_APP_URL for checkout redirects');
-  }
-  return `${appUrl}${path}`;
+function buildRedirectUrl(req: Request, path: string) {
+  return `${getRuntimeAppUrl(req.url)}${path}`;
 }
 
 export async function POST(req: Request) {
@@ -42,8 +38,8 @@ export async function POST(req: Request) {
       provider,
     });
 
-    const successUrl = buildRedirectUrl(`/track/${created.order.id}?status=success`);
-    const cancelUrl = buildRedirectUrl(`/track/${created.order.id}?status=cancelled`);
+    const successUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=success`);
+    const cancelUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=cancelled`);
 
     const metadata = {
       orderId: created.order.id,

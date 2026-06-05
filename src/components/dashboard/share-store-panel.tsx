@@ -9,27 +9,38 @@ import {
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 
-const STORE_HANDLE = "sade.styles"
-const STORE_URL = `lummy.co/${STORE_HANDLE}`
-const FULL_URL = `https://${STORE_URL}`
-const WA_TEXT = encodeURIComponent(
-  `Hey! 👋 Check out my store on Lummy — I sell fashion, accessories & more.\n\nShop here 👉 ${FULL_URL}\n\nDM me to order! 💜`
-)
-
 export function ShareStorePanel() {
   const [open, setOpen] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
   const [copiedHandle, setCopiedHandle] = React.useState(false)
+  const [storeUrl, setStoreUrl] = React.useState("lummy.co/")
+  const fullUrl = `https://${storeUrl}`
+  const waText = encodeURIComponent(
+    `Hey! Check out my store on Lummy.\n\nShop here: ${fullUrl}`
+  )
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as { storefront?: { handle?: string | null } | null }
+        if (!res.ok) throw new Error("Failed to load storefront")
+        return payload
+      })
+      .then((payload) => {
+        if (payload.storefront?.handle) setStoreUrl(`lummy.co/${payload.storefront.handle}`)
+      })
+      .catch(() => {})
+  }, [])
 
   const copyLink = () => {
-    navigator.clipboard.writeText(FULL_URL)
+    navigator.clipboard.writeText(fullUrl)
     setCopied(true)
     toast({ title: "Store link copied!", variant: "success" })
     setTimeout(() => setCopied(false), 2500)
   }
 
   const copyHandle = () => {
-    navigator.clipboard.writeText(STORE_URL)
+    navigator.clipboard.writeText(storeUrl)
     setCopiedHandle(true)
     setTimeout(() => setCopiedHandle(false), 2500)
   }
@@ -87,7 +98,7 @@ export function ShareStorePanel() {
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Link2 className="h-3.5 w-3.5 text-brand-purple flex-shrink-0" />
-                      <span className="text-sm font-semibold truncate">{STORE_URL}</span>
+                      <span className="text-sm font-semibold truncate">{storeUrl}</span>
                     </div>
                     <button onClick={copyHandle}
                       className={cn(
@@ -131,12 +142,12 @@ export function ShareStorePanel() {
                         : <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                       <div>
                         <p className="text-xs font-semibold">{copied ? "Copied to clipboard!" : "Copy full link"}</p>
-                        <p className="text-[10px] text-muted-foreground">https://{STORE_URL}</p>
+                        <p className="text-[10px] text-muted-foreground">https://{storeUrl}</p>
                       </div>
                     </button>
 
                     {/* WhatsApp */}
-                    <a href={`https://wa.me/?text=${WA_TEXT}`} target="_blank" rel="noopener noreferrer"
+                    <a href={`https://wa.me/?text=${waText}`} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-3 p-3 rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 hover:bg-[#25D366]/10 transition-colors">
                       <MessageCircle className="h-4 w-4 text-[#25D366] fill-[#25D366]/20 flex-shrink-0" />
                       <div>

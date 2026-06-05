@@ -13,19 +13,20 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import {
-  storefrontCreator, mockStorefrontReviews,
-  buildWhatsAppUrl, buildStoreWhatsAppUrl,
-  type StorefrontProduct,
-} from "@/data/mock/storefront"
 import { cn } from "@/lib/utils"
 import { StorefrontRenderer } from "@/store/renderer/storefront-renderer"
 import { migrateToStoreSchema } from "@/store/schema/migrate"
 import { DEFAULT_SCHEMA } from "@/store/schema/defaults"
-import type { StoreSchema } from "@/store/schema/types"
+import type { StoreSchema, StorefrontCreator } from "@/store/schema/types"
 import type { Json } from "@/lib/supabase/types"
 
 type DbProduct = { id: string; title: string; description: string | null; price: number; currency: string; image_url: string | null; status: string; created_at: string }
+type StorefrontProduct = StorefrontCreator["publicProducts"][number] & {
+  category: string
+  revenue: number
+  whatsappEnabled: boolean
+  createdAt: string
+}
 
 function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
   return dbProducts.map(p => ({
@@ -45,33 +46,32 @@ function dbProductsToStorefront(dbProducts: DbProduct[]): StorefrontProduct[] {
   }))
 }
 
-const SCHEMA_KEY = "lummy_store_schema_v2"
-const OLD_KEY = "lummy_store_settings"
-
 function loadPublicSchema(serverSchema: Json | null): StoreSchema {
-  // Server-provided schema (from Supabase) takes precedence
   if (serverSchema && typeof serverSchema === "object" && !Array.isArray(serverSchema)) {
     try { return migrateToStoreSchema(serverSchema) } catch {}
   }
-  // Fall back to localStorage (creator's own device) then default
-  if (typeof window === "undefined") return DEFAULT_SCHEMA
-  try {
-    const newRaw = localStorage.getItem(SCHEMA_KEY)
-    if (newRaw) return migrateToStoreSchema(JSON.parse(newRaw))
-    const oldRaw = localStorage.getItem(OLD_KEY)
-    if (oldRaw) return migrateToStoreSchema(JSON.parse(oldRaw))
-  } catch {}
   return DEFAULT_SCHEMA
 }
 
+function buildWhatsAppUrl(phone: string, productName: string, formattedPrice: string, creatorFirstName: string): string {
+  const cleanPhone = phone.replace(/\D/g, "")
+  const text = `Hi ${creatorFirstName}!\n\nI'd like to order from your store:\n\n${productName}\n${formattedPrice}\n\nPlease send me payment and delivery details. Thank you!`
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+}
+
+function buildStoreWhatsAppUrl(phone: string, storeName: string): string {
+  const cleanPhone = phone.replace(/\D/g, "")
+  const text = `Hi! I'd like to browse ${storeName} on Lummy`
+  return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`
+}
+
 function QuickViewModal({
-  product, handle, onClose,
+  product, handle, whatsapp, creatorName, onClose,
 }: {
-  product: StorefrontProduct; handle: string; onClose: () => void
+  product: StorefrontProduct; handle: string; whatsapp: string; creatorName: string; onClose: () => void
 }) {
-  const creator = storefrontCreator
-  const creatorFirstName = creator.name.split(" ")[0]
-  const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, creatorFirstName)
+  const creatorFirstName = creatorName.split(" ")[0] || "there"
+  const whatsappUrl = whatsapp ? buildWhatsAppUrl(whatsapp, product.name, `₦${product.price.toLocaleString()}`, creatorFirstName) : ""
   const isOutOfStock = product.stock === 0
 
   React.useEffect(() => {
@@ -129,12 +129,16 @@ function QuickViewModal({
               <div className="flex-1 flex items-center justify-center h-11 rounded-2xl border-2 border-border text-sm font-semibold text-muted-foreground">
                 Currently sold out
               </div>
-            ) : (
+            ) : whatsappUrl ? (
               <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="flex-1">
                 <Button variant="whatsapp" size="lg" className="w-full gap-2 h-11">
                   <MessageCircle className="h-4 w-4 fill-white" /> Order via WhatsApp
                 </Button>
               </a>
+            ) : (
+              <div className="flex-1 flex items-center justify-center h-11 rounded-2xl border-2 border-border text-sm font-semibold text-muted-foreground">
+                Contact unavailable
+              </div>
             )}
             <Link href={`/${handle}/${product.id}`} onClick={onClose}
               className="flex h-11 items-center gap-1.5 px-4 rounded-2xl border border-border text-xs font-semibold hover:bg-accent transition-colors flex-shrink-0">
@@ -203,6 +207,10 @@ export function StorefrontClient({
   products: dbProducts = [],
   storeSchema = null,
   whatsappNumber = null,
+  creatorName,
+  avatarUrl = null,
+  coverUrl = null,
+  socialLinks = null,
 }: {
   handle: string
   storeName: string
@@ -210,17 +218,31 @@ export function StorefrontClient({
   products?: DbProduct[]
   storeSchema?: Json | null
   whatsappNumber?: string | null
+  creatorName: string
+  avatarUrl?: string | null
+  coverUrl?: string | null
+  socialLinks?: Record<string, string> | null
 }) {
-  const realProducts = dbProducts.length > 0 ? dbProductsToStorefront(dbProducts) : storefrontCreator.publicProducts
-  const creator = {
-    ...storefrontCreator,
+  const realProducts = dbProductsToStorefront(dbProducts)
+  const creator: StorefrontCreator = {
+    name: creatorName,
     handle,
     storeName,
-    bio: bio || storefrontCreator.bio,
-    // Use real creator WhatsApp if available, fall back to mock for dev only
-    whatsapp: whatsappNumber ?? storefrontCreator.whatsapp,
+    avatar: avatarUrl ?? "",
+    cover: coverUrl ?? "",
+    bio,
+    location: "",
+    verified: Boolean(handle),
+    whatsapp: whatsappNumber ?? "",
+    socialLinks: {
+      instagram: socialLinks?.instagram,
+      twitter: socialLinks?.twitter,
+      tiktok: socialLinks?.tiktok,
+    },
+    stats: { totalOrders: 0, avgRating: 0, reviewCount: 0 },
     publicProducts: realProducts,
     categories: ["All", ...Array.from(new Set(realProducts.map(p => p.category)))],
+    reviewSummary: { average: 0, total: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
   }
   const [schema, setSchema] = React.useState<StoreSchema | null>(null)
 
@@ -254,11 +276,13 @@ export function StorefrontClient({
         </Link>
         <div className="flex items-center gap-2">
           <ShareButton url={storeUrl} storeName={creator.storeName} />
-          <a href={buildStoreWhatsAppUrl(creator.whatsapp, creator.storeName)} target="_blank" rel="noopener noreferrer">
-            <Button size="sm" variant="whatsapp" className="gap-1.5 h-8 text-xs">
-              <MessageCircle className="h-3.5 w-3.5 fill-white" /> Chat
-            </Button>
-          </a>
+          {creator.whatsapp && (
+            <a href={buildStoreWhatsAppUrl(creator.whatsapp, creator.storeName)} target="_blank" rel="noopener noreferrer">
+              <Button size="sm" variant="whatsapp" className="gap-1.5 h-8 text-xs">
+                <MessageCircle className="h-3.5 w-3.5 fill-white" /> Chat
+              </Button>
+            </a>
+          )}
         </div>
       </header>
 
@@ -274,11 +298,15 @@ export function StorefrontClient({
 
       {/* Mobile sticky CTA — safe-area aware for iOS */}
       <div className="fixed bottom-0 inset-x-0 z-20 px-4 pt-3 pb-4 pb-safe bg-background/90 backdrop-blur-sm border-t border-border lg:hidden">
-        <a href={buildStoreWhatsAppUrl(creator.whatsapp, creator.storeName)} target="_blank" rel="noopener noreferrer">
-          <Button variant="whatsapp" size="lg" className="w-full gap-2">
-            <MessageCircle className="h-5 w-5 fill-white" /> Order from {creator.storeName}
-          </Button>
-        </a>
+        {creator.whatsapp ? (
+          <a href={buildStoreWhatsAppUrl(creator.whatsapp, creator.storeName)} target="_blank" rel="noopener noreferrer">
+            <Button variant="whatsapp" size="lg" className="w-full gap-2">
+              <MessageCircle className="h-5 w-5 fill-white" /> Order from {creator.storeName}
+            </Button>
+          </a>
+        ) : (
+          <Button variant="outline" size="lg" className="w-full" disabled>Contact unavailable</Button>
+        )}
       </div>
     </>
   )

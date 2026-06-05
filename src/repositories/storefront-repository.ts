@@ -35,14 +35,17 @@ export async function updateStorefrontForCurrentUser(input: {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) throw profile.error;
-  if (!profile.data?.organization_id) throw new Error('No organization context');
-
-  const orgId = profile.data.organization_id;
-  const membership = await supabase.from('organization_members').select('role').eq('organization_id', orgId).eq('user_id', auth.user.id).maybeSingle();
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (membership.error) throw membership.error;
-  if (!membership.data) throw new Error('Forbidden');
+  if (!membership.data?.organization_id) throw new Error('No organization context');
+
+  const orgId = membership.data.organization_id;
 
   const patch: Record<string, unknown> = {};
 
@@ -80,7 +83,7 @@ export async function getPublishedStorefrontByHandle(handle: string) {
   const cleanHandle = normalizeHandle(handle);
   const storefront = await supabase
     .from('storefronts')
-    .select('handle,bio,hero_image,social_links,is_active,organization_id,organizations(name)')
+    .select('handle,bio,hero_image,social_links,is_active,organization_id,store_schema,theme,organizations(name,owner_id)')
     .eq('handle', cleanHandle)
     .eq('is_active', true)
     .maybeSingle();

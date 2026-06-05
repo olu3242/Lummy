@@ -36,6 +36,36 @@ export function validateAiRuntimeEnv() {
   }
 }
 
+function normalizeUrl(url: string) {
+  return url.replace(/\/+$/, '');
+}
+
+function isLocalUrl(url: string) {
+  try {
+    const hostname = new URL(url).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1';
+  } catch {
+    return false;
+  }
+}
+
+export function getRuntimeAppUrl(requestUrl?: string | URL) {
+  const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configured && (process.env.NODE_ENV !== 'production' || !isLocalUrl(configured))) {
+    return normalizeUrl(configured);
+  }
+
+  if (requestUrl) {
+    return new URL(requestUrl).origin;
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+
+  return 'https://lummy.co';
+}
+
 export function getMvpDeploymentReadiness() {
   const checks = {
     publicEnv: requiredPublic.every((k) => Boolean(process.env[k])),

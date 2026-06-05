@@ -65,6 +65,48 @@ const PROFILE_KEY = "lummy_settings_profile"
 const STORE_KEY = "lummy_settings_store"
 const NOTIF_KEY = "lummy_settings_notifications"
 
+type ProfileForm = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  bio: string
+  location: string
+  avatarUrl: string
+}
+
+type StoreForm = {
+  storeName: string
+  handle: string
+  instagram: string
+  twitter: string
+  tiktok: string
+}
+
+type AccountConfigResponse = {
+  user?: { email?: string | null }
+  profile?: {
+    full_name?: string | null
+    email?: string | null
+    phone?: string | null
+    avatar_url?: string | null
+  } | null
+  organization?: { name?: string | null } | null
+  storefront?: {
+    handle?: string | null
+    bio?: string | null
+    social_links?: Record<string, string | null> | null
+  } | null
+}
+
+const emptyProfile: ProfileForm = { firstName: "", lastName: "", email: "", phone: "", bio: "", location: "", avatarUrl: "" }
+const emptyStore: StoreForm = { storeName: "", handle: "", instagram: "", twitter: "", tiktok: "" }
+
+function splitName(fullName?: string | null) {
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean)
+  return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") }
+}
+
 function loadLS<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback
   try { const raw = localStorage.getItem(key); return raw ? (JSON.parse(raw) as T) : fallback } catch { return fallback }
@@ -85,9 +127,9 @@ function useLocalStorageState<T>(key: string, fallback: T) {
 }
 
 function ProfileSection() {
-  const defaults = React.useMemo(() => ({ firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria", avatarUrl: "" }), [])
-  const [form, setForm] = useLocalStorageState(PROFILE_KEY, defaults)
+  const [form, setForm] = React.useState<ProfileForm>(emptyProfile)
   const [saved, setSaved] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
   const avatarInputRef = React.useRef<HTMLInputElement>(null)
   const { upload: uploadAvatar, uploading: avatarUploading } = useUpload({
     type: "avatar",
@@ -98,14 +140,55 @@ function ProfileSection() {
     onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
   })
 
-  const save = () => {
-    saveLS(PROFILE_KEY, form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as AccountConfigResponse
+        if (!res.ok) throw new Error("Failed to load profile")
+        return payload
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const name = splitName(payload.profile?.full_name)
+        setForm({
+          firstName: name.firstName,
+          lastName: name.lastName,
+          email: payload.profile?.email ?? payload.user?.email ?? "",
+          phone: payload.profile?.phone ?? "",
+          bio: payload.storefront?.bio ?? "",
+          location: "",
+          avatarUrl: payload.profile?.avatar_url ?? "",
+        })
+      })
+      .catch((error) => toast({ title: "Profile load failed", description: error instanceof Error ? error.message : "Failed to load profile", variant: "error" }))
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const save = async () => {
+    try {
+      const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ").trim()
+      const res = await fetch("/api/account/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: { full_name: fullName, phone: form.phone, avatar_url: form.avatarUrl },
+          storefront: { bio: form.bio },
+        }),
+      })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error || "Failed to save profile")
+      saveLS(PROFILE_KEY, form)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
+    } catch (error) {
+      toast({ title: "Profile save failed", description: error instanceof Error ? error.message : "Failed to save profile", variant: "error" })
+    }
   }
 
-  const field = (key: keyof typeof defaults) => ({
+  const field = (key: keyof ProfileForm) => ({
     value: form[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
   })
@@ -127,7 +210,7 @@ function ProfileSection() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={form.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
           ) : (
-            <span>{form.firstName.charAt(0)}</span>
+            <span>{form.firstName.charAt(0) || "C"}</span>
           )}
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
             {avatarUploading
@@ -167,7 +250,7 @@ function ProfileSection() {
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Email</label>
-        <input {...field("email")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        <input {...field("email")} disabled={loading} className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <div>
@@ -198,13 +281,42 @@ function ProfileSection() {
 }
 
 function StoreSection() {
-  const defaults = React.useMemo(() => ({ storeName: "Sade's Boutique", handle: "sade", instagram: "sadeboutique", twitter: "sadeboutique", tiktok: "" }), [])
-  const [form, setForm] = useLocalStorageState(STORE_KEY, defaults)
+  const [form, setForm] = React.useState<StoreForm>(emptyStore)
   const [saved, setSaved] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as AccountConfigResponse
+        if (!res.ok) throw new Error("Failed to load store settings")
+        return payload
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const social = payload.storefront?.social_links ?? {}
+        setForm({
+          storeName: payload.organization?.name ?? "",
+          handle: payload.storefront?.handle ?? "",
+          instagram: social.instagram ?? "",
+          twitter: social.twitter ?? "",
+          tiktok: social.tiktok ?? "",
+        })
+      })
+      .catch((error) => toast({ title: "Store settings load failed", description: error instanceof Error ? error.message : "Failed to load store settings", variant: "error" }))
+    return () => { cancelled = true }
+  }, [])
 
   const save = async () => {
     try {
-      const res = await fetch('/api/storefront', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName: form.storeName, handle: form.handle, social_links: { instagram: form.instagram, twitter: form.twitter, tiktok: form.tiktok } }) })
+      const res = await fetch('/api/account/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization: { name: form.storeName },
+          storefront: { handle: form.handle, social_links: { instagram: form.instagram, twitter: form.twitter, tiktok: form.tiktok } },
+        }),
+      })
       const payload = await res.json()
       if (!res.ok) throw new Error(payload.error || 'Failed to save storefront settings')
       saveLS(STORE_KEY, form)
@@ -217,7 +329,7 @@ function StoreSection() {
     }
   }
 
-  const field = (key: keyof typeof defaults) => ({
+  const field = (key: keyof StoreForm) => ({
     value: form[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
   })

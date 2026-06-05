@@ -1,10 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { loadCreatorStoreSchema, saveCreatorStoreSchema } from "@/lib/queries/storefront"
 
-async function resolveCreatorId(supabase: ReturnType<typeof createClient>, userId: string): Promise<string | null> {
-  const { data } = await supabase.from("creator_profiles").select("id").eq("user_id", userId).single()
-  return data?.id ?? null
+async function resolveOrganizationId(supabase: ReturnType<typeof createClient>, userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("organization_members")
+    .select("organization_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data?.organization_id ?? null
 }
 
 export async function GET() {
@@ -12,11 +18,17 @@ export async function GET() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const creatorId = await resolveCreatorId(supabase, user.id)
-  if (!creatorId) return NextResponse.json({ schema: null })
+  const organizationId = await resolveOrganizationId(supabase, user.id)
+  if (!organizationId) return NextResponse.json({ schema: null })
 
-  const schema = await loadCreatorStoreSchema(creatorId)
-  return NextResponse.json({ schema })
+  const storefront = await supabase
+    .from("storefronts")
+    .select("store_schema")
+    .eq("organization_id", organizationId)
+    .maybeSingle()
+  if (storefront.error) return NextResponse.json({ error: storefront.error.message }, { status: 500 })
+
+  return NextResponse.json({ schema: storefront.data?.store_schema ?? null })
 }
 
 export async function PUT(request: NextRequest) {
@@ -27,11 +39,16 @@ export async function PUT(request: NextRequest) {
   const body = await request.json().catch(() => null)
   if (!body?.schema) return NextResponse.json({ error: "Missing schema" }, { status: 400 })
 
-  const creatorId = await resolveCreatorId(supabase, user.id)
-  if (!creatorId) return NextResponse.json({ error: "Creator profile not found" }, { status: 404 })
+  const organizationId = await resolveOrganizationId(supabase, user.id)
+  if (!organizationId) return NextResponse.json({ error: "Organization not found" }, { status: 404 })
 
-  const result = await saveCreatorStoreSchema(creatorId, body.schema)
-  if (result.error) return NextResponse.json({ error: result.error }, { status: 500 })
+  const result = await supabase
+    .from("storefronts")
+    .upsert(
+      { organization_id: organizationId, store_schema: body.schema, updated_at: new Date().toISOString() },
+      { onConflict: "organization_id" },
+    )
+  if (result.error) return NextResponse.json({ error: result.error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
 }

@@ -95,9 +95,15 @@ async function getCurrentOrgId() {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) throw profile.error;
-  return { supabase, organizationId: profile.data?.organization_id ?? null };
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (membership.error) throw membership.error;
+  return { supabase, organizationId: membership.data?.organization_id ?? null };
 }
 
 export async function getDashboardPayments(limit = 20) {

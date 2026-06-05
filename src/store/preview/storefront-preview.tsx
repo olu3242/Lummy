@@ -3,8 +3,7 @@
 import * as React from "react"
 import { StorefrontRenderer } from "../renderer/storefront-renderer"
 import { ViewportToggle, type Viewport } from "./viewport-toggle"
-import { storefrontCreator } from "@/data/mock/storefront"
-import type { StoreSchema } from "../schema/types"
+import type { StoreSchema, StorefrontCreator } from "../schema/types"
 
 const VIEWPORT_WIDTHS: Record<Viewport, number> = {
   mobile: 390,
@@ -14,9 +13,10 @@ const VIEWPORT_WIDTHS: Record<Viewport, number> = {
 
 interface StorefrontPreviewProps {
   schema: StoreSchema
+  creator: StorefrontCreator
 }
 
-export function StorefrontPreview({ schema }: StorefrontPreviewProps) {
+export function StorefrontPreview({ schema, creator }: StorefrontPreviewProps) {
   const [viewport, setViewport] = React.useState<Viewport>("mobile")
   const outerRef = React.useRef<HTMLDivElement>(null)
   const innerRef = React.useRef<HTMLDivElement>(null)
@@ -67,7 +67,7 @@ export function StorefrontPreview({ schema }: StorefrontPreviewProps) {
           }}
         >
           <div ref={innerRef} className="bg-background min-h-screen">
-            <StorefrontRenderer schema={schema} creator={storefrontCreator} />
+            <StorefrontRenderer schema={schema} creator={creator} />
           </div>
         </div>
       </div>
