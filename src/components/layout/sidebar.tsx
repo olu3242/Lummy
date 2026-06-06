@@ -34,6 +34,8 @@ import {
   Link2,
   Lightbulb,
   MessageCircle,
+  Sparkles,
+  Cpu,
 } from "lucide-react"
 import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
@@ -65,6 +67,13 @@ const navGroups: NavGroup[] = [
       { label: "Orders", icon: ClipboardList, href: "/dashboard/orders", badge: "12", badgeColor: "bg-brand-coral/20 text-brand-coral" },
       { label: "Reviews", icon: Star, href: "/dashboard/reviews" },
       { label: "Discounts", icon: Tag, href: "/dashboard/discounts" },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { label: "Ask Lummy", icon: Sparkles, href: "/dashboard/copilot", isNew: true },
+      { label: "Agent OS", icon: Cpu, href: "/dashboard/agent-os", isNew: true },
     ],
   },
   {
