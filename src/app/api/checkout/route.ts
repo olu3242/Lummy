@@ -34,6 +34,9 @@ export async function POST(req: Request) {
       organizationId: storefront.data.organization_id,
       productId: body.productId,
       customerEmail: body.customer?.email || 'guest@lummy.local',
+      customerName: body.customer?.name || null,
+      customerPhone: body.customer?.phone || null,
+      customerAddress: body.customer?.address || null,
       quantity: body.quantity || 1,
       provider,
     }, supabase);

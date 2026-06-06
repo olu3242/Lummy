@@ -24,7 +24,11 @@ export async function GET(_request: NextRequest, { params }: Params) {
   if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const { data, error } = await supabase
-    .from("orders").select("*").eq("id", params.id).eq("organization_id", organizationId).maybeSingle()
+    .from("orders")
+    .select("*, order_items(product_id, product_name, quantity, price_at_time)")
+    .eq("id", params.id)
+    .eq("organization_id", organizationId)
+    .maybeSingle()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   if (!data)  return NextResponse.json({ error: "Not found" }, { status: 404 })

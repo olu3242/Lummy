@@ -253,15 +253,16 @@ export default function OrderDetailPage() {
     if (mockFallback) return
     fetch(`/api/orders/${orderId}`)
       .then(r => r.ok ? r.json() : null)
-      .then((res: { data?: { id: string; status: string; amount: number; currency: string; created_at: string; customer_name?: string; customer_phone?: string; customer_address?: string; payment_provider?: string } } | null) => {
+      .then((res: { data?: { id: string; status: string; amount: number; currency: string; created_at: string; customer_name?: string; customer_phone?: string; customer_address?: string; payment_provider?: string; order_items?: { product_name?: string; quantity?: number; price_at_time?: number }[] } } | null) => {
         if (!res?.data) return
         const d = res.data
+        const firstItem = d.order_items?.[0]
         const statusMap: Record<string, OrderStatus> = { pending: "pending", confirmed: "confirmed", processing: "processing", shipped: "shipped", delivered: "delivered", cancelled: "cancelled" }
         setOrder({
           id: d.id,
           orderNumber: d.id.slice(0, 8).toUpperCase(),
           customer: { name: d.customer_name ?? "Customer", phone: d.customer_phone ?? "" },
-          product: { name: "Order", image: "" },
+          product: { name: firstItem?.product_name ?? "Order", image: "" },
           amount: d.amount,
           currency: d.currency ?? "NGN",
           status: statusMap[d.status] ?? "pending",

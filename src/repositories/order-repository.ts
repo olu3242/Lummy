@@ -20,6 +20,9 @@ type CreateOrderInput = {
   organizationId: string;
   productId: string;
   customerEmail: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   quantity: number;
   provider: 'stripe' | 'paystack';
 };
@@ -33,11 +36,29 @@ export async function createPendingOrder(input: CreateOrderInput, client?: Retur
   const quantity = Number.isFinite(input.quantity) ? Math.max(1, Math.floor(input.quantity)) : 1;
   const amount = Number(product.data.price) * quantity;
 
-  const order = await supabase.from('orders').insert({ organization_id: input.organizationId, customer_email: input.customerEmail, status: 'pending', amount, currency: product.data.currency || 'USD', payment_provider: input.provider }).select('*').single();
+  const order = await supabase.from('orders').insert({
+    organization_id: input.organizationId,
+    customer_email: input.customerEmail,
+    customer_name: input.customerName ?? null,
+    customer_phone: input.customerPhone ?? null,
+    customer_address: input.customerAddress ?? null,
+    status: 'pending',
+    amount,
+    currency: product.data.currency || 'USD',
+    payment_provider: input.provider,
+  }).select('*').single();
   if (order.error) throw order.error;
 
   const payment = await supabase.from('payments').insert({ order_id: order.data.id, organization_id: input.organizationId, provider: input.provider, amount, currency: product.data.currency || 'USD', status: 'pending' }).select('*').single();
   if (payment.error) throw payment.error;
+
+  await supabase.from('order_items').insert({
+    order_id: order.data.id,
+    product_id: product.data.id,
+    product_name: product.data.title,
+    quantity,
+    price_at_time: product.data.price,
+  });
 
   return { order: order.data, payment: payment.data, product: product.data, quantity };
 }
