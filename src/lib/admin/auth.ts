@@ -5,20 +5,36 @@ export type AdminRole = "super_admin" | "platform_admin"
 
 export async function requireAdminAccess(): Promise<{ userId: string; role: AdminRole }> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+
+  let user
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    redirect("/login?next=/admin")
+  }
+
   if (!user) redirect("/login?next=/admin")
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role, is_admin")
-    .eq("id", user.id)
-    .maybeSingle()
+  type ProfileRow = { role?: string | null; is_admin?: boolean | null }
+  let profile: ProfileRow | null = null
+  try {
+    const { data } = await supabase
+      .from("profiles")
+      .select("role, is_admin")
+      .eq("id", user.id)
+      .maybeSingle()
+    profile = data as ProfileRow | null
+  } catch {
+    // Profile fetch failed — deny access rather than granting it
+    redirect("/dashboard")
+  }
 
-  const role = (profile as { role?: string; is_admin?: boolean } | null)?.role
-  const isAdmin = (profile as { role?: string; is_admin?: boolean } | null)?.is_admin
+  const role = profile?.role
+  const isAdmin = profile?.is_admin
 
   if (role === "super_admin") return { userId: user.id, role: "super_admin" }
-  if (role === "platform_admin" || isAdmin) return { userId: user.id, role: "platform_admin" }
+  if (role === "platform_admin" || isAdmin === true) return { userId: user.id, role: "platform_admin" }
 
   redirect("/dashboard")
 }

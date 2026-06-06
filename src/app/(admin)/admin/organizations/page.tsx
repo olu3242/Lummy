@@ -22,11 +22,17 @@ export default async function OrganizationsPage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  const { data: orgs } = await supabase
-    .from("organizations")
-    .select("id, name, slug, status, plan, created_at")
-    .order("created_at", { ascending: false })
-    .limit(100)
+  let orgs: Org[] | null = null
+  try {
+    const { data, error } = await supabase
+      .from("organizations")
+      .select("id, name, slug, status, plan, created_at")
+      .order("created_at", { ascending: false })
+      .limit(100)
+    if (!error) orgs = data as Org[]
+  } catch (err) {
+    console.error("[AdminOrgs] Failed to fetch organizations:", err)
+  }
 
   const displayOrgs: Org[] = orgs ?? [
     { id: "o1", name: "Sade Styles", slug: "sade.styles", status: "active", plan: "pro", created_at: "2024-02-10" },

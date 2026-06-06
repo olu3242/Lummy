@@ -36,13 +36,19 @@ export default async function SupportPage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  const { data: dbTickets } = await supabase
-    .from("support_tickets")
-    .select("id, title, status, priority, created_at")
-    .order("created_at", { ascending: false })
-    .limit(50)
+  let dbTickets: { id: string; title: string; status: string; priority: string; created_at: string }[] | null = null
+  try {
+    const { data, error } = await supabase
+      .from("support_tickets")
+      .select("id, title, status, priority, created_at")
+      .order("created_at", { ascending: false })
+      .limit(50)
+    if (!error) dbTickets = data
+  } catch (err) {
+    console.error("[AdminSupport] Failed to fetch tickets:", err)
+  }
 
-  const tickets = dbTickets && dbTickets.length > 0 ? dbTickets.map((t: { id: string; title: string; status: string; priority: string; created_at: string }) => ({
+  const tickets = dbTickets && dbTickets.length > 0 ? dbTickets.map((t) => ({
     id: t.id,
     title: t.title,
     org: "—",

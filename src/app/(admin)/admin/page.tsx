@@ -20,11 +20,19 @@ export default async function AdminOverview() {
   const { role } = await requireAdminAccess()
   const supabase = createClient()
 
-  const [{ count: orgCount }, { count: memberCount }, { count: ticketCount }] = await Promise.all([
-    supabase.from("organizations").select("id", { count: "exact", head: true }),
-    supabase.from("organization_members").select("id", { count: "exact", head: true }),
-    supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
-  ])
+  let orgCount = 0, memberCount = 0, ticketCount = 0
+  try {
+    const [orgs, members, tickets] = await Promise.all([
+      supabase.from("organizations").select("id", { count: "exact", head: true }),
+      supabase.from("organization_members").select("id", { count: "exact", head: true }),
+      supabase.from("support_tickets").select("id", { count: "exact", head: true }).eq("status", "open"),
+    ])
+    orgCount = orgs.count ?? 0
+    memberCount = members.count ?? 0
+    ticketCount = tickets.count ?? 0
+  } catch (err) {
+    console.error("[AdminOverview] KPI query failed:", err)
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-8">
@@ -38,9 +46,9 @@ export default async function AdminOverview() {
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Organizations", value: orgCount ?? 0 },
-          { label: "Total Members", value: memberCount ?? 0 },
-          { label: "Open Tickets", value: ticketCount ?? 0 },
+          { label: "Organizations", value: orgCount },
+          { label: "Total Members", value: memberCount },
+          { label: "Open Tickets", value: ticketCount },
         ].map(({ label, value }) => (
           <div key={label} className="rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs text-white/50">{label}</p>

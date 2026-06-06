@@ -4,6 +4,7 @@ import { requireAdminAccess } from "@/lib/admin/auth"
 import {
   Shield, Users, Building2, CreditCard,
   ClipboardList, HeadphonesIcon, Settings2, LayoutDashboard,
+  Zap, ShieldAlert, RefreshCw, Store, ShoppingCart,
 } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -20,6 +21,11 @@ const NAV_ITEMS = [
   { label: "Audit Trail", href: "/admin/audit", icon: ClipboardList },
   { label: "Support", href: "/admin/support", icon: HeadphonesIcon },
   { label: "Governance", href: "/admin/governance", icon: Settings2 },
+  { label: "Incidents", href: "/admin/incidents", icon: Zap },
+  { label: "Auth Ops", href: "/admin/auth", icon: ShieldAlert },
+  { label: "Webhooks", href: "/admin/webhooks", icon: RefreshCw },
+  { label: "Storefront Ops", href: "/admin/storefront-ops", icon: Store },
+  { label: "Checkout", href: "/admin/checkout", icon: ShoppingCart },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

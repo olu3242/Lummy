@@ -51,7 +51,13 @@ export default async function GovernancePage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  const { data: dbOrgs } = await supabase.from("organizations").select("id", { count: "exact", head: true })
+  let orgCount = 0
+  try {
+    const { count } = await supabase.from("organizations").select("id", { count: "exact", head: true })
+    orgCount = count ?? 0
+  } catch (err) {
+    console.error("[AdminGovernance] Failed to fetch org count:", err)
+  }
   const degradedCount = HEALTH_CHECKS.filter(h => h.status === "degraded" || h.status === "down").length
 
   return (

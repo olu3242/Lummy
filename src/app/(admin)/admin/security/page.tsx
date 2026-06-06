@@ -90,11 +90,16 @@ export default async function SecurityPage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  // Try to fetch actual permission records — fall back gracefully
-  const { data: dbPermissions } = await supabase
-    .from("org_permissions")
-    .select("name, description")
-    .limit(50)
+  let dbPermissions: { name: string; description: string }[] | null = null
+  try {
+    const { data, error } = await supabase
+      .from("org_permissions")
+      .select("name, description")
+      .limit(50)
+    if (!error) dbPermissions = data
+  } catch (err) {
+    console.error("[AdminSecurity] Failed to fetch permissions:", err)
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">

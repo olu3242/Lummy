@@ -38,12 +38,39 @@ export default async function BillingPage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  const { data: dbSubs } = await supabase
-    .from("subscriptions")
-    .select("id, status, plan")
-    .limit(10)
+  let subs = MOCK_SUBSCRIPTIONS
+  try {
+    const { data: dbSubs, error } = await supabase
+      .from("subscriptions")
+      .select(`
+        id, status, plan, amount, currency, billing_cycle,
+        next_billing_date, payment_provider,
+        organizations:org_id ( name )
+      `)
+      .order("created_at", { ascending: false })
+      .limit(100)
 
-  const subs = MOCK_SUBSCRIPTIONS
+    if (!error && dbSubs && dbSubs.length > 0) {
+      subs = (dbSubs as unknown as Array<{
+        id: string; status: string; plan: string; amount: number; currency: string
+        billing_cycle: string; next_billing_date: string; payment_provider: string
+        organizations: { name?: string } | null
+      }>).map(s => ({
+        id: s.id,
+        org: s.organizations?.name ?? "Unknown",
+        plan: s.plan ?? "free",
+        amount: s.amount ?? 0,
+        currency: s.currency ?? "USD",
+        status: s.status ?? "active",
+        provider: s.payment_provider ?? "stripe",
+        nextBilling: s.next_billing_date ?? "—",
+        lastPayment: "—",
+        paymentStatus: s.status === "active" ? "paid" : s.status === "past_due" ? "failed" : "refunded",
+      }))
+    }
+  } catch (err) {
+    console.error("[AdminBilling] Failed to fetch subscriptions:", err)
+  }
   const totalMRR = subs.filter(s => s.status === "active").reduce((acc, s) => acc + s.amount, 0)
   const pastDue = subs.filter(s => s.status === "past_due").length
   const stripeCount = subs.filter(s => s.provider === "stripe").length

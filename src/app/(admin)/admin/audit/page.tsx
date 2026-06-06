@@ -32,13 +32,19 @@ export default async function AuditPage() {
   await requireAdminAccess()
   const supabase = createClient()
 
-  const { data: dbLogs } = await supabase
-    .from("platform_audit_logs")
-    .select("id, action, resource_type, actor_id, created_at")
-    .order("created_at", { ascending: false })
-    .limit(20)
+  let dbLogs: { id: string; action: string; resource_type: string; actor_id: string; created_at: string }[] | null = null
+  try {
+    const { data, error } = await supabase
+      .from("platform_audit_logs")
+      .select("id, action, resource_type, actor_id, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20)
+    if (!error) dbLogs = data
+  } catch (err) {
+    console.error("[AdminAudit] Failed to fetch audit logs:", err)
+  }
 
-  const logs = dbLogs && dbLogs.length > 0 ? dbLogs.map((l: { id: string; action: string; resource_type: string; actor_id: string; created_at: string }) => ({
+  const logs = dbLogs && dbLogs.length > 0 ? dbLogs.map((l) => ({
     id: l.id,
     action: l.action,
     resource: l.resource_type,
