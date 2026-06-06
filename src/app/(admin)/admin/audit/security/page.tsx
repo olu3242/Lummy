@@ -10,7 +10,7 @@ const SECURITY_EVENTS = [
   { id: "se2", type: "privilege_escalation", severity: "high", actor: "staff@afrodrip.ng", ip: "197.210.55.2", at: "2026-06-06 11:20", detail: "Attempted to access /admin without SUPER_ADMIN role", resolved: true },
   { id: "se3", type: "suspicious_ip", severity: "low", actor: "kemi@lummy.co", ip: "103.21.244.0", at: "2026-06-05 22:10", detail: "Login from Tor exit node", resolved: false },
   { id: "se4", type: "mass_data_access", severity: "medium", actor: "export-bot@lummy.co", ip: "10.0.0.1", at: "2026-06-05 18:30", detail: "Bulk export of 12,000 order records", resolved: true },
-  { id: "se5", type: "api_rate_limit", severity: "low", actor: "api-key:sk_live_xxx", ip: "54.213.8.9", at: "2026-06-05 16:45", detail: "Rate limit hit 3× in 1 hour on /api/products", resolved: true },
+  { id: "se5", type: "api_rate_limit", severity: "low", actor: "api-key:sk_…redacted", ip: "54.213.8.9", at: "2026-06-05 16:45", detail: "Rate limit hit 3× in 1 hour on /api/products", resolved: true },
 ]
 
 const SEVERITY_COLOR: Record<string, string> = {
