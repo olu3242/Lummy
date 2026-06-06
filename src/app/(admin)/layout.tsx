@@ -5,6 +5,7 @@ import {
   Shield, Users, Building2, CreditCard,
   ClipboardList, HeadphonesIcon, Settings2, LayoutDashboard,
   Zap, ShieldAlert, RefreshCw, Store, ShoppingCart,
+  UserCheck, TrendingUp, Rocket, Activity, Lock,
 } from "lucide-react"
 
 export const metadata: Metadata = {
@@ -26,6 +27,11 @@ const NAV_ITEMS = [
   { label: "Webhooks", href: "/admin/webhooks", icon: RefreshCw },
   { label: "Storefront Ops", href: "/admin/storefront-ops", icon: Store },
   { label: "Checkout", href: "/admin/checkout", icon: ShoppingCart },
+  { label: "Auth Center", href: "/admin/auth-center", icon: Lock },
+  { label: "Onboarding", href: "/admin/onboarding-center", icon: UserCheck },
+  { label: "Commerce", href: "/admin/commerce-center", icon: TrendingUp },
+  { label: "Payment Center", href: "/admin/payment-center", icon: Activity },
+  { label: "MVP Cert", href: "/admin/mvp-certification", icon: Rocket },
 ]
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
