@@ -15,22 +15,22 @@ import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const REFERRAL_CODE = "SADE2024"
-const REFERRAL_URL = `https://lummy.co/join?ref=${REFERRAL_CODE}`
+// Referral code is derived from the authenticated user's handle at runtime
+const FALLBACK_CODE = "—"
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
 const monthlyEarnings = [
   { month: "Aug", amount: 0 },
-  { month: "Sep", amount: 5000 },
-  { month: "Oct", amount: 10000 },
-  { month: "Nov", amount: 14000 },
-  { month: "Dec", amount: 9000 },
-  { month: "Jan", amount: 16000 },
-  { month: "Feb", amount: 9000 },
+  { month: "Sep", amount: 0 },
+  { month: "Oct", amount: 0 },
+  { month: "Nov", amount: 0 },
+  { month: "Dec", amount: 0 },
+  { month: "Jan", amount: 0 },
+  { month: "Feb", amount: 0 },
 ]
 
-const TOTAL_EARNINGS = monthlyEarnings.reduce((s, m) => s + m.amount, 0)
+const TOTAL_EARNINGS = 0
 
 interface ReferredCreator {
   id: string
@@ -45,17 +45,7 @@ interface ReferredCreator {
   avatarColor: string
 }
 
-const mockReferrals: ReferredCreator[] = [
-  { id: "r1", name: "Temi Adeyemi",    initials: "TA", storeName: "Temi's Closet",    joinedAt: "Nov 2024", plan: "growth", revenue: 145000, commission: 7250,  status: "active",  avatarColor: "#6C4EF3" },
-  { id: "r2", name: "Ngozi Okeke",     initials: "NO", storeName: "Ngozi Fabrics",    joinedAt: "Nov 2024", plan: "pro",    revenue: 289000, commission: 14450, status: "active",  avatarColor: "#10B981" },
-  { id: "r3", name: "Chiamaka Eze",    initials: "CE", storeName: "Chichi Beauty",    joinedAt: "Oct 2024", plan: "growth", revenue: 98000,  commission: 4900,  status: "active",  avatarColor: "#F97316" },
-  { id: "r4", name: "Amara Osei",      initials: "AO", storeName: "Amara Jewels",     joinedAt: "Oct 2024", plan: "pro",    revenue: 312000, commission: 15600, status: "active",  avatarColor: "#F43F5E" },
-  { id: "r5", name: "Blessing Nwoke",  initials: "BN", storeName: "Bless Skincare",   joinedAt: "Dec 2024", plan: "free",   revenue: 0,      commission: 0,     status: "pending", avatarColor: "#8B5CF6" },
-  { id: "r6", name: "Funmi Lawal",     initials: "FL", storeName: "Funmi's Kitchen",  joinedAt: "Dec 2024", plan: "growth", revenue: 54000,  commission: 2700,  status: "active",  avatarColor: "#F59E0B" },
-  { id: "r7", name: "Kemi Okonkwo",    initials: "KO", storeName: "Kemi Crafts",      joinedAt: "Sep 2024", plan: "growth", revenue: 76000,  commission: 3800,  status: "active",  avatarColor: "#3B82F6" },
-  { id: "r8", name: "Adaeze Williams", initials: "AW", storeName: "Ada Thrift World", joinedAt: "Dec 2024", plan: "free",   revenue: 0,      commission: 0,     status: "pending", avatarColor: "#EC4899" },
-  { id: "r9", name: "Zara Ibrahim",    initials: "ZI", storeName: "Zara Couture",     joinedAt: "Aug 2024", plan: "pro",    revenue: 428000, commission: 21400, status: "active",  avatarColor: "#10B981" },
-]
+const mockReferrals: ReferredCreator[] = []
 
 const milestones = [
   { count: 3,  reward: "$5 bonus",            reached: true  },
@@ -148,7 +138,7 @@ function QRCodeDisplay({ url }: { url: string }) {
 
 // ── Invite Modal ──────────────────────────────────────────────────────────────
 
-function InviteModal({ onClose }: { onClose: () => void }) {
+function InviteModal({ onClose, referralCode }: { onClose: () => void; referralCode: string }) {
   const [email, setEmail] = React.useState("")
   const [sent, setSent] = React.useState(false)
 
@@ -221,7 +211,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="rounded-xl bg-brand-purple/5 border border-brand-purple/15 p-3 text-xs text-muted-foreground">
-                <p>They&apos;ll receive a personalised email with your referral code <strong className="text-brand-purple font-mono">{REFERRAL_CODE}</strong> and a link to join Lummy for free.</p>
+                <p>They&apos;ll receive a personalised email with your referral code <strong className="text-brand-purple font-mono">{referralCode}</strong> and a link to join Lummy for free.</p>
               </div>
 
               <Button className="w-full h-11 gap-2" onClick={handleSend}>
@@ -244,6 +234,29 @@ export default function ReferralsPage() {
   const [showQR, setShowQR] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"referrals" | "earnings">("referrals")
   const [sortBy, setSortBy] = React.useState<"revenue" | "commission" | "joined">("commission")
+  const [REFERRAL_CODE, setReferralCode] = React.useState(FALLBACK_CODE)
+  const [REFERRAL_URL, setReferralUrl] = React.useState("https://lummy.co/join")
+
+  React.useEffect(() => {
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        supabase
+          .from("storefronts")
+          .select("handle")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.handle) {
+              setReferralCode(data.handle.toUpperCase())
+              setReferralUrl(`https://lummy.co/join?ref=${data.handle}`)
+            }
+          })
+      })
+    })
+  }, [])
 
   const copyCode = () => {
     navigator.clipboard.writeText(REFERRAL_CODE)
@@ -786,7 +799,7 @@ export default function ReferralsPage() {
 
       {/* Invite modal */}
       <AnimatePresence>
-        {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+        {showInvite && <InviteModal onClose={() => setShowInvite(false)} referralCode={REFERRAL_CODE} />}
       </AnimatePresence>
     </div>
   )

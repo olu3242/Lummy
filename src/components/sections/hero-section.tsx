@@ -319,11 +319,13 @@ export function HeroSection() {
                   <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </a>
               </Button>
-              <Button variant="outline-white" size="xl" className="group">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
-                  <Play className="h-3 w-3 text-white fill-white ml-0.5" />
-                </div>
-                See How It Works
+              <Button variant="outline-white" size="xl" className="group" asChild>
+                <a href="/pricing">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
+                    <Play className="h-3 w-3 text-white fill-white ml-0.5" />
+                  </div>
+                  See How It Works
+                </a>
               </Button>
             </motion.div>
 

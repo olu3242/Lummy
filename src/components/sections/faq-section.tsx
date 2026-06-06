@@ -28,9 +28,9 @@ export function FAQSection() {
             <p className="mt-5 text-lg text-muted-foreground leading-relaxed max-w-sm">
               Clear answers for creators deciding whether to start selling with Lummy today.
             </p>
-            <button className="mt-4 text-sm text-primary font-semibold hover:underline">
+            <a href="/signup" className="mt-4 inline-block text-sm text-primary font-semibold hover:underline">
               Start selling free →
-            </button>
+            </a>
           </motion.div>
 
           {/* Right: Accordion */}

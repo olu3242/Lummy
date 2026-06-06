@@ -77,9 +77,11 @@ export function CTASection() {
                 <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
-            <Button size="xl" variant="outline-white">
-              <ShieldCheck className="h-5 w-5" />
-              See How It Works
+            <Button size="xl" variant="outline-white" asChild>
+              <a href="/pricing">
+                <ShieldCheck className="h-5 w-5" />
+                See How It Works
+              </a>
             </Button>
           </div>
 

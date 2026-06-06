@@ -1,29 +1,19 @@
-"use client"
+import { createClient } from "@/lib/supabase/server"
+import { redirect } from "next/navigation"
+import { DashboardLayoutClient } from "./dashboard-layout-client"
 
-import * as React from "react"
-import { Sidebar } from "@/components/layout/sidebar"
-import { DashboardHeader } from "@/components/layout/dashboard-header"
-import { MobileNav } from "@/components/layout/mobile-nav"
-import { Toaster } from "@/components/ui/toaster"
-import { CommandPalette } from "@/components/dashboard/command-palette"
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const supabase = createClient()
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const [sidebarOpen, setSidebarOpen] = React.useState(false)
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    redirect("/login")
+  }
 
-  return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+  if (!user) redirect("/login")
 
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <DashboardHeader onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
-
-      <MobileNav />
-      <CommandPalette />
-      <Toaster />
-    </div>
-  )
+  return <DashboardLayoutClient>{children}</DashboardLayoutClient>
 }

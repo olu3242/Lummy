@@ -496,11 +496,11 @@ function PaymentsSection() {
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1.5">Account number</label>
-            <input defaultValue="0123456789" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+            <input defaultValue="" placeholder="Enter your account number" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1.5">Account name</label>
-            <input defaultValue="ADEYEMI OLUWASADE" disabled className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground cursor-not-allowed" />
+            <input defaultValue="" disabled placeholder="Auto-filled after verification" className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground cursor-not-allowed" />
             <p className="text-[10px] text-muted-foreground mt-1">Auto-filled after account number verification</p>
           </div>
         </div>
