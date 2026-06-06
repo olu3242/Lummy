@@ -18,8 +18,9 @@ export async function POST(req: Request, { params }: { params: { provider: strin
 
     const tx = await handleProviderWebhook(createPaymentDatabaseAdapter(supabase as never), provider, headers, rawBody, correlationId)
     if (!tx) {
-      logApiEvent('warn', 'webhook.unknown', { provider, correlationId })
-      return NextResponse.json({ ok: true }, { status: 200 })
+      // null means signature verification failed — return 401 so provider stops retrying invalid requests
+      logApiEvent('warn', 'webhook.signature_invalid', { provider, correlationId })
+      return NextResponse.json({ ok: false, error: 'Invalid signature' }, { status: 401 })
     }
 
     logApiEvent('info', 'webhook.processed', { provider, transactionId: tx.id, correlationId })

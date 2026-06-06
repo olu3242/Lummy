@@ -454,9 +454,60 @@ function NotificationsSection() {
   )
 }
 
+const BANK_OPTIONS = ["Access Bank", "GTBank", "First Bank", "Zenith Bank", "UBA", "Opay", "Palmpay", "Kuda", "Sterling Bank", "Wema Bank"]
+
 function PaymentsSection() {
   const [saved, setSaved] = React.useState(false)
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const [saving, setSaving] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
+  const [hasAccount, setHasAccount] = React.useState(false)
+  const [bankName, setBankName] = React.useState(BANK_OPTIONS[0])
+  const [accountNumber, setAccountNumber] = React.useState("")
+  const [accountName, setAccountName] = React.useState("")
+
+  React.useEffect(() => {
+    fetch("/api/payout-account")
+      .then(r => r.ok ? r.json() : null)
+      .then((res: { data?: { bank_name?: string; account_number?: string; account_name?: string } | null } | null) => {
+        if (res?.data) {
+          setHasAccount(true)
+          setBankName(res.data.bank_name ?? BANK_OPTIONS[0])
+          setAccountNumber(res.data.account_number ?? "")
+          setAccountName(res.data.account_name ?? "")
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    if (!accountNumber.trim() || !accountName.trim()) {
+      toast({ title: "Fill in all bank details", variant: "error" })
+      return
+    }
+    setSaving(true)
+    try {
+      const method = hasAccount ? "PATCH" : "POST"
+      const res = await fetch("/api/payout-account", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bank_name: bankName, account_number: accountNumber.trim(), account_name: accountName.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        toast({ title: err.error ?? "Failed to save bank details", variant: "error" })
+        return
+      }
+      setHasAccount(true)
+      setSaved(true)
+      toast({ title: "Bank details saved", variant: "success" })
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      toast({ title: "Network error — try again", variant: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -465,68 +516,48 @@ function PaymentsSection() {
         <p className="text-sm text-muted-foreground mt-0.5">Bank details for payouts and payment preferences</p>
       </div>
 
-      {/* Current plan */}
-      <div className="rounded-2xl border border-brand-purple/30 bg-brand-purple/5 p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
-            <Zap className="h-4 w-4 text-brand-purple" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Growth Plan</p>
-            <p className="text-xs text-muted-foreground">$4.00 / month · Renews Dec 1</p>
-          </div>
-        </div>
-        <Button size="sm" variant="outline" className="h-8 text-xs">Manage plan</Button>
-      </div>
-
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bank details</p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Bank name</label>
-            <select className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30">
-              <option>Access Bank</option>
-              <option>GTBank</option>
-              <option>First Bank</option>
-              <option>Zenith Bank</option>
-              <option>UBA</option>
-              <option>Opay</option>
-              <option>Palmpay</option>
-            </select>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Bank details {hasAccount && <span className="text-brand-green ml-1">· Linked</span>}
+        </p>
+        {loading ? (
+          <div className="h-32 rounded-2xl bg-muted animate-pulse" />
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Bank name</label>
+              <select
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              >
+                {BANK_OPTIONS.map(b => <option key={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Account number</label>
+              <input
+                value={accountNumber}
+                onChange={e => setAccountNumber(e.target.value)}
+                placeholder="Enter your 10-digit account number"
+                maxLength={10}
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Account name</label>
+              <input
+                value={accountName}
+                onChange={e => setAccountName(e.target.value)}
+                placeholder="Full name as registered with bank"
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Account number</label>
-            <input defaultValue="" placeholder="Enter your account number" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Account name</label>
-            <input defaultValue="" disabled placeholder="Auto-filled after verification" className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground cursor-not-allowed" />
-            <p className="text-[10px] text-muted-foreground mt-1">Auto-filled after account number verification</p>
-          </div>
-        </div>
+        )}
       </div>
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Payout schedule</p>
-        <div className="grid grid-cols-3 gap-2">
-          {["Daily", "Weekly", "Monthly"].map((opt) => (
-            <button
-              key={opt}
-              className={cn(
-                "h-10 rounded-xl border text-xs font-semibold transition-all",
-                opt === "Weekly"
-                  ? "bg-brand-purple text-white border-brand-purple"
-                  : "border-border text-muted-foreground hover:border-foreground/20"
-              )}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-2">Minimum payout: $5.00</p>
-      </div>
-
-      <SaveBar onSave={save} saved={saved} />
+      <SaveBar onSave={save} saved={saved || saving} />
     </div>
   )
 }

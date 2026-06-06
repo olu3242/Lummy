@@ -84,19 +84,39 @@ function EarningsChart({ data }: { data: { month: string; value: number }[] }) {
 
 type WithdrawStep = "amount" | "confirm" | "success"
 
-function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: number }) {
+function WithdrawModal({ onClose, balance, onSuccess }: { onClose: () => void; balance: number; onSuccess: () => void }) {
   const [step, setStep] = React.useState<WithdrawStep>("amount")
   const [rawAmount, setRawAmount] = React.useState("")
   const [processing, setProcessing] = React.useState(false)
+  const [apiError, setApiError] = React.useState("")
 
   const amount = parseInt(rawAmount.replace(/\D/g, "") || "0", 10)
   const fee = calcFee(amount)
   const net = amount - fee
   const amountValid = amount >= MIN_WITHDRAWAL && amount <= balance
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setProcessing(true)
-    setTimeout(() => { setProcessing(false); setStep("success") }, 1800)
+    setApiError("")
+    try {
+      const res = await fetch("/api/payouts/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, currency_code: "NGN" }),
+      })
+      const data = await res.json() as { error?: string }
+      if (!res.ok) {
+        setApiError(data.error ?? "Request failed. Try again.")
+        setProcessing(false)
+        return
+      }
+      setStep("success")
+      onSuccess()
+    } catch {
+      setApiError("Network error — check your connection and try again.")
+    } finally {
+      setProcessing(false)
+    }
   }
 
   React.useEffect(() => {
@@ -235,6 +255,11 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                 </div>
                 <ShieldCheck className="h-4 w-4 text-brand-green" />
               </div>
+              {apiError && (
+                <p className="text-xs text-brand-coral flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />{apiError}
+                </p>
+              )}
               <Button className="w-full h-11 gap-2" onClick={handleConfirm} disabled={processing}>
                 {processing
                   ? <><RefreshCw className="h-4 w-4 animate-spin" />Processing…</>
@@ -412,6 +437,25 @@ export default function PayoutsPage() {
   const [monthlyEarnings, setMonthlyEarnings] = React.useState(EMPTY_MONTHLY_EARNINGS)
   const [payouts, setPayouts] = React.useState<Payout[]>([])
 
+  const loadPayouts = React.useCallback(() => {
+    fetch("/api/payouts")
+      .then(r => r.ok ? r.json() : null)
+      .then((res: { data?: Array<{ id: string; amount: number; currency_code: string; status: string; requested_at: string; payout_accounts?: { bank_name?: string; account_number?: string } }> } | null) => {
+        if (res?.data) {
+          setPayouts(res.data.map(p => ({
+            id: p.id,
+            amount: Number(p.amount),
+            date: new Date(p.requested_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+            method: "Bank Transfer",
+            bank: p.payout_accounts?.bank_name ?? "Bank Account",
+            status: (p.status === "paid" ? "completed" : p.status === "failed" ? "failed" : "pending") as Payout["status"],
+            ref: p.id.slice(0, 8).toUpperCase(),
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   React.useEffect(() => {
     fetch("/api/analytics")
       .then(r => r.ok ? r.json() : null)
@@ -423,7 +467,8 @@ export default function PayoutsPage() {
         }
       })
       .catch(() => {})
-  }, [])
+    loadPayouts()
+  }, [loadPayouts])
 
   const totalPaid = payouts.filter(p => p.status === "completed").reduce((s, p) => s + p.amount, 0)
 
@@ -659,7 +704,7 @@ export default function PayoutsPage() {
 
       {/* Modals */}
       <AnimatePresence>
-        {showWithdraw && <WithdrawModal onClose={() => setShowWithdraw(false)} balance={balance} />}
+        {showWithdraw && <WithdrawModal onClose={() => setShowWithdraw(false)} balance={balance} onSuccess={() => { setShowWithdraw(false); loadPayouts() }} />}
         {selectedPayout && <PayoutDetailDrawer payout={selectedPayout} onClose={() => setSelectedPayout(null)} />}
       </AnimatePresence>
     </div>
