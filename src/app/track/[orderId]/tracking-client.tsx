@@ -129,6 +129,8 @@ function DeliveredCelebration() {
 }
 
 export function TrackingClient({ orderId, initialOrder }: { orderId: string; initialOrder: TrackingOrder | null }) {
+  const [copied, setCopied] = React.useState(false)
+
   if (!initialOrder) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center">
@@ -140,7 +142,6 @@ export function TrackingClient({ orderId, initialOrder }: { orderId: string; ini
     )
   }
   const order = initialOrder
-  const [copied, setCopied] = React.useState(false)
   const currentIdx = statusOrder.indexOf(order.status)
 
   const handleShare = () => {
