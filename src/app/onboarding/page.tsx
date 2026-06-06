@@ -535,7 +535,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
     setTimeout(() => {
       setVerifying(false)
       setVerified(true)
-      onChange({ accountName: data.storeName ? `${data.storeName.toUpperCase()}` : "ADUNOLA FASHIONISTA" })
+      onChange({ accountName: data.storeName ? `${data.storeName.toUpperCase()}` : "" })
     }, 1800)
   }
 

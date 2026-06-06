@@ -245,10 +245,40 @@ export default function OrderDetailPage() {
   const router = useRouter()
   const orderId = params.orderId as string
 
-  const order = mockOrders.find(o => o.id === orderId || o.orderNumber === orderId)
-    ?? mockOrders[0]
+  const mockFallback = mockOrders.find(o => o.id === orderId || o.orderNumber === orderId) ?? null
+  const [order, setOrder] = React.useState<DashboardOrder>(mockFallback ?? mockOrders[0])
+  const [orderLoading, setOrderLoading] = React.useState(!mockFallback)
 
-  const [currentStatus, setCurrentStatus] = React.useState(order.status)
+  React.useEffect(() => {
+    if (mockFallback) return
+    fetch(`/api/orders/${orderId}`)
+      .then(r => r.ok ? r.json() : null)
+      .then((res: { data?: { id: string; status: string; amount: number; currency: string; created_at: string; customer_name?: string; customer_phone?: string; customer_address?: string; payment_provider?: string } } | null) => {
+        if (!res?.data) return
+        const d = res.data
+        const statusMap: Record<string, OrderStatus> = { pending: "pending", confirmed: "confirmed", processing: "processing", shipped: "shipped", delivered: "delivered", cancelled: "cancelled" }
+        setOrder({
+          id: d.id,
+          orderNumber: d.id.slice(0, 8).toUpperCase(),
+          customer: { name: d.customer_name ?? "Customer", phone: d.customer_phone ?? "" },
+          product: { name: "Order", image: "" },
+          amount: d.amount,
+          currency: d.currency ?? "NGN",
+          status: statusMap[d.status] ?? "pending",
+          source: (d.payment_provider as DashboardOrder["source"]) ?? "direct",
+          createdAt: d.created_at,
+          deliveryAddress: d.customer_address ?? "",
+        })
+      })
+      .catch(() => {})
+      .finally(() => setOrderLoading(false))
+  }, [orderId, mockFallback])
+
+  const [currentStatus, setCurrentStatus] = React.useState<OrderStatus>(order.status)
+
+  React.useEffect(() => {
+    setCurrentStatus(order.status)
+  }, [order.status])
   const [notes, setNotes] = React.useState<SellerNote[]>([])
   const [noteText, setNoteText] = React.useState("")
   const [rating, setRating] = React.useState(0)
@@ -311,7 +341,20 @@ export default function OrderDetailPage() {
     toast({ title: "Order cancelled", description: order.orderNumber, variant: "error" })
   }
 
-  const otherOrders = mockOrders.filter(o => o.customer.name === order.customer.name && o.id !== order.id).slice(0, 3)
+  const otherOrders = mockFallback
+    ? mockOrders.filter(o => o.customer.name === order.customer.name && o.id !== order.id).slice(0, 3)
+    : []
+
+  if (orderLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-2">
+          <div className="h-8 w-8 border-2 border-brand-purple border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm text-muted-foreground">Loading order…</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-[960px] mx-auto pb-24">

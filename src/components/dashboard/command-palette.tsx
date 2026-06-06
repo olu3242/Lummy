@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { mockProducts, mockOrders } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 interface CommandItem {
   id: string
@@ -123,7 +124,7 @@ export function CommandPalette() {
       id: `product-${p.id}`,
       group: "Products",
       label: p.name,
-      description: `₦${p.price.toLocaleString()} · ${p.status}`,
+      description: `${formatMoney(p.price, p.currency)} · ${p.status}`,
       icon: ShoppingBag,
       iconClass: "text-brand-purple",
       action: () => go("/dashboard/products"),
@@ -135,7 +136,7 @@ export function CommandPalette() {
       id: `order-${o.id}`,
       group: "Orders",
       label: `${o.orderNumber} — ${o.customer.name}`,
-      description: `₦${o.amount.toLocaleString()} · ${o.status}`,
+      description: `${formatMoney(o.amount, o.currency)} · ${o.status}`,
       icon: ClipboardList,
       iconClass: "text-brand-coral",
       action: () => go("/dashboard/orders"),

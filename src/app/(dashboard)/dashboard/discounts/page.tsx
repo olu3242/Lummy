@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
-const DISPLAY_CURRENCY = "USD"
+let DISPLAY_CURRENCY = "NGN"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -681,8 +681,14 @@ export default function DiscountsPage() {
   const [copiedId, setCopiedId] = React.useState<string | null>(null)
   const [deleteId, setDeleteId] = React.useState<string | null>(null)
   const [showAnalytics, setShowAnalytics] = React.useState(false)
-
   React.useEffect(() => { setDiscounts(loadDiscounts()) }, [])
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.currency_code) DISPLAY_CURRENCY = data.storefront.currency_code })
+      .catch(() => {})
+  }, [])
 
   const persist = (next: Discount[]) => { setDiscounts(next); saveDiscounts(next) }
 

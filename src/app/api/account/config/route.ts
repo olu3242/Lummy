@@ -94,6 +94,7 @@ export async function PATCH(req: Request) {
       if (body.profile.full_name !== undefined) profilePatch.full_name = body.profile.full_name
       if (body.profile.phone !== undefined) profilePatch.phone = body.profile.phone
       if (body.profile.avatar_url !== undefined) profilePatch.avatar_url = body.profile.avatar_url
+      if (body.profile.location !== undefined) profilePatch.location = body.profile.location
 
       if (Object.keys(profilePatch).length > 0) {
         profilePatch.updated_at = new Date().toISOString()
@@ -125,6 +126,8 @@ export async function PATCH(req: Request) {
       if (body.storefront?.is_active !== undefined) storefrontPatch.is_active = body.storefront.is_active
       if (body.storefront?.theme !== undefined) storefrontPatch.theme = body.storefront.theme
       if (body.storefront?.store_schema !== undefined) storefrontPatch.store_schema = body.storefront.store_schema
+      if (body.storefront?.currency_code !== undefined) storefrontPatch.currency_code = body.storefront.currency_code
+      if (body.storefront?.currency_symbol !== undefined) storefrontPatch.currency_symbol = body.storefront.currency_symbol
 
       if (Object.keys(storefrontPatch).length > 0) {
         storefrontPatch.handle = await availableHandle(supabase, organizationId, String(storefrontPatch.handle ?? fallbackHandle({

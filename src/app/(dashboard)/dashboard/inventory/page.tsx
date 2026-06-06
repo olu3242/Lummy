@@ -454,8 +454,38 @@ function BulkRestockModal({ products, onClose, onSave }: {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function InventoryPage() {
-  const [products, setProducts] = React.useState<DashboardProduct[]>(mockProducts)
+  const [products, setProducts] = React.useState<DashboardProduct[]>([])
+  const [productsLoading, setProductsLoading] = React.useState(true)
   const [history, setHistory] = React.useState<StockAdjustment[]>(mockHistory)
+
+  React.useEffect(() => {
+    fetch("/api/products")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { products?: Array<{ id: string; title: string; description?: string; price: number; currency?: string; image_url?: string; status: string; created_at: string }> } | null) => {
+        if (data?.products?.length) {
+          setProducts(data.products.map(p => ({
+            id: p.id,
+            name: p.title,
+            description: p.description ?? "",
+            price: p.price,
+            currency: p.currency ?? "NGN",
+            image: p.image_url ?? "",
+            category: "Products",
+            status: (p.status === "active" || p.status === "draft") ? p.status : "active",
+            sales: 0,
+            views: 0,
+            revenue: 0,
+            stock: null,
+            whatsappEnabled: false,
+            createdAt: p.created_at.slice(0, 10),
+          })))
+        } else {
+          setProducts(mockProducts)
+        }
+      })
+      .catch(() => setProducts(mockProducts))
+      .finally(() => setProductsLoading(false))
+  }, [])
   const [adjustingProduct, setAdjustingProduct] = React.useState<DashboardProduct | null>(null)
   const [search, setSearch] = React.useState("")
   const [filter, setFilter] = React.useState<StockStatus | "all">("all")

@@ -129,7 +129,17 @@ function DeliveredCelebration() {
 }
 
 export function TrackingClient({ orderId, initialOrder }: { orderId: string; initialOrder: TrackingOrder | null }) {
-  const order = initialOrder ?? getMockOrder(orderId.toUpperCase())
+  if (!initialOrder) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-8 text-center">
+        <p className="text-4xl mb-4">📦</p>
+        <h1 className="font-display text-xl font-bold mb-2">Order not found</h1>
+        <p className="text-sm text-muted-foreground mb-6">We couldn&apos;t find order <code className="font-mono bg-muted px-1 rounded">{orderId}</code>. Check the link and try again.</p>
+        <a href="/" className="text-sm text-brand-purple font-semibold hover:underline">Back to home</a>
+      </div>
+    )
+  }
+  const order = initialOrder
   const [copied, setCopied] = React.useState(false)
   const currentIdx = statusOrder.indexOf(order.status)
 

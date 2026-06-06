@@ -26,25 +26,7 @@ interface Payout {
   note?: string
 }
 
-const mockPayouts: Payout[] = [
-  { id: "PAY-001", amount: 125000, date: "May 5, 2026",  method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8812993" },
-  { id: "PAY-002", amount: 87500,  date: "Apr 29, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "pending",   ref: "TXN8811204", note: "Expected May 1" },
-  { id: "PAY-003", amount: 210000, date: "Apr 14, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8809876" },
-  { id: "PAY-004", amount: 55000,  date: "Mar 30, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8807541" },
-  { id: "PAY-005", amount: 168000, date: "Mar 15, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8805322" },
-  { id: "PAY-006", amount: 42000,  date: "Feb 28, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "failed",    ref: "TXN8803100", note: "Account limit reached" },
-  { id: "PAY-007", amount: 98000,  date: "Feb 14, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8801455" },
-]
-
-const MONTHLY_EARNINGS = [
-  { month: "Nov", value: 145000 },
-  { month: "Dec", value: 198000 },
-  { month: "Jan", value: 162000 },
-  { month: "Feb", value: 140000 },
-  { month: "Mar", value: 223000 },
-  { month: "Apr", value: 297500 },
-  { month: "May", value: 312500 },
-]
+const EMPTY_MONTHLY_EARNINGS: { month: string; value: number }[] = []
 
 const statusConfig = {
   completed: { label: "Paid",    color: "bg-brand-green/10 text-brand-green",   icon: CheckCircle2 },
@@ -53,13 +35,8 @@ const statusConfig = {
 } as const
 
 const MIN_WITHDRAWAL = 5000
-const BALANCE = 312500
-const PENDING = 87000
 const FEE_RATE = 0.015
 const FEE_CAP = 1500
-
-const NEXT_PAYOUT_DATE = "Tuesday, May 14"
-const NEXT_PAYOUT_AMOUNT = 87000
 
 function calcFee(amount: number) {
   return Math.min(Math.round(amount * FEE_RATE), FEE_CAP)
@@ -253,8 +230,8 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   <Building2 className="h-4 w-4 text-brand-purple" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">GTBank — 0123456789</p>
-                  <p className="text-xs text-muted-foreground">Adunola Fashionista · Verified ✓</p>
+                  <p className="text-sm font-semibold">Bank account</p>
+                  <p className="text-xs text-muted-foreground">Add a bank account in Settings to receive payouts</p>
                 </div>
                 <ShieldCheck className="h-4 w-4 text-brand-green" />
               </div>
@@ -282,7 +259,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <h2 className="font-display text-xl font-extrabold">Withdrawal Requested!</h2>
               <p className="text-sm text-muted-foreground mt-1.5">
-                <strong className="text-foreground">{formatMoney(net)}</strong> will arrive in your GTBank account within 1–2 business days.
+                <strong className="text-foreground">{formatMoney(net)}</strong> will arrive in your bank account within 1–2 business days.
               </p>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
@@ -407,9 +384,9 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
 
 // ─── Export helper ─────────────────────────────────────────────────────────────
 
-function exportPayoutsCSV() {
-  const header = ["ID", "Date", "Amount ($)", "Method", "Reference", "Status"]
-  const rows = mockPayouts.map(p => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
+function exportPayoutsCSV(payoutsToExport: Payout[]) {
+  const header = ["ID", "Date", "Amount", "Method", "Reference", "Status"]
+  const rows = payoutsToExport.map((p: Payout) => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
@@ -430,19 +407,35 @@ export default function PayoutsPage() {
   const [showAddBank, setShowAddBank] = React.useState(false)
   const [bankName, setBankName] = React.useState("")
   const [bankAcct, setBankAcct] = React.useState("")
+  const [balance, setBalance] = React.useState(0)
+  const [pending, setPending] = React.useState(0)
+  const [monthlyEarnings, setMonthlyEarnings] = React.useState(EMPTY_MONTHLY_EARNINGS)
+  const [payouts, setPayouts] = React.useState<Payout[]>([])
 
-  const balance = BALANCE
-  const totalPaid = mockPayouts.filter(p => p.status === "completed").reduce((s, p) => s + p.amount, 0)
+  React.useEffect(() => {
+    fetch("/api/analytics")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { summary?: { revenue?: number; pendingRevenue?: number }; monthlyData?: Array<{ month: string; revenue: number }> } | null) => {
+        if (data?.summary?.revenue) setBalance(data.summary.revenue)
+        if (data?.summary?.pendingRevenue) setPending(data.summary.pendingRevenue)
+        if (data?.monthlyData?.length) {
+          setMonthlyEarnings(data.monthlyData.map(m => ({ month: m.month, value: m.revenue })))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const totalPaid = payouts.filter(p => p.status === "completed").reduce((s, p) => s + p.amount, 0)
 
   const filteredPayouts = filterTab === "all"
-    ? mockPayouts
-    : mockPayouts.filter(p => p.status === filterTab)
+    ? payouts
+    : payouts.filter(p => p.status === filterTab)
 
   const filterCounts: Record<FilterTab, number> = {
-    all: mockPayouts.length,
-    completed: mockPayouts.filter(p => p.status === "completed").length,
-    pending: mockPayouts.filter(p => p.status === "pending").length,
-    failed: mockPayouts.filter(p => p.status === "failed").length,
+    all: payouts.length,
+    completed: payouts.filter(p => p.status === "completed").length,
+    pending: payouts.filter(p => p.status === "pending").length,
+    failed: payouts.filter(p => p.status === "failed").length,
   }
 
   return (
@@ -462,7 +455,7 @@ export default function PayoutsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
           { label: "Available Balance", value: formatMoney(balance),    icon: Wallet,     color: "text-brand-purple", bg: "bg-brand-purple/10" },
-          { label: "Pending Clearance", value: formatMoney(PENDING),    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
+          { label: "Pending Clearance", value: formatMoney(pending),    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
           { label: "Total Paid Out",    value: formatMoney(totalPaid),  icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10" },
         ].map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
@@ -492,7 +485,7 @@ export default function PayoutsPage() {
             </div>
           </div>
           <div className="text-muted-foreground">
-            <EarningsChart data={MONTHLY_EARNINGS} />
+            <EarningsChart data={monthlyEarnings} />
           </div>
         </motion.div>
 
@@ -506,25 +499,16 @@ export default function PayoutsPage() {
                 <Calendar className="h-4 w-4 text-brand-purple" />
               </div>
               <div>
-                <p className="font-display text-lg font-extrabold">{formatMoney(NEXT_PAYOUT_AMOUNT)}</p>
-                <p className="text-[10px] text-muted-foreground">{NEXT_PAYOUT_DATE}</p>
+                <p className="font-display text-lg font-extrabold">{pending > 0 ? formatMoney(pending) : "—"}</p>
+                <p className="text-[10px] text-muted-foreground">{pending > 0 ? "Next scheduled payout" : "No pending payout"}</p>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-border pt-4 space-y-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Projection</p>
-            {[
-              { label: "This month (est.)", value: "$340", up: true },
-              { label: "Next month (est.)", value: "$385", up: true },
-            ].map(row => (
-              <div key={row.label} className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-semibold flex items-center gap-0.5 text-brand-green">
-                  <ArrowUpRight className="h-3 w-3" />{row.value}
-                </span>
-              </div>
-            ))}
+          <div className="border-t border-border pt-4">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Projections will appear once your store starts processing orders.
+            </p>
           </div>
 
           <div className="border-t border-border pt-4">
@@ -550,15 +534,13 @@ export default function PayoutsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-purple/10">
-            <Building2 className="h-5 w-5 text-brand-purple" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">GTBank — 0123456789</p>
-            <p className="text-xs text-muted-foreground">Adunola Fashionista · Verified ✓</p>
+            <p className="text-sm text-muted-foreground">No bank account linked yet</p>
+            <p className="text-xs text-muted-foreground/60">Add an account to receive payouts</p>
           </div>
-          <ShieldCheck className="h-4 w-4 text-brand-green" />
-          <button className="text-xs text-muted-foreground hover:text-brand-purple">Change</button>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <div><p className="font-semibold text-foreground">Tuesday & Friday</p><p>Payout schedule</p></div>
@@ -605,7 +587,7 @@ export default function PayoutsPage() {
         className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h2 className="font-semibold text-sm">Payout History</h2>
-          <button onClick={exportPayoutsCSV} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => exportPayoutsCSV(payouts)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
         </div>

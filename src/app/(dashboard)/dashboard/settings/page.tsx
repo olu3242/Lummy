@@ -155,7 +155,7 @@ function ProfileSection() {
           email: payload.profile?.email ?? payload.user?.email ?? "",
           phone: payload.profile?.phone ?? "",
           bio: payload.storefront?.bio ?? "",
-          location: "",
+          location: (payload.profile as Record<string, unknown> | null)?.location as string ?? "",
           avatarUrl: payload.profile?.avatar_url ?? "",
         })
       })
@@ -171,7 +171,7 @@ function ProfileSection() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          profile: { full_name: fullName, phone: form.phone, avatar_url: form.avatarUrl },
+          profile: { full_name: fullName, phone: form.phone, avatar_url: form.avatarUrl, location: form.location },
           storefront: { bio: form.bio },
         }),
       })
@@ -665,24 +665,9 @@ function SecuritySection() {
       {/* Active sessions */}
       <div className="pt-4 border-t border-border">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Active sessions</p>
-        <div className="space-y-2">
-          {[
-            { device: "Chrome · MacBook Pro", location: "Lagos, NG", time: "Now", current: true },
-            { device: "Safari · iPhone 15", location: "Lagos, NG", time: "2 hours ago", current: false },
-          ].map((session) => (
-            <div key={session.device} className="flex items-center justify-between gap-3 py-2.5 border-b border-border last:border-0">
-              <div>
-                <p className="text-sm font-semibold flex items-center gap-1.5">
-                  {session.device}
-                  {session.current && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-green/10 text-brand-green">Current</span>}
-                </p>
-                <p className="text-xs text-muted-foreground">{session.location} · {session.time}</p>
-              </div>
-              {!session.current && (
-                <button className="text-xs text-brand-coral font-semibold hover:underline flex-shrink-0">Revoke</button>
-              )}
-            </div>
-          ))}
+        <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
+          <p className="text-xs text-muted-foreground">Current session — signed in on this device</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Session management coming soon</p>
         </div>
       </div>
 

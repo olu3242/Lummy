@@ -29,7 +29,7 @@ import { mockProducts, DashboardProduct } from "@/data/mock/dashboard"
 import { toast } from "@/hooks/use-toast"
 import { formatMoney } from "@/lib/globalization"
 
-const DISPLAY_CURRENCY = "USD"
+let DISPLAY_CURRENCY = "NGN"
 
 const BUNDLES_KEY = "lummy_product_bundles"
 
@@ -576,8 +576,14 @@ export default function BundlesPage() {
   const [filter, setFilter] = React.useState<"all" | "active" | "disabled">("all")
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null)
 
-  // Load from localStorage after mount
   React.useEffect(() => { setBundles(loadBundles()) }, [])
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.currency_code) DISPLAY_CURRENCY = data.storefront.currency_code })
+      .catch(() => {})
+  }, [])
 
   const persist = (next: Bundle[]) => {
     setBundles(next)
