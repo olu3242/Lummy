@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { formatCompactMoney } from "@/lib/globalization"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ function KpiRow({ campaigns }: { campaigns: Campaign[] }) {
     { label: "Active campaigns", value: String(active.length), icon: Zap,        color: "text-brand-green" },
     { label: "Total reach",      value: totalReach >= 1000 ? `${(totalReach / 1000).toFixed(1)}k` : String(totalReach), icon: Eye, color: "text-brand-purple" },
     { label: "Orders driven",    value: String(totalOrders), icon: BarChart3,    color: "text-brand-coral" },
-    { label: "Revenue unlocked", value: `₦${(totalRevenue / 1000).toFixed(0)}k`, icon: TrendingUp, color: "text-amber-500" },
+    { label: "Revenue unlocked", value: formatCompactMoney(totalRevenue), icon: TrendingUp, color: "text-amber-500" },
   ]
 
   return (
@@ -498,7 +499,7 @@ function DetailDrawer({ campaign, onClose, onToggle }: { campaign: Campaign; onC
                 { label: "CTR",     value: `${ctr}%` },
                 { label: "CVR",     value: `${cvr}%` },
                 { label: "Orders",  value: String(campaign.orders) },
-                { label: "Revenue", value: `₦${(campaign.revenue / 1000).toFixed(0)}k` },
+                { label: "Revenue", value: formatCompactMoney(campaign.revenue) },
               ].map(s => (
                 <div key={s.label} className="rounded-xl bg-muted/50 p-3">
                   <p className="font-display font-bold text-base">{s.value}</p>

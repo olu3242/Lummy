@@ -95,7 +95,7 @@ const AI_TIPS: Record<string, string[]> = {
     "Reply to all WhatsApp inquiries within 1 hour. Faster replies increase conversion by 45%.",
   ],
   customers: [
-    "You need 61 more customers this month! Encourage existing customers to refer a friend with a ₦500 credit reward.",
+    "You need 61 more customers this month! Encourage existing customers to refer a friend with a $5 credit reward.",
     "Post behind-the-scenes content 3× a week. Authenticity builds trust and attracts new buyers.",
     "Respond to every Instagram comment with your WhatsApp link. It converts at 22% when personalized.",
   ],
@@ -371,7 +371,7 @@ function EditGoalModal({ goal, onSave, onClose }: { goal: GoalTarget; onSave: (t
 function AddCustomGoalModal({ onSave, onClose }: { onSave: (g: CustomGoal) => void; onClose: () => void }) {
   const [label, setLabel] = React.useState("")
   const [target, setTarget] = React.useState("")
-  const [prefix, setPrefix] = React.useState("₦")
+  const [prefix, setPrefix] = React.useState("$")
   const [unit, setUnit] = React.useState("")
 
   const handleSave = () => {
@@ -406,7 +406,7 @@ function AddCustomGoalModal({ onSave, onClose }: { onSave: (g: CustomGoal) => vo
             <div className="space-y-1.5">
               <label className="text-xs font-semibold">Prefix</label>
               <div className="flex gap-1">
-                {["₦", "#", "", "€"].map(p => (
+                {["$", "#", "", "€"].map(p => (
                   <button key={p || "none"} onClick={() => setPrefix(p)}
                     className={cn("flex-1 h-8 rounded-xl border text-xs font-semibold transition-all",
                       prefix === p ? "border-brand-purple/30 bg-brand-purple/10 text-brand-purple" : "border-border hover:bg-muted")}>
@@ -470,7 +470,7 @@ function WeeklyBreakdown({ goals }: { goals: GoalTarget[] }) {
                 />
               </div>
               <span className="text-xs font-semibold text-right w-16 flex-shrink-0 text-foreground">
-                {isPast || isToday ? `₦${(v / 1000).toFixed(0)}k` : "—"}
+                {isPast || isToday ? `$${(v / 1000).toFixed(0)}k` : "—"}
               </span>
             </div>
           )
@@ -478,7 +478,7 @@ function WeeklyBreakdown({ goals }: { goals: GoalTarget[] }) {
       </div>
       <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
         <span>Week total so far</span>
-        <span className="font-bold text-foreground">₦{(data.slice(0, dayOfWeek + 1).reduce((s, v) => s + v, 0) / 1000).toFixed(0)}k</span>
+        <span className="font-bold text-foreground">${(data.slice(0, dayOfWeek + 1).reduce((s, v) => s + v, 0) / 1000).toFixed(0)}k</span>
       </div>
     </div>
   )
@@ -486,14 +486,14 @@ function WeeklyBreakdown({ goals }: { goals: GoalTarget[] }) {
 
 const MILESTONES_DATA: Milestone[] = [
   { id: "m1",  icon: Zap,         title: "First Sale",    desc: "Make your very first sale",              reward: "Welcome badge",               threshold: 1,       metric: "orders",    unlocked: true,  unlockedAt: "Oct 2024" },
-  { id: "m2",  icon: ShoppingBag, title: "10 Orders",     desc: "Complete 10 orders",                     reward: "₦500 credit",                 threshold: 10,      metric: "orders",    unlocked: true,  unlockedAt: "Oct 2024" },
-  { id: "m3",  icon: TrendingUp,  title: "₦100k Revenue", desc: "Earn ₦100,000 in total revenue",         reward: "Growth badge",                threshold: 100000,  metric: "revenue",   unlocked: true,  unlockedAt: "Nov 2024" },
+  { id: "m2",  icon: ShoppingBag, title: "10 Orders",     desc: "Complete 10 orders",                     reward: "$5 credit",                   threshold: 10,      metric: "orders",    unlocked: true,  unlockedAt: "Oct 2024" },
+  { id: "m3",  icon: TrendingUp,  title: "$1k Revenue",   desc: "Earn $1,000 in total revenue",           reward: "Growth badge",                threshold: 100000,  metric: "revenue",   unlocked: true,  unlockedAt: "Nov 2024" },
   { id: "m4",  icon: Users,       title: "50 Customers",  desc: "Serve 50 unique customers",              reward: "Community badge",             threshold: 50,      metric: "customers", unlocked: true,  unlockedAt: "Jan 2025" },
   { id: "m5",  icon: Star,        title: "5-Star Store",  desc: "Maintain a 4.8+ average rating",        reward: "Quality badge",               threshold: 5,       metric: "orders",    unlocked: true,  unlockedAt: "Feb 2025" },
   { id: "m6",  icon: Crown,       title: "100 Orders",    desc: "Complete 100 orders",                    reward: "Pro seller badge",            threshold: 100,     metric: "orders",    unlocked: true,  unlockedAt: "Mar 2025" },
-  { id: "m7",  icon: Trophy,      title: "₦500k Revenue", desc: "Earn ₦500,000 in total revenue",         reward: "₦2,000 credit",               threshold: 500000,  metric: "revenue",   unlocked: false },
+  { id: "m7",  icon: Trophy,      title: "$5k Revenue",   desc: "Earn $5,000 in total revenue",           reward: "$20 credit",                  threshold: 500000,  metric: "revenue",   unlocked: false },
   { id: "m8",  icon: Flame,       title: "200 Orders",    desc: "Complete 200 orders",                    reward: "Elite badge",                 threshold: 200,     metric: "orders",    unlocked: false },
-  { id: "m9",  icon: Crown,       title: "₦1M Revenue",   desc: "Hit ₦1,000,000 in total revenue",        reward: "₦5,000 credit + Pro upgrade", threshold: 1000000, metric: "revenue",   unlocked: false },
+  { id: "m9",  icon: Crown,       title: "$10k Revenue",  desc: "Hit $10,000 in total revenue",           reward: "$50 credit + Pro upgrade",    threshold: 1000000, metric: "revenue",   unlocked: false },
   { id: "m10", icon: Trophy,      title: "500 Customers", desc: "Build a community of 500 customers",     reward: "Community leader badge",      threshold: 500,     metric: "customers", unlocked: false },
 ]
 
@@ -554,7 +554,7 @@ export default function GoalsPage() {
       current: CURRENT_VALUES.revenue,
       target: targets.revenue,
       unit: "",
-      prefix: "₦",
+      prefix: "$",
       color: "text-brand-purple",
       bg: "bg-brand-purple/10",
       border: "border-brand-purple/20",
@@ -833,7 +833,7 @@ export default function GoalsPage() {
 
         <div className="space-y-2.5">
           {[
-            { icon: MessageCircle, text: "Broadcast a 15% flash sale to your 847 WhatsApp subscribers — you need ₦187k more revenue this month.", action: "Create broadcast", href: "/dashboard/broadcast" },
+            { icon: MessageCircle, text: "Broadcast a 15% flash sale to your 847 WhatsApp subscribers — you need $187 more revenue this month.", action: "Create broadcast", href: "/dashboard/broadcast" },
             { icon: ShoppingBag,   text: "Restock your Leather Mini Bag — it's your 3rd best seller and has been out of stock for 4 days.", action: "Go to products",   href: "/dashboard/products" },
             { icon: Target,        text: "You're on track for your orders goal! Post on TikTok today to push past 150 orders before end of month.", action: "Open calendar",   href: "/dashboard/calendar" },
           ].map((tip, i) => (

@@ -473,7 +473,7 @@ function PaymentsSection() {
           </div>
           <div>
             <p className="text-sm font-semibold">Growth Plan</p>
-            <p className="text-xs text-muted-foreground">₦4,000 / month · Renews Dec 1</p>
+            <p className="text-xs text-muted-foreground">$4.00 / month · Renews Dec 1</p>
           </div>
         </div>
         <Button size="sm" variant="outline" className="h-8 text-xs">Manage plan</Button>
@@ -523,7 +523,7 @@ function PaymentsSection() {
             </button>
           ))}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-2">Minimum payout: ₦5,000</p>
+        <p className="text-[10px] text-muted-foreground mt-2">Minimum payout: $5.00</p>
       </div>
 
       <SaveBar onSave={save} saved={saved} />

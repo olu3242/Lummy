@@ -513,7 +513,7 @@ export default function AnalyticsPage() {
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {(liveSummary ? [
-          { label: "Revenue (30d)",    value: `₦${(liveSummary.revenue_ngn / 100).toLocaleString("en-NG")}`, icon: TrendingUp,    color: "text-brand-purple" },
+          { label: "Revenue (30d)",    value: formatMoney(liveSummary.revenue_ngn / 100), icon: TrendingUp,    color: "text-brand-purple" },
           { label: "Orders (30d)",     value: liveSummary.orders.toLocaleString(),                            icon: ShoppingBag,   color: "text-brand-green"  },
           { label: "Store Views (30d)", value: liveSummary.storefront_views.toLocaleString(),                 icon: Eye,           color: "text-brand-coral"  },
           { label: "WA Clicks (30d)",  value: liveSummary.whatsapp_clicks.toLocaleString(),                   icon: MessageCircle, color: "text-amber-500"    },
@@ -585,7 +585,7 @@ export default function AnalyticsPage() {
                   </defs>
                   <XAxis dataKey="month" tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 9, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false}
-                    tickFormatter={v => aovMetric === "revenue" ? `₦${(v / 1000).toFixed(0)}k` : `₦${(v / 1000).toFixed(1)}k`} />
+                    tickFormatter={v => formatCompactMoney(v)} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey={aovMetric} stroke="#6C4EF3" strokeWidth={1.5} fill="url(#aovAreaGrad)" dot={false} activeDot={{ r: 3, fill: "#6C4EF3" }} />
                 </AreaChart>
@@ -624,7 +624,7 @@ export default function AnalyticsPage() {
         <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
           <div>
             <h2 className="font-display font-bold text-base">Revenue over time</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Monthly revenue in Naira</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Monthly revenue</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -666,7 +666,7 @@ export default function AnalyticsPage() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
               <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={v => `₦${(v / 1000).toFixed(0)}k`} />
+              <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} axisLine={false} tickLine={false} tickFormatter={v => formatCompactMoney(v)} />
               <Tooltip content={<CustomTooltip />} />
               {showComparison && <Area type="monotone" dataKey="prev" stroke="#6C4EF3" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#prevGrad)" dot={false} strokeOpacity={0.4} />}
               <Area type="monotone" dataKey="revenue" stroke="#6C4EF3" strokeWidth={2} fill="url(#revGrad)" dot={false} activeDot={{ r: 4, fill: "#6C4EF3" }} />
@@ -904,7 +904,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex sm:block items-center gap-2">
                 <span className="text-xs text-muted-foreground sm:hidden">Revenue: </span>
-                <p className="text-sm font-semibold text-brand-purple">₦{product.revenue.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-brand-purple">{formatMoney(product.revenue)}</p>
               </div>
               <div className="flex sm:block items-center gap-2">
                 <span className="text-xs text-muted-foreground sm:hidden">Growth: </span>
@@ -924,8 +924,8 @@ export default function AnalyticsPage() {
         <h2 className="font-display font-bold text-base mb-4">Year-end summary</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Total revenue",   value: "₦5.1M",  icon: TrendingUp,  color: "text-brand-purple" },
-            { label: "Avg order value", value: `₦${currentAOV.toLocaleString()}`, icon: ShoppingCart, color: "text-amber-500" },
+            { label: "Total revenue",   value: "$5.1M",  icon: TrendingUp,  color: "text-brand-purple" },
+            { label: "Avg order value", value: formatMoney(currentAOV), icon: ShoppingCart, color: "text-amber-500" },
             { label: "Total customers", value: "885",    icon: Users,        color: "text-brand-green" },
             { label: "Repeat rate",     value: "62%",    icon: UserCheck,    color: "text-brand-indigo" },
           ].map((s, i) => (

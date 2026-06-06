@@ -171,11 +171,11 @@ interface ActivityEntry {
 }
 
 const MOCK_ACTIVITY: ActivityEntry[] = [
-  { id: "a1", icon: "💳", title: "Payment received via Paystack", detail: "₦45,000 — Order #1042", time: "2 min ago", type: "success" },
+  { id: "a1", icon: "💳", title: "Payment received via Paystack", detail: "$45.00 — Order #1042", time: "2 min ago", type: "success" },
   { id: "a2", icon: "🚚", title: "Shipment dispatched via GIG", detail: "Tracking: GIG-9943821", time: "18 min ago", type: "success" },
   { id: "a3", icon: "💬", title: "WhatsApp notification sent", detail: "Order confirmation · 1 recipient", time: "21 min ago", type: "info" },
   { id: "a4", icon: "📸", title: "Instagram sync delayed", detail: "Product catalog update pending", time: "1 hr ago", type: "warning" },
-  { id: "a5", icon: "💳", title: "Payment received via Paystack", detail: "₦12,500 — Order #1041", time: "2 hr ago", type: "success" },
+  { id: "a5", icon: "💳", title: "Payment received via Paystack", detail: "$12.50 — Order #1041", time: "2 hr ago", type: "success" },
 ]
 
 function formatTimeAgo(iso: string) {

@@ -52,7 +52,7 @@ export async function generateProductDescription(
     const result = await callAgent({
       agent: "ngozi",
       type: "description",
-      prompt: `Write a compelling product description for "${productName}" at ₦${priceNgn.toLocaleString()}. ${additionalContext ?? ""} Max 150 words. Include key benefits and a CTA.`,
+      prompt: `Write a compelling product description for "${productName}" at $${priceNgn.toLocaleString()}. ${additionalContext ?? ""} Max 150 words. Include key benefits and a CTA.`,
       context: {},
       options: { maxTokens: 400 },
     })

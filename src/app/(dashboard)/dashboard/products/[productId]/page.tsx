@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { mockProducts, mockOrders, type DashboardProduct } from "@/data/mock/dashboard"
+import { formatMoney } from "@/lib/globalization"
 
 const STATUSES = ["active", "draft", "sold_out"] as const
 type ProductStatus = typeof STATUSES[number]
@@ -323,7 +324,7 @@ export default function ProductDetailPage() {
   }
 
   const buildWAShare = () => {
-    const msg = `Check out ${product.name} on my store! 🛍 Only ₦${product.price.toLocaleString()}. Order here: ${storeUrl}`
+    const msg = `Check out ${product.name} on my store! 🛍 Only ${formatMoney(product.price)}. Order here: ${storeUrl}`
     return `https://wa.me/?text=${encodeURIComponent(msg)}`
   }
 
@@ -370,7 +371,7 @@ export default function ProductDetailPage() {
   const statCards = [
     { label: "Total Views",  value: product.views.toLocaleString(),         icon: Eye,         color: "text-brand-purple", sub: "All time"     },
     { label: "Units Sold",   value: product.sales.toLocaleString(),          icon: ShoppingBag, color: "text-brand-green",  sub: "All time"     },
-    { label: "Revenue",      value: `₦${product.revenue.toLocaleString()}`,  icon: TrendingUp,  color: "text-amber-500",    sub: "Gross"        },
+    { label: "Revenue",      value: formatMoney(product.revenue),             icon: TrendingUp,  color: "text-amber-500",    sub: "Gross"        },
     { label: "Conversion",   value: `${conversion}%`,                        icon: BarChart3,   color: "text-brand-coral",  sub: "Views→Sales"  },
   ]
 
@@ -423,7 +424,7 @@ export default function ProductDetailPage() {
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Price</p>
               {editing === "price" ? (
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground">₦</span>
+                  <span className="text-xs text-muted-foreground">$</span>
                   <input autoFocus value={editPrice} onChange={(e) => setEditPrice(e.target.value)} type="number"
                     className="flex-1 w-full text-sm font-bold bg-transparent outline-none border-b border-brand-purple"
                     onKeyDown={(e) => { if (e.key === "Enter") saveEdit("price"); if (e.key === "Escape") setEditing(null) }} />
@@ -432,7 +433,7 @@ export default function ProductDetailPage() {
                 </div>
               ) : (
                 <div className="flex items-center justify-between group">
-                  <p className="text-sm font-bold text-brand-purple">₦{product.price.toLocaleString()}</p>
+                  <p className="text-sm font-bold text-brand-purple">{formatMoney(product.price)}</p>
                   <button onClick={() => startEdit("price")} className="opacity-0 group-hover:opacity-100 transition-opacity">
                     <Edit3 className="h-3 w-3 text-muted-foreground" />
                   </button>
@@ -466,7 +467,7 @@ export default function ProductDetailPage() {
             {/* Avg order */}
             <div className="rounded-xl border border-border p-3">
               <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Avg Order</p>
-              <p className="text-sm font-bold">₦{avgOrderVal.toLocaleString()}</p>
+              <p className="text-sm font-bold">{formatMoney(avgOrderVal)}</p>
             </div>
           </div>
 
@@ -670,7 +671,7 @@ export default function ProductDetailPage() {
               <RevenueBars data={MOCK_DAILY_REVENUE} />
               <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">Total this week</span>
-                <span className="font-bold text-brand-green">₦{weeklyRevenue.toLocaleString()}</span>
+                <span className="font-bold text-brand-green">{formatMoney(weeklyRevenue)}</span>
               </div>
             </div>
 
@@ -761,7 +762,7 @@ export default function ProductDetailPage() {
                           <StatusIcon className="h-2.5 w-2.5" />{osc.label}
                         </span>
                         <p className="text-sm font-semibold text-right">1</p>
-                        <p className="text-sm font-bold text-right text-brand-purple">₦{order.amount.toLocaleString()}</p>
+                        <p className="text-sm font-bold text-right text-brand-purple">{formatMoney(order.amount)}</p>
                       </motion.div>
                     )
                   })}

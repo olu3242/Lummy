@@ -57,17 +57,17 @@ function loadPrefs(): NotifPrefs {
 }
 
 const mockNotifications: Notification[] = [
-  { id: "N1",  type: "order",  title: "New Order Received",    body: "Chidi N. ordered Ankara Peplum Top (×2) — ₦28,000",                               time: "2 min ago",  read: false, group: "today",     pinned: true, cta: { label: "View order", href: "/dashboard/orders/LM1042" } },
-  { id: "N2",  type: "payout", title: "Payout Processed",      body: "₦125,000 has been sent to your GTBank account ending 4521",                        time: "1h ago",     read: false, group: "today",     cta: { label: "View payout", href: "/dashboard/payouts" } },
+  { id: "N1",  type: "order",  title: "New Order Received",    body: "Chidi N. ordered Ankara Peplum Top (×2) — $28.00",                                time: "2 min ago",  read: false, group: "today",     pinned: true, cta: { label: "View order", href: "/dashboard/orders/LM1042" } },
+  { id: "N2",  type: "payout", title: "Payout Processed",      body: "$125.00 has been sent to your GTBank account ending 4521",                         time: "1h ago",     read: false, group: "today",     cta: { label: "View payout", href: "/dashboard/payouts" } },
   { id: "N3",  type: "review", title: "New 5-Star Review",     body: "Amaka O. left a glowing review on Lace Iro & Buba: \"Absolutely beautiful fabric!\"",time: "3h ago",     read: false, group: "today",     cta: { label: "See review", href: "/dashboard/reviews" } },
-  { id: "N4",  type: "order",  title: "Order Confirmed",       body: "Funmi A. confirmed delivery of Men's Agbada Set — ₦45,000",                        time: "5h ago",     read: true,  group: "today",     cta: { label: "View order", href: "/dashboard/orders/LM1041" } },
-  { id: "N5",  type: "order",  title: "New Order Received",    body: "Bisi K. ordered Embroidered Kaftan (×1) — ₦22,500",                                time: "6h ago",     read: true,  group: "today",     cta: { label: "View order", href: "/dashboard/orders/LM1040" } },
+  { id: "N4",  type: "order",  title: "Order Confirmed",       body: "Funmi A. confirmed delivery of Men's Agbada Set — $45.00",                         time: "5h ago",     read: true,  group: "today",     cta: { label: "View order", href: "/dashboard/orders/LM1041" } },
+  { id: "N5",  type: "order",  title: "New Order Received",    body: "Bisi K. ordered Embroidered Kaftan (×1) — $22.50",                                 time: "6h ago",     read: true,  group: "today",     cta: { label: "View order", href: "/dashboard/orders/LM1040" } },
   { id: "N6",  type: "system", title: "WhatsApp Connected",    body: "Your WhatsApp Business number is now verified and active",                         time: "Yesterday",  read: true,  group: "yesterday" },
   { id: "N7",  type: "promo",  title: "Tip: Boost Your Sales", body: "Stores that reply within 1 hr get 3× more conversions. You're at 94% — great work!", time: "Yesterday", read: true,  group: "yesterday" },
-  { id: "N8",  type: "order",  title: "New Order Received",    body: "Tunde B. ordered Dashiki Shirt (×1) — ₦12,500",                                   time: "2 days ago", read: true,  group: "week",      cta: { label: "View order", href: "/dashboard/orders/LM1039" } },
+  { id: "N8",  type: "order",  title: "New Order Received",    body: "Tunde B. ordered Dashiki Shirt (×1) — $12.50",                                    time: "2 days ago", read: true,  group: "week",      cta: { label: "View order", href: "/dashboard/orders/LM1039" } },
   { id: "N9",  type: "review", title: "New 4-Star Review",     body: "Ngozi M. reviewed Adire Gown — \"Love it, but delivery took a bit long.\"",        time: "3 days ago", read: true,  group: "week",      cta: { label: "Respond", href: "/dashboard/reviews" } },
   { id: "N10", type: "system", title: "Product Restocked",     body: "Your automation restocked Men's Agbada Set to 15 units",                          time: "4 days ago", read: true,  group: "week" },
-  { id: "N11", type: "payout", title: "Payout Scheduled",      body: "₦87,500 will be processed this Friday (May 9)",                                    time: "5 days ago", read: true,  group: "earlier",   cta: { label: "View payouts", href: "/dashboard/payouts" } },
+  { id: "N11", type: "payout", title: "Payout Scheduled",      body: "$87.50 will be processed this Friday (May 9)",                                     time: "5 days ago", read: true,  group: "earlier",   cta: { label: "View payouts", href: "/dashboard/payouts" } },
   { id: "N12", type: "promo",  title: "Flash Sale Reminder",   body: "Your weekend flash sale starts in 2 days. 47 customers are on your broadcast list.", time: "6 days ago", read: true,  group: "earlier" },
 ]
 

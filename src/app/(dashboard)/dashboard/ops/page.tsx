@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney } from "@/lib/globalization"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1132,7 +1133,7 @@ export default function OpsPage() {
                   <p className="text-lg font-bold text-white">{seg.creatorCount}</p>
                   {seg.avgRevenueKobo > 0 && (
                     <p className="text-[10px] text-white/30 mt-0.5">
-                      avg ₦{(seg.avgRevenueKobo / 100).toLocaleString()}
+                      avg {formatMoney(seg.avgRevenueKobo / 100)}
                     </p>
                   )}
                 </div>
@@ -1199,13 +1200,13 @@ export default function OpsPage() {
                   <span className="text-white/50 font-medium">{outcomes.monetization.creatorsNoSales}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-white/60">Top tier (₦50k+ mo)</span>
+                  <span className="text-white/60">Top tier ($50k+ mo)</span>
                   <span className="text-brand-purple font-medium">{outcomes.monetization.topTierCount}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-white/60">Avg monthly revenue</span>
                   <span className="text-white font-medium">
-                    ₦{(outcomes.monetization.avgMonthlyRevenueKobo / 100).toLocaleString()}
+                    {formatMoney(outcomes.monetization.avgMonthlyRevenueKobo / 100)}
                   </span>
                 </div>
                 {outcomes.monetization.recentMilestones.length > 0 && (
@@ -1214,7 +1215,7 @@ export default function OpsPage() {
                     {outcomes.monetization.recentMilestones.slice(0, 3).map((m, i) => (
                       <div key={i} className="flex justify-between text-xs py-0.5">
                         <span className="text-white/50 capitalize">{m.milestoneKey.replace(/_/g, " ")}</span>
-                        <span className="text-white/30">{new Date(m.achievedAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}</span>
+                        <span className="text-white/30">{new Date(m.achievedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
                       </div>
                     ))}
                   </div>

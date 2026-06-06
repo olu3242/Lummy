@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,11 +58,11 @@ const mockReferrals: ReferredCreator[] = [
 ]
 
 const milestones = [
-  { count: 3,  reward: "₦5,000 bonus",       reached: true  },
+  { count: 3,  reward: "$5 bonus",            reached: true  },
   { count: 5,  reward: "1 month free Growth", reached: true  },
-  { count: 10, reward: "₦25,000 bonus",       reached: true  },
+  { count: 10, reward: "$25 bonus",           reached: true  },
   { count: 15, reward: "1 month free Pro",    reached: false },
-  { count: 25, reward: "₦100,000 bonus",      reached: false },
+  { count: 25, reward: "$100 bonus",          reached: false },
 ]
 
 const planConfig = {
@@ -110,7 +111,7 @@ function EarningsChart({ data }: { data: { month: string; amount: number }[] }) 
                   fontSize={8}
                   fontWeight={isLast ? "700" : "400"}
                 >
-                  {d.amount >= 1000 ? `₦${d.amount / 1000}k` : `₦${d.amount}`}
+                  {formatCompactMoney(d.amount)}
                 </text>
               )}
             </g>
@@ -282,7 +283,7 @@ export default function ReferralsPage() {
   const stats = [
     { label: "Total referrals",  value: String(mockReferrals.length), icon: Users,      color: "text-brand-purple", bg: "bg-brand-purple/10", change: "+3 this month" },
     { label: "Active creators",  value: String(activeReferrals.length), icon: BadgeCheck, color: "text-brand-green",  bg: "bg-brand-green/10",  change: `${Math.round(activeReferrals.length / mockReferrals.length * 100)}% conversion` },
-    { label: "Your earnings",    value: `₦${totalCommission.toLocaleString()}`, icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10", change: "+₦9k this month" },
+    { label: "Your earnings",    value: formatMoney(totalCommission), icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10", change: "+$9 this month" },
     { label: "Milestone",        value: "3×",  icon: Zap,        color: "text-brand-coral",  bg: "bg-brand-coral/10", change: "3 milestones reached" },
   ]
 
@@ -319,7 +320,7 @@ export default function ReferralsPage() {
           {[
             { step: "1", label: "Share your link",         desc: "Send your unique referral link to other creators" },
             { step: "2", label: "They join Lummy",         desc: "When they sign up and go live, you both win" },
-            { step: "3", label: "Earn cash & free months", desc: "Get ₦5k–₦100k bonuses based on referral milestones" },
+            { step: "3", label: "Earn cash & free months", desc: "Get $5–$100 bonuses based on referral milestones" },
           ].map((item) => (
             <div key={item.step} className="flex gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-purple text-white text-xs font-bold flex-shrink-0">
@@ -495,7 +496,7 @@ export default function ReferralsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Commission earned per month</p>
             </div>
             <div className="text-right">
-              <p className="font-bold text-lg text-brand-purple">₦{totalCommission.toLocaleString()}</p>
+              <p className="font-bold text-lg text-brand-purple">{formatMoney(totalCommission)}</p>
               <p className="text-[10px] text-muted-foreground">All time</p>
             </div>
           </div>
@@ -504,11 +505,11 @@ export default function ReferralsPage() {
           {/* Mini stats row */}
           <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-border">
             <div className="text-center">
-              <p className="font-bold text-sm">₦{monthlyEarnings.at(-1)!.amount.toLocaleString()}</p>
+              <p className="font-bold text-sm">{formatMoney(monthlyEarnings.at(-1)!.amount)}</p>
               <p className="text-[10px] text-muted-foreground">This month</p>
             </div>
             <div className="text-center border-x border-border">
-              <p className="font-bold text-sm">₦{totalNetworkRevenue.toLocaleString()}</p>
+              <p className="font-bold text-sm">{formatMoney(totalNetworkRevenue)}</p>
               <p className="text-[10px] text-muted-foreground">Network revenue</p>
             </div>
             <div className="text-center">
@@ -660,7 +661,7 @@ export default function ReferralsPage() {
                     </div>
                     <p className="text-xs text-muted-foreground hidden sm:block self-center">{creator.joinedAt}</p>
                     <p className="text-sm font-semibold hidden sm:block self-center">
-                      {creator.revenue > 0 ? `₦${creator.revenue.toLocaleString()}` : "—"}
+                      {creator.revenue > 0 ? formatMoney(creator.revenue) : "—"}
                     </p>
                     <div className="hidden sm:flex items-center self-center">
                       <span className={cn(
@@ -713,17 +714,17 @@ export default function ReferralsPage() {
                     </span>
                   </div>
                   <p className="text-sm font-semibold hidden sm:block self-center text-muted-foreground">
-                    ₦{creator.revenue.toLocaleString()}
+                    {formatMoney(creator.revenue)}
                   </p>
                   <p className="text-sm font-bold hidden sm:block self-center text-brand-green">
-                    +₦{creator.commission.toLocaleString()}
+                    +{formatMoney(creator.commission)}
                   </p>
                 </motion.div>
               ))}
             </div>
             <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">5% commission on active creator revenue</p>
-              <p className="text-sm font-bold text-brand-green">Total: ₦{totalCommission.toLocaleString()}</p>
+              <p className="text-sm font-bold text-brand-green">Total: {formatMoney(totalCommission)}</p>
             </div>
           </>
         )}
@@ -743,10 +744,10 @@ export default function ReferralsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold">Total earnings from referrals</p>
-              <p className="text-2xl font-bold text-amber-500 mt-0.5">₦{totalCommission.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-amber-500 mt-0.5">{formatMoney(totalCommission)}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Next payout: <strong>₦9,000</strong> on June 1st ·
-                <span className="text-brand-purple font-medium"> +₦25,000 bonus</span> once you reach 15 referrals
+                Next payout: <strong>$9.00</strong> on June 1st ·
+                <span className="text-brand-purple font-medium"> +$25.00 bonus</span> once you reach 15 referrals
               </p>
             </div>
             <Button size="sm" variant="outline" className="h-9 text-xs flex-shrink-0 gap-1.5">

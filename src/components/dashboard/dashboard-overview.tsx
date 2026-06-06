@@ -109,7 +109,7 @@ export async function DashboardOverview() {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Top-performing offer</p><p className="text-sm font-bold">{growth.topProduct?.title ?? 'No paid sales yet'}</p></div>
-        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Top offer revenue</p><p className="text-xl font-bold">₦{Math.round(growth.topProduct?.revenue ?? 0).toLocaleString()}</p></div>
+        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Top offer revenue</p><p className="text-xl font-bold">{formatMoney(Math.round(growth.topProduct?.revenue ?? 0))}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Customer value segment</p><p className="text-sm font-bold">{growth.highValueSegment}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Repeat purchase offers</p><p className="text-xl font-bold">{growth.repeatPurchaseProducts.length}</p></div>
       </div>

@@ -548,7 +548,7 @@ export default function AIPage() {
                 { label: "Restock Ankara Print Dress (12 units left)",      priority: "high",   tool: "restock" },
                 { label: "Restock Beaded Necklace Set (0 units — urgent!)", priority: "urgent", tool: "restock" },
                 { label: "Send VIP re-engagement broadcast (4 customers)",  priority: "medium", tool: "broadcast" },
-                { label: "Raise Leather Mini Bag price by ₦3,500",         priority: "medium", tool: "pricing" },
+                { label: "Raise Leather Mini Bag price by $3.50",           priority: "medium", tool: "pricing" },
                 { label: "Post new Ankara caption before end of week",      priority: "low",    tool: "caption" },
               ].map((action, i) => (
                 <div key={i} className="flex items-center justify-between gap-3">
@@ -612,7 +612,7 @@ export default function AIPage() {
                       <span className="text-xs font-bold text-brand-purple">{entry.tool}</span>
                       <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
                         <Clock className="h-2.5 w-2.5" />
-                        {new Date(entry.ts).toLocaleString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                        {new Date(entry.ts).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">

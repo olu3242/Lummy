@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { createClient } from "@/lib/supabase/client"
+import { formatMoney } from "@/lib/globalization"
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ function ProductPreviewCard({ form }: { form: FormState }) {
             <p className="text-xs text-muted-foreground mt-0.5">{form.category}</p>
           </div>
           <p className="font-display font-bold text-sm text-brand-purple flex-shrink-0">
-            {price > 0 ? `₦${price.toLocaleString()}` : "₦—"}
+            {price > 0 ? formatMoney(price) : "—"}
           </p>
         </div>
 
@@ -237,7 +238,7 @@ function ProductPreviewCard({ form }: { form: FormState }) {
           <div className="flex items-center gap-1"><ShoppingBag className="w-3 h-3" /><span>0 sales</span></div>
           <div className="w-px h-3 bg-border" />
           <div className="flex items-center gap-1"><Eye className="w-3 h-3" /><span>0 views</span></div>
-          <div className="ml-auto flex items-center gap-1 text-brand-green"><TrendingUp className="w-3 h-3" /><span>₦0</span></div>
+          <div className="ml-auto flex items-center gap-1 text-brand-green"><TrendingUp className="w-3 h-3" /><span>$0</span></div>
         </div>
       </div>
     </div>
@@ -424,9 +425,9 @@ function Step3({ form, setForm }: { form: FormState; setForm: React.Dispatch<Rea
       {/* Price + Stock */}
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <FieldLabel required>Price (₦)</FieldLabel>
+          <FieldLabel required>Price ($)</FieldLabel>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">₦</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground select-none">$</span>
             <input value={form.price} onChange={e => set("price", e.target.value.replace(/\D/g, ""))}
               placeholder="18000"
               className={cn(inputCls, "pl-7")} />
@@ -502,7 +503,7 @@ function Step3({ form, setForm }: { form: FormState; setForm: React.Dispatch<Rea
           </div>
           <div className="flex items-center justify-between">
             <span>Price</span>
-            <span className="font-medium text-brand-purple">{form.price ? `₦${Number(form.price).toLocaleString()}` : "—"}</span>
+            <span className="font-medium text-brand-purple">{form.price ? formatMoney(Number(form.price)) : "—"}</span>
           </div>
           <div className="flex items-center justify-between">
             <span>Stock</span>

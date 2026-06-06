@@ -72,9 +72,9 @@ const FAQ_ITEMS: FAQ[] = [
   { q: "How does the AI Assistant work?", tags: ["ai", "features"],
     a: "Lummy AI is powered by Claude (Anthropic). It helps you write product descriptions, Instagram captions, restock messages, and campaign briefs. Just type what you need on the AI Assistant page." },
   { q: "What is the Refer & Earn programme?", tags: ["referrals", "billing"],
-    a: "Share your referral link with other creators. When they sign up and go live, you earn cash bonuses (₦5k–₦100k) and free plan months based on how many active referrals you have." },
+    a: "Share your referral link with other creators. When they sign up and go live, you earn cash bonuses and free plan months based on how many active referrals you have." },
   { q: "How do payouts work?", tags: ["payouts", "billing"],
-    a: "Payouts are processed every Tuesday and Friday. The minimum withdrawal is ₦5,000 with a 1.5% processing fee (capped at ₦1,500). Funds arrive in your bank account within 1–2 business days." },
+    a: "Payouts are processed every Tuesday and Friday. A 1.5% processing fee applies. Funds arrive in your bank account within 1–2 business days." },
   { q: "Can I set business hours?", tags: ["store", "setup"],
     a: "Yes — go to Store → Store Info and enable Business Hours. You can set opening and closing times for each day of the week, and your storefront will show your availability to customers." },
 ]

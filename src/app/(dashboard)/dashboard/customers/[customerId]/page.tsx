@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 interface Customer {
   id: string; name: string; phone: string; location: string
@@ -69,14 +70,14 @@ const mockOrdersByCustomer: Record<string, OrderRecord[]> = {
 
 const activityByCustomer: Record<string, ActivityItem[]> = {
   c1: [
-    { id: "a1", type: "order",          title: "Order placed",         body: "Ankara Print Dress · ₦18,500",         date: "May 10, 2026" },
+    { id: "a1", type: "order",          title: "Order placed",         body: "Ankara Print Dress · $18.50",          date: "May 10, 2026" },
     { id: "a2", type: "message",        title: "WhatsApp sent",        body: "New arrivals message sent",             date: "May 3, 2026"  },
-    { id: "a3", type: "order",          title: "Order placed",         body: "Embroidered Blouse · ₦14,500",          date: "Apr 18, 2026" },
+    { id: "a3", type: "order",          title: "Order placed",         body: "Embroidered Blouse · $14.50",           date: "Apr 18, 2026" },
     { id: "a4", type: "review",         title: "Left a 5-star review", body: "\"Beautiful craftsmanship!\"",          date: "Apr 20, 2026" },
-    { id: "a5", type: "segment_change", title: "Upgraded to VIP",      body: "Crossed ₦100k lifetime spend",         date: "Mar 15, 2026" },
-    { id: "a6", type: "order",          title: "Order placed",         body: "Beaded Necklace Set · ₦24,000",        date: "Mar 29, 2026" },
+    { id: "a5", type: "segment_change", title: "Upgraded to VIP",      body: "Crossed $1,000 lifetime spend",        date: "Mar 15, 2026" },
+    { id: "a6", type: "order",          title: "Order placed",         body: "Beaded Necklace Set · $24.00",          date: "Mar 29, 2026" },
     { id: "a7", type: "note",           title: "Note added",           body: "Prefers M-L, loves Ankara prints",     date: "Feb 20, 2026" },
-    { id: "a8", type: "order",          title: "Order placed",         body: "Leather Tote Bag · ₦32,000",           date: "Feb 14, 2026" },
+    { id: "a8", type: "order",          title: "Order placed",         body: "Leather Tote Bag · $32.00",             date: "Feb 14, 2026" },
   ],
 }
 
@@ -362,8 +363,8 @@ export default function CustomerProfilePage() {
   const spendRank    = customer.segment === "vip" ? "Top 10%" : customer.segment === "repeat" ? "Top 30%" : "All customers"
 
   const statCards = [
-    { label: "Lifetime Value",  value: `₦${customer.totalSpend.toLocaleString()}`,   icon: TrendingUp, color: "text-brand-purple", sub: spendRank },
-    { label: "Total Orders",    value: customer.totalOrders.toString(),               icon: ShoppingBag,color: "text-brand-green",  sub: `Avg ₦${customer.avgOrderValue.toLocaleString()}` },
+    { label: "Lifetime Value",  value: formatMoney(customer.totalSpend),              icon: TrendingUp, color: "text-brand-purple", sub: spendRank },
+    { label: "Total Orders",    value: customer.totalOrders.toString(),               icon: ShoppingBag,color: "text-brand-green",  sub: `Avg ${formatMoney(customer.avgOrderValue)}` },
     { label: "Fav Category",    value: customer.favouriteCategory,                    icon: Tag,        color: "text-amber-500",    sub: "Most purchased" },
     { label: "Next Order",      value: nextOrderIn === 0 ? "Overdue" : `~${nextOrderIn}d`, icon: Calendar, color: nextOrderIn === 0 ? "text-brand-coral" : "text-brand-green", sub: `Avg every ${intervalDays} days` },
   ]
@@ -498,7 +499,7 @@ export default function CustomerProfilePage() {
                             <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold w-fit", sc.bg, sc.color)}>
                               <StatusIcon className="h-2.5 w-2.5" />{sc.label}
                             </span>
-                            <p className="text-sm font-bold text-right text-brand-purple">₦{order.amount.toLocaleString()}</p>
+                            <p className="text-sm font-bold text-right text-brand-purple">{formatMoney(order.amount)}</p>
                           </motion.div>
                         )
                       })}
@@ -519,7 +520,7 @@ export default function CustomerProfilePage() {
                       const pct = (v / maxSpend) * 100
                       const isLast = i === spendMonths.length - 1
                       return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group" title={`₦${v.toLocaleString()}`}>
+                        <div key={i} className="flex-1 flex flex-col items-center gap-1 group" title={formatMoney(v)}>
                           <motion.div initial={{ height: 0 }} animate={{ height: `${pct}%` }}
                             transition={{ delay: i * 0.08, type: "spring", damping: 20 }}
                             className={cn("w-full rounded-t-md transition-colors",
@@ -537,7 +538,7 @@ export default function CustomerProfilePage() {
                       <p key={m} className="flex-1 text-center text-[9px] text-muted-foreground">{m}</p>
                     ))}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2">Total: <span className="font-semibold text-foreground">₦{customer.totalSpend.toLocaleString()}</span> across {customer.totalOrders} orders</p>
+                  <p className="text-[10px] text-muted-foreground mt-2">Total: <span className="font-semibold text-foreground">{formatMoney(customer.totalSpend)}</span> across {customer.totalOrders} orders</p>
                 </div>
 
                 {/* Category breakdown */}
@@ -552,7 +553,7 @@ export default function CustomerProfilePage() {
                       <div key={row.category}>
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-xs font-medium">{row.category}</span>
-                          <span className="text-xs text-muted-foreground">₦{row.amount.toLocaleString()} ({row.pct}%)</span>
+                          <span className="text-xs text-muted-foreground">{formatMoney(row.amount)} ({row.pct}%)</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                           <motion.div initial={{ width: 0 }} animate={{ width: `${row.pct}%` }}

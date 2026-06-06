@@ -7,6 +7,7 @@ import {
   Star, Award, Lock, Play, Share2, BadgeCheck, Rocket,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -138,9 +139,7 @@ const CHURN_CONFIG = {
 
 function fmt(kobo: number): string {
   const n = kobo / 100
-  if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}m`
-  if (n >= 1_000)     return `₦${(n / 1_000).toFixed(1)}k`
-  return `₦${n.toLocaleString()}`
+  return formatCompactMoney(n)
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -349,7 +348,7 @@ function MilestonesPanel({ lifecycle }: { lifecycle: LifecycleData }) {
             <p className={cn("text-xs font-medium", m.achieved ? "text-white" : "text-white/40")}>{m.label}</p>
             {m.achieved && m.achievedAt && (
               <p className="text-[9px] text-white/25 mt-0.5">
-                {new Date(m.achievedAt).toLocaleDateString("en-NG", { month: "short", day: "numeric" })}
+                {new Date(m.achievedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
               </p>
             )}
             {!m.achieved && (
@@ -661,7 +660,7 @@ export default function InsightsPage() {
         <div>
           <h1 className="font-display text-2xl font-bold text-white">Insights</h1>
           <p className="text-white/40 text-sm mt-1">
-            Refreshed {lastRefresh.toLocaleTimeString("en-NG", { hour: "2-digit", minute: "2-digit" })}
+            Refreshed {lastRefresh.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
           </p>
         </div>
         <button

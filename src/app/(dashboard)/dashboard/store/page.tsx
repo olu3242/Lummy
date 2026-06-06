@@ -908,7 +908,7 @@ export default function StorePage() {
                             <input
                               value={settings.announcement.text}
                               onChange={e => update({ announcement: { ...settings.announcement, text: e.target.value } })}
-                              placeholder="🎉 Free delivery on orders above ₦15,000!"
+                              placeholder="🎉 Free delivery on orders above $15!"
                               maxLength={100}
                               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors"
                             />

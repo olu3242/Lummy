@@ -61,7 +61,7 @@ interface BroadcastRecord {
 
 const SEGMENTS: SegmentOption[] = [
   { id: "all",      label: "All customers",    count: 1247, description: "Your entire customer base",             color: "text-foreground",    bg: "bg-muted" },
-  { id: "vip",      label: "VIP",              count: 89,   description: "Spent ₦50k+, 5+ orders",               color: "text-amber-500",     bg: "bg-amber-500/10" },
+  { id: "vip",      label: "VIP",              count: 89,   description: "Spent $500+, 5+ orders",               color: "text-amber-500",     bg: "bg-amber-500/10" },
   { id: "repeat",   label: "Repeat buyers",    count: 412,  description: "2+ orders, actively buying",            color: "text-brand-purple",  bg: "bg-brand-purple/10" },
   { id: "new",      label: "New customers",    count: 234,  description: "First order in last 30 days",           color: "text-brand-green",   bg: "bg-brand-green/10" },
   { id: "at-risk",  label: "At risk",          count: 187,  description: "No order in 30–60 days",                color: "text-brand-coral",   bg: "bg-brand-coral/10" },
@@ -102,7 +102,7 @@ const TEMPLATES: MessageTemplate[] = [
     icon: Megaphone,
     label: "Flash sale",
     category: "Promo",
-    body: "⚡ FLASH SALE — {storeName}!\n\nHi {firstName}, for the next 24 HOURS only:\n\n🔥 Up to 30% off selected items\n🚚 Free delivery on orders above ₦15,000\n\nShop now: {storeUrl}\n\nSale ends midnight tonight! 🕛",
+    body: "⚡ FLASH SALE — {storeName}!\n\nHi {firstName}, for the next 24 HOURS only:\n\n🔥 Up to 30% off selected items\n🚚 Free delivery on qualifying orders\n\nShop now: {storeUrl}\n\nSale ends midnight tonight! 🕛",
   },
   {
     id: "t6",
@@ -414,7 +414,7 @@ Use {storeName} and {storeUrl} as shortcuts."
                   {scheduledAt && (
                     <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                       <CalendarClock className="h-3 w-3" />
-                      Scheduled for {new Date(scheduledAt).toLocaleString("en-NG", { dateStyle: "medium", timeStyle: "short" })}
+                      Scheduled for {new Date(scheduledAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
                     </p>
                   )}
                 </motion.div>
@@ -503,7 +503,7 @@ Use {storeName} and {storeUrl} as shortcuts."
                 { label: "Recipients",   value: segment.count.toLocaleString() },
                 { label: "Segment",      value: segment.label },
                 { label: "Channel",      value: "WhatsApp" },
-                { label: scheduled && scheduledAt ? "Scheduled for" : "Est. delivery", value: scheduled && scheduledAt ? new Date(scheduledAt).toLocaleDateString("en-NG", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "~2 minutes" },
+                { label: scheduled && scheduledAt ? "Scheduled for" : "Est. delivery", value: scheduled && scheduledAt ? new Date(scheduledAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "~2 minutes" },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">{row.label}</span>

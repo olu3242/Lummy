@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 interface Customer {
   id: string; name: string; phone: string; location: string
@@ -65,7 +66,7 @@ const segments = ["All", "VIP", "Repeat", "New", "At Risk"]
 
 const stats = [
   { label: "Total Customers",  value: "1,247",   icon: Users,      color: "text-brand-purple", change: "+23 this month" },
-  { label: "Avg. Order Value", value: "₦18,400", icon: ShoppingBag,color: "text-brand-green",  change: "+12% vs last month" },
+  { label: "Avg. Order Value", value: formatMoney(18400), icon: ShoppingBag,color: "text-brand-green",  change: "+12% vs last month" },
   { label: "Repeat Rate",      value: "64%",      icon: TrendingUp, color: "text-amber-500",    change: "Industry avg: 40%" },
   { label: "VIP Customers",    value: "89",       icon: Star,       color: "text-brand-coral",  change: "7.1% of base" },
 ]
@@ -483,7 +484,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
             <p className="text-xs text-muted-foreground mt-0.5">Orders</p>
           </div>
           <div className="px-4 py-4 text-center">
-            <p className="font-display font-extrabold text-xl text-brand-purple">₦{(customer.totalSpend / 1000).toFixed(0)}k</p>
+            <p className="font-display font-extrabold text-xl text-brand-purple">{formatMoney(customer.totalSpend)}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Spent</p>
           </div>
           <div className="px-4 py-4 text-center">
@@ -529,7 +530,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
                     <p className="text-xs font-semibold truncate">{order.product}</p>
                     <p className="text-[10px] text-muted-foreground">{order.date}</p>
                   </div>
-                  <p className="text-xs font-bold text-brand-purple flex-shrink-0">₦{order.amount.toLocaleString()}</p>
+                  <p className="text-xs font-bold text-brand-purple flex-shrink-0">{formatMoney(order.amount)}</p>
                 </div>
               )
             })}
@@ -600,7 +601,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
 }
 
 function exportCustomersCSV(customers: Customer[]) {
-  const headers = ["Name", "Phone", "Email", "Location", "Orders", "Total Spend (₦)", "Segment", "LTV Score", "Last Order", "Last Product", "On WhatsApp"]
+  const headers = ["Name", "Phone", "Email", "Location", "Orders", "Total Spend ($)", "Segment", "LTV Score", "Last Order", "Last Product", "On WhatsApp"]
   const rows = customers.map(c => [
     c.name, c.phone, c.email ?? "", c.location,
     c.totalOrders, c.totalSpend, c.segment, c.ltv, c.lastOrderDate, c.lastProduct, c.isOnWhatsApp ? "Yes" : "No",
@@ -913,7 +914,7 @@ export default function CRMPage() {
                       </div>
                       {/* Spend */}
                       <div className="flex items-center sm:block">
-                        <p className="text-sm font-semibold text-brand-purple">₦{customer.totalSpend.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-brand-purple">{formatMoney(customer.totalSpend)}</p>
                       </div>
                       {/* LTV */}
                       <div className="flex items-center sm:block">

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
   const productUrl = `${appUrl}/${creator.handle}?product=${productId}`
 
   // Format price for display (prices stored in smallest currency unit)
-  const displayPrice = new Intl.NumberFormat("en-NG", {
+  const displayPrice = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: row.currency || "USD",
     maximumFractionDigits: 0,

@@ -21,6 +21,7 @@ import { type DashboardProduct } from "@/data/mock/dashboard"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useUpload } from "@/hooks/use-upload"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 
@@ -114,7 +115,7 @@ function StatsRow({ products }: { products: DashboardProduct[] }) {
 
   const stats = [
     { label: "Active products", value: active, icon: ShoppingBag, color: "text-brand-green", bg: "bg-brand-green/10", suffix: "" },
-    { label: "Total revenue",   value: `₦${(totalRevenue / 1000).toFixed(0)}k`, icon: TrendingUp, color: "text-brand-purple", bg: "bg-brand-purple/10", suffix: "" },
+    { label: "Total revenue",   value: formatCompactMoney(totalRevenue), icon: TrendingUp, color: "text-brand-purple", bg: "bg-brand-purple/10", suffix: "" },
     { label: "Total views",     value: totalViews.toLocaleString(), icon: Eye, color: "text-brand-coral", bg: "bg-brand-coral/10", suffix: "" },
     { label: "Low stock alerts", value: lowStock, icon: AlertTriangle, color: lowStock > 0 ? "text-amber-500" : "text-muted-foreground", bg: lowStock > 0 ? "bg-amber-500/10" : "bg-muted", suffix: "" },
   ]
@@ -203,7 +204,7 @@ function ProductRow({
       </span>
 
       <p className="font-display font-bold text-sm text-brand-purple flex-shrink-0 w-24 text-right">
-        ₦{product.price.toLocaleString()}
+        {formatMoney(product.price)}
       </p>
 
       <div className="hidden lg:flex items-center gap-3 text-xs text-muted-foreground flex-shrink-0">
@@ -315,7 +316,7 @@ function ProductCard({
             <Link href={`/dashboard/products/${product.id}`} className="font-semibold text-sm truncate hover:text-brand-purple transition-colors block">{product.name}</Link>
             <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
           </div>
-          <p className="font-display font-bold text-sm text-brand-purple flex-shrink-0">₦{product.price.toLocaleString()}</p>
+          <p className="font-display font-bold text-sm text-brand-purple flex-shrink-0">{formatMoney(product.price)}</p>
         </div>
 
         <div className="mt-3 flex items-center gap-3 pt-3 border-t border-border text-xs text-muted-foreground">
@@ -331,7 +332,7 @@ function ProductCard({
           </div>
           <div className="ml-auto flex items-center gap-1 text-brand-green">
             <TrendingUp className="w-3 h-3" />
-            <span className="font-semibold">₦{(product.revenue / 1000).toFixed(0)}k</span>
+            <span className="font-semibold">{formatCompactMoney(product.revenue)}</span>
           </div>
         </div>
 
@@ -495,9 +496,9 @@ function ProductDrawer({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <FieldLabel required>Price (₦)</FieldLabel>
+              <FieldLabel required>Price</FieldLabel>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">₦</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                 <input value={form.price} onChange={(e) => set("price", e.target.value.replace(/\D/g, ""))}
                   placeholder="18000" className={cn(inputCls, "pl-7")} />
               </div>
@@ -716,7 +717,7 @@ export default function ProductsPage() {
   }
 
   const exportCSV = () => {
-    const header = ["Name", "Category", "Price (₦)", "Stock", "Status", "Sales", "Revenue (₦)"]
+    const header = ["Name", "Category", "Price", "Stock", "Status", "Sales", "Revenue"]
     const rows = products.map(p => [
       `"${p.name}"`, p.category, p.price, p.stock ?? "unlimited", p.status, p.sales, p.revenue,
     ].join(","))

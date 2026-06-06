@@ -26,7 +26,7 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
   React.useEffect(() => {
     if (!isInView) return
     // Extract numeric part and suffix
-    const match = value.match(/^([₦]?)(\d[\d,.]*)([\w+%★\s]*)$/)
+    const match = value.match(/^([$€£₦]?)(\d[\d,.]*)([\w+%★\s]*)$/)
     if (!match) { setDisplay(value); return }
     const [, prefix, numStr, suffix] = match
     const target = parseFloat(numStr.replace(/,/g, ""))

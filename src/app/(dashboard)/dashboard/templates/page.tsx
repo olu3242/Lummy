@@ -62,7 +62,7 @@ function fillPlaceholders(message: string): string {
 
 const INITIAL_TEMPLATES: Template[] = [
   { id: "t1", category: "orders", name: "Order Confirmed", uses: 247,
-    message: "Hi {name}! 🎉 Thank you so much for your order!\n\n*Order details:*\n📦 {product}\n💰 ₦{amount}\n📋 Order ID: {orderId}\n\nWe're preparing your order with love and care. You'll hear from us once it ships! 💜\n\n— {storeName}" },
+    message: "Hi {name}! 🎉 Thank you so much for your order!\n\n*Order details:*\n📦 {product}\n💰 {amount}\n📋 Order ID: {orderId}\n\nWe're preparing your order with love and care. You'll hear from us once it ships! 💜\n\n— {storeName}" },
   { id: "t2", category: "orders", name: "Order Processing", uses: 183,
     message: "Hi {name}! 🛍️ Great news — your order is being prepared!\n\n*{product}* is currently being packaged and will be ready for dispatch within 24 hours.\n\nWe'll send you a tracking update once it's with the courier. Thank you for your patience! 💜" },
   { id: "t3", category: "orders", name: "Out of Stock Apology", uses: 89,
@@ -80,7 +80,7 @@ const INITIAL_TEMPLATES: Template[] = [
   { id: "t9", category: "promotions", name: "VIP Early Access", uses: 156,
     message: "💜 *VIP EARLY ACCESS*\n\nHi {name}, as one of our most valued customers, you get first access to our new collection before it goes public!\n\nUse link: {storeUrl}/vip\nPassword: *{password}*\n\nValid for 24 hours only. Thank you for being amazing! 🌟" },
   { id: "t10", category: "promotions", name: "Referral Reward", uses: 93,
-    message: "🎁 *You've earned a reward!*\n\nHi {name}! Thank you for referring *{friend}* to {storeName}.\n\nAs our gift to you:\n💰 ₦{amount} store credit\n🎟️ Bonus code: *{code}*\n\nYour credit will be applied on your next order automatically. You're the best! 💜" },
+    message: "🎁 *You've earned a reward!*\n\nHi {name}! Thank you for referring *{friend}* to {storeName}.\n\nAs our gift to you:\n💰 {amount} store credit\n🎟️ Bonus code: *{code}*\n\nYour credit will be applied on your next order automatically. You're the best! 💜" },
   { id: "t11", category: "support", name: "Size Guide Response", uses: 134,
     message: "Hi {name}! 😊 Happy to help with sizing!\n\nHere's our size guide for *{product}*:\n\n📏 *S* — Bust 32-34\", Waist 26-28\"\n📏 *M* — Bust 34-36\", Waist 28-30\"\n📏 *L* — Bust 36-38\", Waist 30-32\"\n📏 *XL* — Bust 38-40\", Waist 32-34\"\n\nWe recommend sizing up if you prefer a relaxed fit. What size are you usually? 💜" },
   { id: "t12", category: "support", name: "Return Policy", uses: 67,

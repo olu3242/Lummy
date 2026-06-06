@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function EarningsChart({ data }: { data: { month: string; value: number }[] }) {
             />
             {isCurrent && (
               <text x={x + barW / 2} y={H - bh - 5} textAnchor="middle" fontSize="8" fontWeight="bold" fill="#6C4EF3">
-                ₦{Math.round(d.value / 1000)}k
+                {formatCompactMoney(Math.round(d.value / 1000))}
               </text>
             )}
             <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.45">
@@ -145,7 +146,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div>
                 <h2 className="font-display text-lg font-extrabold">Withdraw Funds</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Available: <strong className="text-foreground">₦{balance.toLocaleString()}</strong></p>
+                <p className="text-xs text-muted-foreground mt-0.5">Available: <strong className="text-foreground">{formatMoney(balance)}</strong></p>
               </div>
               <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border hover:bg-accent">
                 <X className="h-4 w-4" />
@@ -155,7 +156,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
               <div>
                 <label className="block text-xs font-semibold mb-2">Enter amount</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display font-bold text-xl text-muted-foreground">₦</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display font-bold text-xl text-muted-foreground">$</span>
                   <input
                     autoFocus inputMode="numeric"
                     value={rawAmount ? parseInt(rawAmount.replace(/\D/g, ""), 10).toLocaleString() : ""}
@@ -168,7 +169,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   {[50000, 100000, 200000].map(v => (
                     <button key={v} onClick={() => setRawAmount(String(v))}
                       className="flex-1 h-7 rounded-lg border border-border text-[11px] font-semibold hover:bg-accent transition-colors">
-                      ₦{v / 1000}k
+                      {formatCompactMoney(v / 1000)}
                     </button>
                   ))}
                   <button onClick={() => setRawAmount(String(balance))}
@@ -183,22 +184,22 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   className="rounded-xl bg-muted/50 border border-border p-3 space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Amount</span>
-                    <span className="font-semibold">₦{amount.toLocaleString()}</span>
+                    <span className="font-semibold">{formatMoney(amount)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Processing fee (1.5%)</span>
-                    <span className="font-semibold text-brand-coral">−₦{fee.toLocaleString()}</span>
+                    <span className="font-semibold text-brand-coral">−{formatMoney(fee)}</span>
                   </div>
                   <div className="flex justify-between border-t border-border pt-2 text-sm font-bold">
                     <span>You receive</span>
-                    <span className="text-brand-green">₦{net.toLocaleString()}</span>
+                    <span className="text-brand-green">{formatMoney(net)}</span>
                   </div>
                 </motion.div>
               )}
 
               {amount > 0 && amount < MIN_WITHDRAWAL && (
                 <p className="text-xs text-brand-coral flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" /> Minimum withdrawal is ₦{MIN_WITHDRAWAL.toLocaleString()}
+                  <AlertCircle className="h-3.5 w-3.5" /> Minimum withdrawal is {formatMoney(MIN_WITHDRAWAL)}
                 </p>
               )}
               {amount > balance && (
@@ -232,13 +233,13 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                     <Banknote className="h-5 w-5 text-brand-green" />
                   </div>
                   <div>
-                    <p className="font-display text-xl font-extrabold text-brand-green">₦{net.toLocaleString()}</p>
+                    <p className="font-display text-xl font-extrabold text-brand-green">{formatMoney(net)}</p>
                     <p className="text-[10px] text-muted-foreground">Amount you&apos;ll receive</p>
                   </div>
                 </div>
                 {[
-                  { label: "Withdrawal amount", value: `₦${amount.toLocaleString()}` },
-                  { label: "Processing fee",     value: `-₦${fee.toLocaleString()}` },
+                  { label: "Withdrawal amount", value: formatMoney(amount) },
+                  { label: "Processing fee",     value: `-${formatMoney(fee)}` },
                   { label: "Settlement time",    value: "1–2 business days" },
                 ].map(r => (
                   <div key={r.label} className="flex justify-between text-xs">
@@ -281,7 +282,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <h2 className="font-display text-xl font-extrabold">Withdrawal Requested!</h2>
               <p className="text-sm text-muted-foreground mt-1.5">
-                <strong className="text-foreground">₦{net.toLocaleString()}</strong> will arrive in your GTBank account within 1–2 business days.
+                <strong className="text-foreground">{formatMoney(net)}</strong> will arrive in your GTBank account within 1–2 business days.
               </p>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
@@ -290,7 +291,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full">
               <Button className="w-full h-10" onClick={() => {
-                toast({ title: "Withdrawal submitted", description: `₦${net.toLocaleString()} is on its way to your bank.`, variant: "success" })
+                toast({ title: "Withdrawal submitted", description: `${formatMoney(net)} is on its way to your bank.`, variant: "success" })
                 onClose()
               }}>Done</Button>
             </motion.div>
@@ -345,7 +346,7 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
         <div className="px-5 py-4 space-y-4">
           {/* Amount */}
           <div className="text-center py-3">
-            <p className="font-display text-3xl font-extrabold">₦{payout.amount.toLocaleString()}</p>
+            <p className="font-display text-3xl font-extrabold">{formatMoney(payout.amount)}</p>
             <span className={cn("inline-block mt-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full", cfg.color)}>
               {cfg.label}
             </span>
@@ -354,9 +355,9 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
           {/* Details */}
           <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden text-xs">
             {[
-              { label: "Gross amount",    value: `₦${payout.amount.toLocaleString()}` },
-              { label: "Processing fee",  value: `-₦${fee.toLocaleString()}`, red: true },
-              { label: "Net received",    value: `₦${net.toLocaleString()}`, green: true },
+              { label: "Gross amount",    value: formatMoney(payout.amount) },
+              { label: "Processing fee",  value: `-${formatMoney(fee)}`, red: true },
+              { label: "Net received",    value: formatMoney(net), green: true },
               { label: "Bank account",    value: payout.method },
               { label: "Settlement",      value: "1–2 business days" },
             ].map(row => (
@@ -407,7 +408,7 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
 // ─── Export helper ─────────────────────────────────────────────────────────────
 
 function exportPayoutsCSV() {
-  const header = ["ID", "Date", "Amount (₦)", "Method", "Reference", "Status"]
+  const header = ["ID", "Date", "Amount ($)", "Method", "Reference", "Status"]
   const rows = mockPayouts.map(p => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
@@ -460,9 +461,9 @@ export default function PayoutsPage() {
       {/* Balance cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Available Balance", value: `₦${balance.toLocaleString()}`,    icon: Wallet,     color: "text-brand-purple", bg: "bg-brand-purple/10" },
-          { label: "Pending Clearance", value: `₦${PENDING.toLocaleString()}`,    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
-          { label: "Total Paid Out",    value: `₦${totalPaid.toLocaleString()}`,  icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10" },
+          { label: "Available Balance", value: formatMoney(balance),    icon: Wallet,     color: "text-brand-purple", bg: "bg-brand-purple/10" },
+          { label: "Pending Clearance", value: formatMoney(PENDING),    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
+          { label: "Total Paid Out",    value: formatMoney(totalPaid),  icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10" },
         ].map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="rounded-2xl border border-border bg-card p-5">
@@ -505,7 +506,7 @@ export default function PayoutsPage() {
                 <Calendar className="h-4 w-4 text-brand-purple" />
               </div>
               <div>
-                <p className="font-display text-lg font-extrabold">₦{NEXT_PAYOUT_AMOUNT.toLocaleString()}</p>
+                <p className="font-display text-lg font-extrabold">{formatMoney(NEXT_PAYOUT_AMOUNT)}</p>
                 <p className="text-[10px] text-muted-foreground">{NEXT_PAYOUT_DATE}</p>
               </div>
             </div>
@@ -514,8 +515,8 @@ export default function PayoutsPage() {
           <div className="border-t border-border pt-4 space-y-2.5">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Projection</p>
             {[
-              { label: "This month (est.)", value: "₦340,000", up: true },
-              { label: "Next month (est.)", value: "₦385,000", up: true },
+              { label: "This month (est.)", value: "$340", up: true },
+              { label: "Next month (est.)", value: "$385", up: true },
             ].map(row => (
               <div key={row.label} className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{row.label}</span>
@@ -648,7 +649,7 @@ export default function PayoutsPage() {
                         <cfg.icon className={cn("h-4 w-4", cfg.color.split(" ")[1])} />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold">₦{payout.amount.toLocaleString()}</p>
+                        <p className="text-sm font-semibold">{formatMoney(payout.amount)}</p>
                         <p className="text-xs text-muted-foreground">{payout.date} · {payout.method}</p>
                       </div>
                     </div>
@@ -669,8 +670,8 @@ export default function PayoutsPage() {
         className="rounded-2xl border border-border bg-muted/30 p-4 flex gap-3">
         <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Minimum withdrawal is <strong className="text-foreground">₦5,000</strong>. Payouts are processed every Tuesday and Friday.
-          A <strong className="text-foreground">1.5% fee</strong> applies (capped at ₦1,500). Bank verification takes 1–2 minutes.
+          Minimum withdrawal applies. Payouts are processed every Tuesday and Friday.
+          A <strong className="text-foreground">1.5% fee</strong> applies. Bank verification takes 1–2 minutes.
         </p>
       </motion.div>
 

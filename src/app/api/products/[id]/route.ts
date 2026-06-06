@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         const { data: storefront } = await supabase
           .from("storefronts").select("handle").eq("organization_id", organizationId).maybeSingle()
         const productRow = data as { title?: string; price?: number }
-        const priceNaira = `₦${Math.round((productRow.price ?? 0) / 100).toLocaleString()}`
+        const priceNaira = `$${Math.round((productRow.price ?? 0) / 100).toLocaleString()}`
         void sendProductPublishedEmail({
           to: user.email,
           creatorName: user.email.split("@")[0]!,
