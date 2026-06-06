@@ -8,6 +8,7 @@ import {
   MapPin, Phone, Calendar, Hash, Zap,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { formatMoney } from "@/lib/globalization"
 import { cn } from "@/lib/utils"
 
 type InvoiceStatus = "pending" | "confirmed" | "shipped" | "delivered"
@@ -18,6 +19,7 @@ interface InvoiceData {
   date: string
   dueDate: string
   status: InvoiceStatus
+  currency: string
   seller: { name: string; store: string; phone: string; handle: string; address: string }
   customer: { name: string; phone: string; address: string }
   items: { name: string; category: string; qty: number; unitPrice: number }[]
@@ -43,12 +45,13 @@ function getMockInvoice(orderId: string): InvoiceData {
     date: "May 1, 2026",
     dueDate: "May 8, 2026",
     status: statusMap[orderId] ?? "confirmed",
+    currency: "NGN",
     seller: {
       name: "Creator",
       store: "Your Store",
       phone: "+234 803 456 7890",
-      handle: "your-store",
-      address: "14 Bode Thomas Street, Surulere, Lagos",
+      handle: "",
+      address: "",
     },
     customer: {
       name: "Amaka Okonkwo",
@@ -71,6 +74,7 @@ export function InvoiceClient({ orderId }: { orderId: string }) {
   const subtotal = invoice.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
   const total = subtotal + invoice.deliveryFee
   const statusCfg = statusConfig[invoice.status]
+  const fmt = (n: number) => formatMoney(n, invoice.currency)
 
   const handleShare = () => {
     const url = window.location.href
@@ -81,7 +85,7 @@ export function InvoiceClient({ orderId }: { orderId: string }) {
   }
 
   const whatsappUrl = `https://wa.me/${invoice.customer.phone.replace(/\D/g, "")}?text=${encodeURIComponent(
-    `Hi ${invoice.customer.name.split(" ")[0]}! Here's your invoice (${invoice.invoiceNumber}) from ${invoice.seller.store} — Total: ₦${total.toLocaleString()}. View it here: ${typeof window !== "undefined" ? window.location.href : ""}`
+    `Hi ${invoice.customer.name.split(" ")[0]}! Here's your invoice (${invoice.invoiceNumber}) from ${invoice.seller.store} — Total: ${fmt(total)}. View it here: ${typeof window !== "undefined" ? window.location.href : ""}`
   )}`
 
   return (
@@ -185,8 +189,8 @@ export function InvoiceClient({ orderId }: { orderId: string }) {
                   <p className="text-[10px] text-muted-foreground">{item.category}</p>
                 </div>
                 <p className="text-sm text-center self-center">{item.qty}</p>
-                <p className="text-sm text-right self-center">₦{item.unitPrice.toLocaleString()}</p>
-                <p className="text-sm font-semibold text-right self-center">₦{(item.qty * item.unitPrice).toLocaleString()}</p>
+                <p className="text-sm text-right self-center">{fmt(item.unitPrice)}</p>
+                <p className="text-sm font-semibold text-right self-center">{fmt(item.qty * item.unitPrice)}</p>
               </div>
             ))}
           </div>
@@ -194,13 +198,13 @@ export function InvoiceClient({ orderId }: { orderId: string }) {
           {/* Totals */}
           <div className="space-y-2 ml-auto max-w-xs">
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span>
+              <span>Subtotal</span><span>{fmt(subtotal)}</span>
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Delivery fee</span><span>₦{invoice.deliveryFee.toLocaleString()}</span>
+              <span>Delivery fee</span><span>{fmt(invoice.deliveryFee)}</span>
             </div>
             <div className="flex justify-between text-sm font-extrabold border-t border-border pt-2">
-              <span>Total</span><span className="text-brand-purple">₦{total.toLocaleString()}</span>
+              <span>Total</span><span className="text-brand-purple">{fmt(total)}</span>
             </div>
           </div>
 

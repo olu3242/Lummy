@@ -43,7 +43,7 @@ const mockCampaigns: Campaign[] = [
     id: "c1", name: "Mother's Day Sale 🌸", status: "active", goal: "sales",
     channels: ["whatsapp", "instagram"], startDate: "May 5, 2026", endDate: "May 12, 2026",
     reach: 2840, clicks: 412, orders: 67, revenue: 1239500,
-    ctaUrl: "lummy.co/your-store?utm_campaign=mothers-day",
+    ctaUrl: "lummy.co/store?utm_campaign=mothers-day",
     audience: "All customers",
     message: "Hi! 🌸 Mother's Day is around the corner. Treat your mum to something special — 15% off all orders this week only! Shop now 👇",
   },
@@ -51,14 +51,14 @@ const mockCampaigns: Campaign[] = [
     id: "c2", name: "New Ankara Collection Drop", status: "scheduled", goal: "sales",
     channels: ["instagram", "tiktok"], startDate: "May 15, 2026",
     reach: 0, clicks: 0, orders: 0, revenue: 0,
-    ctaUrl: "lummy.co/your-store/new-arrivals",
+    ctaUrl: "lummy.co/store/new-arrivals",
     audience: "VIP customers",
   },
   {
     id: "c3", name: "Restock Alert — Leather Bags", status: "ended", goal: "restock",
     channels: ["whatsapp"], startDate: "Apr 18, 2026", endDate: "Apr 25, 2026",
     reach: 1340, clicks: 289, orders: 43, revenue: 645000,
-    ctaUrl: "lummy.co/your-store/leather-bag",
+    ctaUrl: "lummy.co/store/leather-bag",
     audience: "All customers",
     message: "They're BACK! 🛍️ Our bestselling leather mini bags are restocked. Limited qty — grab yours before they sell out again!",
   },
@@ -66,7 +66,7 @@ const mockCampaigns: Campaign[] = [
     id: "c4", name: "Win Back At-Risk Customers", status: "ended", goal: "reengagement",
     channels: ["whatsapp"], startDate: "Apr 1, 2026", endDate: "Apr 7, 2026",
     reach: 320, clicks: 87, orders: 18, revenue: 270000,
-    ctaUrl: "lummy.co/your-store",
+    ctaUrl: "lummy.co/store",
     audience: "At-risk customers",
     message: "Hi! We miss you 💜 It's been a while — here's a 10% discount code just for you: COMEBACK10. Valid for 7 days!",
   },
@@ -74,7 +74,7 @@ const mockCampaigns: Campaign[] = [
     id: "c5", name: "Summer Body Promo", status: "draft", goal: "awareness",
     channels: ["instagram", "tiktok"], startDate: "Jun 1, 2026",
     reach: 0, clicks: 0, orders: 0, revenue: 0,
-    ctaUrl: "lummy.co/your-store/summer",
+    ctaUrl: "lummy.co/store/summer",
     audience: "All customers",
   },
 ]
@@ -255,7 +255,7 @@ const emptyForm: NewCampaignForm = {
   name: "", goal: "sales", channels: ["whatsapp"], audience: "All customers", startDate: "", message: "",
 }
 
-function CreateDrawer({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: (c: Campaign) => void }) {
+function CreateDrawer({ open, onClose, onCreated, storeHandle }: { open: boolean; onClose: () => void; onCreated: (c: Campaign) => void; storeHandle: string }) {
   const [form, setForm] = React.useState<NewCampaignForm>(emptyForm)
   const [saving, setSaving] = React.useState(false)
   const [aiGenerating, setAiGenerating] = React.useState(false)
@@ -309,7 +309,7 @@ function CreateDrawer({ open, onClose, onCreated }: { open: boolean; onClose: ()
         startDate: form.startDate || new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
         reach: 0, clicks: 0, orders: 0, revenue: 0,
         audience: form.audience,
-        ctaUrl: `lummy.co/your-store?utm_campaign=${form.name.toLowerCase().replace(/\s+/g, "-")}`,
+        ctaUrl: `lummy.co/${storeHandle || ""}?utm_campaign=${form.name.toLowerCase().replace(/\s+/g, "-")}`,
         message: form.message,
       }
       setSaving(false)
@@ -584,6 +584,14 @@ export default function CampaignsPage() {
   const [activeFilter, setActiveFilter] = React.useState<"all" | CampaignStatus>("all")
   const [createOpen, setCreateOpen] = React.useState(false)
   const [selectedCampaign, setSelectedCampaign] = React.useState<Campaign | null>(null)
+  const [storeHandle, setStoreHandle] = React.useState("")
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.handle) setStoreHandle(data.storefront.handle) })
+      .catch(() => {})
+  }, [])
 
   const filtered = activeFilter === "all" ? campaigns : campaigns.filter(c => c.status === activeFilter)
 
@@ -658,6 +666,7 @@ export default function CampaignsPage() {
             open={createOpen}
             onClose={() => setCreateOpen(false)}
             onCreated={(c) => { setCampaigns(prev => [c, ...prev]); setCreateOpen(false) }}
+            storeHandle={storeHandle}
           />
         )}
       </AnimatePresence>

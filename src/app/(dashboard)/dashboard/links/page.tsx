@@ -439,8 +439,15 @@ export default function LinksPage() {
     setLinks(loadLinks())
   }, [])
 
-  const handle = "your-store"
-  const bioUrl = `https://lummy.co/${handle}/links`
+  const [handle, setHandle] = React.useState("")
+  const bioUrl = handle ? `https://lummy.co/${handle}/links` : ""
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.handle) setHandle(data.storefront.handle) })
+      .catch(() => {})
+  }, [])
 
   React.useEffect(() => { saveLinks(links) }, [links])
 

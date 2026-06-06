@@ -20,7 +20,7 @@ import { toast } from "@/hooks/use-toast"
 import { mockProducts } from "@/data/mock/dashboard"
 import { formatMoney } from "@/lib/globalization"
 
-const DISPLAY_CURRENCY = "USD"
+// Currency is loaded dynamically from the store's currency_code (see useEffect in NewOrderPage)
 
 const RECENT_CUSTOMERS = [
   { id: "c1", name: "Adaeze Okonkwo",  phone: "+234 803 456 7890" },
@@ -84,16 +84,17 @@ const PROMO_CODES: Record<string, number> = {
   "VIP25":   25,
 }
 
-function buildConfirmationMsg(items: OrderItem[], customer: CustomerForm, total: number, payment: PaymentMethod, orderId: string): string {
-  const itemLines = items.map(i => `• ${i.name} × ${i.qty} — ${formatMoney(i.price * i.qty, DISPLAY_CURRENCY)}`).join("\n")
+function buildConfirmationMsg(items: OrderItem[], customer: CustomerForm, total: number, payment: PaymentMethod, orderId: string, currency: string): string {
+  const itemLines = items.map(i => `• ${i.name} × ${i.qty} — ${formatMoney(i.price * i.qty, currency)}`).join("\n")
   const payNote = payment === "cash" ? "Cash on delivery" : payment === "transfer" ? "Bank transfer" : payment === "paystack" ? "Payment link sent" : "WhatsApp payment"
-  return `🛍️ *Order Confirmed*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ${formatMoney(total, DISPLAY_CURRENCY)} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
+  return `🛍️ *Order Confirmed*\n\nHi ${customer.name}! 💜 Thank you for your order.\n\n*Order #${orderId}*\n\n${itemLines}\n\n🚚 Delivery to: ${customer.city}, ${customer.state}\n💰 Total: ${formatMoney(total, currency)} (incl. delivery)\n💳 Payment: ${payNote}\n\nWe'll be in touch shortly with updates. Thank you for choosing us! 💜`
 }
 
-function ProductPicker({ selected, onAdd, onClose }: {
+function ProductPicker({ selected, onAdd, onClose, currency }: {
   selected: string[]
   onAdd: (productId: string) => void
   onClose: () => void
+  currency: string
 }) {
   const [q, setQ] = React.useState("")
   const results = mockProducts.filter(p =>
@@ -140,7 +141,7 @@ function ProductPicker({ selected, onAdd, onClose }: {
                     <p className="text-[10px] text-muted-foreground">{p.category} · {p.stock !== null ? `${p.stock} in stock` : "Unlimited"}</p>
                   </div>
                   <div className="flex-shrink-0 text-right">
-                    <p className="text-xs font-bold text-brand-purple">{formatMoney(p.price, p.currency ?? DISPLAY_CURRENCY)}</p>
+                    <p className="text-xs font-bold text-brand-purple">{formatMoney(p.price, p.currency ?? currency)}</p>
                     {added && <Badge variant="brand" size="sm">Added</Badge>}
                   </div>
                 </button>
@@ -157,9 +158,10 @@ function ProductPicker({ selected, onAdd, onClose }: {
 }
 
 /** Custom item (not in catalog) modal */
-function CustomItemModal({ onAdd, onClose }: {
+function CustomItemModal({ onAdd, onClose, currency }: {
   onAdd: (item: OrderItem) => void
   onClose: () => void
+  currency: string
 }) {
   const [name, setName] = React.useState("")
   const [price, setPrice] = React.useState("")
@@ -183,7 +185,7 @@ function CustomItemModal({ onAdd, onClose }: {
               className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
           </div>
           <div>
-            <label className="text-xs font-semibold block mb-1.5">Price ({DISPLAY_CURRENCY}) *</label>
+            <label className="text-xs font-semibold block mb-1.5">Price ({currency}) *</label>
             <input type="number" value={price} onChange={e => setPrice(e.target.value)} placeholder="5000" min="0"
               className="w-full h-9 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
           </div>
@@ -259,6 +261,15 @@ function CustomerAutocomplete({ value, onSelect }: {
 
 export default function NewOrderPage() {
   const router = useRouter()
+  const [DISPLAY_CURRENCY, setDisplayCurrency] = React.useState("NGN")
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.currency_code) setDisplayCurrency(data.storefront.currency_code) })
+      .catch(() => {})
+  }, [])
+
   const [items, setItems]             = React.useState<OrderItem[]>([])
   const [customer, setCustomer]       = React.useState<CustomerForm>(emptyCustomer)
   const [payment, setPayment]         = React.useState<PaymentMethod>("cash")
@@ -313,7 +324,7 @@ export default function NewOrderPage() {
   React.useEffect(() => {
     setOrderId(`LM${Math.floor(1000 + Math.random() * 9000)}`)
   }, [])
-  const confirmMsg = buildConfirmationMsg(items, customer, total, payment, orderId)
+  const confirmMsg = buildConfirmationMsg(items, customer, total, payment, orderId, DISPLAY_CURRENCY)
 
   const copyMsg = () => {
     navigator.clipboard.writeText(confirmMsg)
@@ -739,6 +750,7 @@ export default function NewOrderPage() {
           selected={items.map(i => i.productId)}
           onAdd={addProduct}
           onClose={() => setPickerOpen(false)}
+          currency={DISPLAY_CURRENCY}
         />
       )}
 
@@ -748,6 +760,7 @@ export default function NewOrderPage() {
             key="custom"
             onAdd={addCustomItem}
             onClose={() => setCustomOpen(false)}
+            currency={DISPLAY_CURRENCY}
           />
         )}
       </AnimatePresence>

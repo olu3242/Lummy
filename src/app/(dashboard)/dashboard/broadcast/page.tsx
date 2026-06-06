@@ -122,15 +122,13 @@ const HISTORY: BroadcastRecord[] = [
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const STORE_NAME = "Your Store"
-const STORE_URL = "lummy.co/your-store"
 const DRAFT_KEY = "lummy_broadcast_draft"
 
-function previewMessage(body: string, firstName = "Kemi") {
+function previewMessage(body: string, storeName: string, storeUrl: string, firstName = "Kemi") {
   return body
     .replace(/{firstName}/g, firstName)
-    .replace(/{storeName}/g, STORE_NAME)
-    .replace(/{storeUrl}/g, STORE_URL)
+    .replace(/{storeName}/g, storeName || "Your Store")
+    .replace(/{storeUrl}/g, storeUrl || "lummy.co/")
     .replace(/{productName}/g, "Ankara Print Dress")
 }
 
@@ -140,6 +138,21 @@ function loadDraft(): string {
 }
 
 export default function BroadcastPage() {
+  const [storeName, setStoreName] = React.useState("")
+  const [storeUrl, setStoreUrl] = React.useState("")
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        const handle = data.storefront?.handle ?? ""
+        setStoreName(data.organization?.name ?? "")
+        setStoreUrl(handle ? `lummy.co/${handle}` : "")
+      })
+      .catch(() => {})
+  }, [])
+
   const [selectedSegment, setSelectedSegment] = React.useState<Segment>("all")
   const [message, setMessage] = React.useState("")
   const [selectedTemplate, setSelectedTemplate] = React.useState<string | null>(null)
@@ -477,7 +490,7 @@ Use {storeName} and {storeUrl} as shortcuts."
                 <div className="max-w-[85%] bg-[#dcf8c6] dark:bg-[#1f5c35] rounded-2xl rounded-tr-sm px-3.5 py-2.5 shadow-sm">
                   {message ? (
                     <p className="text-xs text-[#111] dark:text-[#e0e0e0] leading-relaxed whitespace-pre-wrap">
-                      {previewMessage(message)}
+                      {previewMessage(message, storeName, storeUrl)}
                     </p>
                   ) : (
                     <p className="text-xs text-[#999] italic">Your message will appear here…</p>

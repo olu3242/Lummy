@@ -37,7 +37,7 @@ import {
 } from "lucide-react"
 import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
+import { createClient } from "@/lib/supabase/client"
 
 interface NavItem {
   label: string
@@ -103,8 +103,40 @@ interface SidebarProps {
   onClose: () => void
 }
 
+type SidebarProfile = {
+  name: string
+  handle: string
+  storeName: string
+  storeUrl: string
+  avatarUrl: string | null
+  verified: boolean
+}
+
+function useSidebarProfile(): SidebarProfile | null {
+  const [profile, setProfile] = React.useState<SidebarProfile | null>(null)
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data) return
+        const handle = data.storefront?.handle ?? ""
+        setProfile({
+          name: data.profile?.full_name ?? data.user?.email?.split("@")[0] ?? "",
+          handle,
+          storeName: data.organization?.name ?? "",
+          storeUrl: handle ? `lummy.co/${handle}` : "",
+          avatarUrl: data.profile?.avatar_url ?? null,
+          verified: true,
+        })
+      })
+      .catch(() => {})
+  }, [])
+  return profile
+}
+
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const profile = useSidebarProfile()
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -127,15 +159,23 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Store quick-info */}
       <div className="px-4 py-3 mx-3 mt-3 rounded-2xl bg-white/4 border border-white/6 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-xl overflow-hidden flex-shrink-0">
-            <Image src={mockCreatorProfile.avatar} alt="Store" fill className="object-cover" unoptimized />
+          <div className="relative w-8 h-8 rounded-xl overflow-hidden flex-shrink-0 bg-brand-purple/20 flex items-center justify-center">
+            {profile?.avatarUrl ? (
+              <Image src={profile.avatarUrl} alt={profile.storeName} fill className="object-cover" unoptimized />
+            ) : (
+              <Store className="w-4 h-4 text-brand-purple" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.storeName}</p>
-              {mockCreatorProfile.verified && <BadgeCheck className="w-3 h-3 text-brand-purple flex-shrink-0" />}
+              <p className="text-white text-xs font-semibold truncate">
+                {profile?.storeName || <span className="text-white/30">Loading…</span>}
+              </p>
+              {profile?.verified && <BadgeCheck className="w-3 h-3 text-brand-purple flex-shrink-0" />}
             </div>
-            <p className="text-white/40 text-[10px] truncate">{mockCreatorProfile.storeUrl}</p>
+            <p className="text-white/40 text-[10px] truncate">
+              {profile?.storeUrl || ""}
+            </p>
           </div>
           <Link href="/dashboard/store" className="flex-shrink-0 p-1 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
             <ChevronRight className="w-3.5 h-3.5" />
@@ -190,12 +230,18 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Creator profile footer */}
       <div className="flex-shrink-0 border-t border-white/5 p-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
+          <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20 bg-brand-purple/20 flex items-center justify-center">
+            {profile?.avatarUrl ? (
+              <Image src={profile.avatarUrl} alt={profile.name} fill className="object-cover" unoptimized />
+            ) : (
+              <span className="text-xs font-bold text-brand-purple">
+                {profile?.name?.charAt(0).toUpperCase() ?? "?"}
+              </span>
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.name}</p>
-            <p className="text-white/40 text-[10px] truncate">@{mockCreatorProfile.handle}</p>
+            <p className="text-white text-xs font-semibold truncate">{profile?.name ?? ""}</p>
+            <p className="text-white/40 text-[10px] truncate">{profile?.handle ? `@${profile.handle}` : ""}</p>
           </div>
           <Link href="/dashboard/settings" className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition-colors">
             <Settings className="w-3.5 h-3.5" />
