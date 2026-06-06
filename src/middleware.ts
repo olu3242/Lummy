@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { updateSession } from "@/lib/supabase/middleware"
 
-const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/ops", "/developers"]
+const PROTECTED_PREFIXES = ["/dashboard", "/onboarding", "/ops", "/developers", "/admin"]
 const AUTH_ROUTES = ["/login", "/signup"]
 // Auth infrastructure routes — never redirect these, even if unauthenticated
 const AUTH_PASSTHROUGH = ["/api/auth/", "/auth/"]
