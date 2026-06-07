@@ -29,3 +29,7 @@ Thumbs.db
 
 # Turbo
 .turbo
+
+supabase/.temp/
+
+supabase/.temp/
