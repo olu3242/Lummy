@@ -30,9 +30,13 @@ export async function completeOnboarding(input: {
 
   await saveOnboardingProfile({ full_name: input.fullName, phone: input.phone, country: input.country, currency: input.currency, onboarding_step: 'organization' });
   const organization = await ensureOrganizationForUser({ userId: auth.user.id, orgName: input.orgName, country: input.country, currency: input.currency });
+  // Update org with user's chosen store name, locale, and currency. When bootstrap
+  // (ensureCreatorRuntimeContext) ran first, it creates an org with a generic name —
+  // this is the authoritative write of the name the creator typed in the wizard.
   await supabase
     .from('organizations')
     .update({
+      name: input.orgName,
       country: input.country ?? 'US',
       currency: input.currency ?? 'USD',
       country_code: input.country ?? 'US',
@@ -70,18 +74,25 @@ export async function completeOnboarding(input: {
 
   // Upsert creator_profiles so getCreatorByHandle() can resolve WhatsApp + store_schema.
   // is_published = true makes the creator discoverable on public storefront.
+  // NOTE: creator_profiles.handle has CHECK('^[a-z0-9._-]{3,50}$') — dots are now allowed
+  // after migration 075 relaxed the constraint. Storefronts and creator_profiles share handles.
   const cleanHandle = input.handle.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
-  await supabase.from('creator_profiles').upsert(
+  const creatorProfileResult = await supabase.from('creator_profiles').upsert(
     {
-      user_id:       auth.user.id,
-      handle:        cleanHandle,
-      business_name: input.orgName,
-      whatsapp_number: input.phone,
-      is_published:  true,
+      user_id:         auth.user.id,
+      handle:          cleanHandle,
+      business_name:   input.orgName,
+      whatsapp_number: input.phone || 'pending',
+      is_published:    true,
       onboarding_completed: true,
     },
     { onConflict: 'user_id' },
   );
+  if (creatorProfileResult.error) {
+    // Non-fatal: log but don't block dashboard access. The public.users backfill in
+    // migration 075 should prevent this, but guard against any residual FK issues.
+    console.error('[completeOnboarding] creator_profiles upsert failed:', creatorProfileResult.error.message);
+  }
 
   // Write canonical onboarding_states record for future continuity bootstrap.
   // Uses upsert so re-running completeOnboarding is idempotent.
