@@ -2,9 +2,14 @@ import { createClient } from '@/lib/supabase/server';
 
 export async function createProduct(organizationId: string, input: { title: string; price: number; description?: string; image_url?: string; status?: string; currency?: string }) {
   const supabase = createClient();
+  const title = input.title?.trim();
+  const price = Number(input.price);
+  if (!title) throw new Error('Product title is required');
+  if (!Number.isInteger(price) || price <= 0) throw new Error('Product price must be a positive integer in minor units');
+
   return supabase
     .from('products')
-    .insert({ organization_id: organizationId, title: input.title, price: input.price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active', currency: input.currency ?? 'USD' })
+    .insert({ organization_id: organizationId, title, price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active', currency: input.currency ?? 'USD' })
     .select('*')
     .single();
 }

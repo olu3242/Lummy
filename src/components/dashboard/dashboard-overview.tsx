@@ -51,23 +51,39 @@ const emptyGrowth = {
   growthInsights: [] as string[],
 }
 
-async function safeQuery<T>(query: () => Promise<T>, fallback: T): Promise<T> {
+async function safeQuery<T>(name: string, query: () => Promise<T>, fallback: T): Promise<T> {
   try {
-    return await query()
+    const result = await query()
+    return result ?? fallback
   } catch (error) {
-    console.error("[DashboardOverview]", error)
+    const err = error as { code?: string; message?: string; details?: string; hint?: string }
+    console.error("[dashboard.bootstrap]", {
+      query: name,
+      code: err?.code,
+      message: err?.message ?? String(error),
+      details: err?.details,
+      hint: err?.hint,
+    })
     return fallback
   }
 }
 
 export async function DashboardOverview() {
   const [summary, aiSummary, customerMemory, ops, growth] = await Promise.all([
-    safeQuery(getDashboardPaymentSummary, emptyPaymentSummary),
-    safeQuery(getAiConversionSummary, emptyAiSummary),
-    safeQuery(getCustomerMemorySummary, emptyCustomerMemory),
-    safeQuery(getDashboardOpsSummary, emptyOps),
-    safeQuery(getGrowthIntelligenceSummary, emptyGrowth),
+    safeQuery("getDashboardPaymentSummary", getDashboardPaymentSummary, emptyPaymentSummary),
+    safeQuery("getAiConversionSummary", getAiConversionSummary, emptyAiSummary),
+    safeQuery("getCustomerMemorySummary", getCustomerMemorySummary, emptyCustomerMemory),
+    safeQuery("getDashboardOpsSummary", getDashboardOpsSummary, emptyOps),
+    safeQuery("getGrowthIntelligenceSummary", getGrowthIntelligenceSummary, emptyGrowth),
   ])
+  const safeGrowthInsights = Array.isArray(growth.growthInsights) ? growth.growthInsights : []
+  const safeReorderOpportunities = Array.isArray(growth.reorderOpportunities) ? growth.reorderOpportunities : []
+  const safeUpsellOpportunities = Array.isArray(growth.upsellOpportunities) ? growth.upsellOpportunities : []
+  const safeAiInsights = Array.isArray(aiSummary.aiInsights) ? aiSummary.aiInsights : []
+  const safeCustomerOpportunities = Array.isArray(customerMemory.opportunities) ? customerMemory.opportunities : []
+  const safeRecentRevenue = Array.isArray(summary.recentRevenue) ? summary.recentRevenue : []
+  const safeSources = Array.isArray(summary.sources) ? summary.sources : []
+  const safeRepeatPurchaseProducts = Array.isArray(growth.repeatPurchaseProducts) ? growth.repeatPurchaseProducts : []
   const stats = [
     { id: "revenue", label: "Total Revenue", value: `₦${summary.totalRevenue.toLocaleString()}`, rawValue: summary.totalRevenue, change: summary.totalOrders > 0 ? `${summary.conversionRate}% paid` : "0% paid", trend: "up" as const, icon: "Wallet", color: "text-brand-green", bg: "bg-brand-green/10" },
     { id: "orders", label: "Total Orders", value: summary.totalOrders.toLocaleString(), rawValue: summary.totalOrders, change: `${summary.paidOrders} paid · ${summary.pendingPayments} pending`, trend: "up" as const, icon: "ShoppingBag", color: "text-brand-purple", bg: "bg-brand-purple/10" },
@@ -100,9 +116,10 @@ export async function DashboardOverview() {
       <div className="rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold">Growth Opportunities</p>
         <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground space-y-1">
-          {growth.growthInsights.map((insight) => <li key={insight}>{insight}</li>)}
-          {growth.reorderOpportunities[0] ? <li>{growth.reorderOpportunities[0]}</li> : null}
-          {growth.upsellOpportunities[0] ? <li>{growth.upsellOpportunities[0]}</li> : null}
+          {safeGrowthInsights.map((insight) => <li key={insight}>{insight}</li>)}
+          {safeReorderOpportunities[0] ? <li>{safeReorderOpportunities[0]}</li> : null}
+          {safeUpsellOpportunities[0] ? <li>{safeUpsellOpportunities[0]}</li> : null}
+          {safeGrowthInsights.length === 0 && !safeReorderOpportunities[0] && !safeUpsellOpportunities[0] ? <li>No growth signals yet.</li> : null}
         </ul>
       </div>
 
@@ -110,13 +127,13 @@ export async function DashboardOverview() {
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Top-performing offer</p><p className="text-sm font-bold">{growth.topProduct?.title ?? 'No paid sales yet'}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Top offer revenue</p><p className="text-xl font-bold">₦{Math.round(growth.topProduct?.revenue ?? 0).toLocaleString()}</p></div>
         <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Customer value segment</p><p className="text-sm font-bold">{growth.highValueSegment}</p></div>
-        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Repeat purchase offers</p><p className="text-xl font-bold">{growth.repeatPurchaseProducts.length}</p></div>
+        <div className="rounded-2xl border border-border bg-card p-4"><p className="text-xs text-muted-foreground">Repeat purchase offers</p><p className="text-xl font-bold">{safeRepeatPurchaseProducts.length}</p></div>
       </div>
       <div className="rounded-2xl border border-border bg-card p-4">
         <p className="text-sm font-semibold">AI Revenue Insights</p>
         <ul className="mt-2 list-disc pl-5 text-xs text-muted-foreground space-y-1">
-          {aiSummary.aiInsights.map((insight) => <li key={insight}>{insight}</li>)}
-          <li>{customerMemory.opportunities[0] ?? 'No immediate repeat-revenue opportunity detected.'}</li>
+          {safeAiInsights.map((insight) => <li key={insight}>{insight}</li>)}
+          <li>{safeCustomerOpportunities[0] ?? 'No immediate repeat-revenue opportunity detected.'}</li>
         </ul>
       </div>
 
@@ -129,8 +146,8 @@ export async function DashboardOverview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><RevenueChart data={summary.recentRevenue} /></div>
-        <OrderSourcesChart data={summary.sources} />
+        <div className="lg:col-span-2"><RevenueChart data={safeRecentRevenue} /></div>
+        <OrderSourcesChart data={safeSources} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
