@@ -10,13 +10,14 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 type OrderStatus = "confirmed" | "processing" | "shipped" | "delivered"
 
 export interface TrackingOrder {
   id: string
   status: OrderStatus
-  product: { name: string; image: string; price: number; qty: number }
+  product: { name: string; image: string; price: number; currency: string; qty: number }
   seller: { name: string; phone: string; handle: string }
   customer: { name: string; address: string }
   timeline: { status: OrderStatus; label: string; desc: string; time: string; done: boolean }[]
@@ -33,69 +34,6 @@ const STEPS: { status: OrderStatus; icon: React.ElementType; label: string }[] =
 ]
 
 const statusOrder: OrderStatus[] = ["confirmed", "processing", "shipped", "delivered"]
-
-function getMockOrder(orderId: string): TrackingOrder {
-  const statusMap: Record<string, OrderStatus> = {
-    "LM1001": "delivered",
-    "LM1002": "shipped",
-    "LM1003": "processing",
-  }
-  const status = statusMap[orderId] ?? "confirmed"
-  const idx = statusOrder.indexOf(status)
-
-  return {
-    id: orderId,
-    status,
-    product: {
-      name: "Ankara Print Peplum Top",
-      image: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=400&q=80",
-      price: 18500,
-      qty: 1,
-    },
-    seller: {
-      name: "Your Store",
-      phone: "+2348034567890",
-      handle: "your-store",
-    },
-    customer: {
-      name: "Amaka O.",
-      address: "14 Palm Avenue, Lekki Phase 1, Lagos",
-    },
-    estimatedDelivery: status === "delivered" ? "Delivered May 3" : "Estimated May 8–10",
-    courier: "GIG Logistics",
-    trackingRef: `GIG${orderId}88`,
-    timeline: [
-      {
-        status: "confirmed",
-        label: "Order Confirmed",
-        desc: "Your order has been received and payment confirmed.",
-        time: "May 1, 2:14 PM",
-        done: idx >= 0,
-      },
-      {
-        status: "processing",
-        label: "Being Prepared",
-        desc: "Your Store is packaging your item.",
-        time: idx >= 1 ? "May 2, 10:30 AM" : "",
-        done: idx >= 1,
-      },
-      {
-        status: "shipped",
-        label: "Out for Delivery",
-        desc: `Picked up by ${idx >= 2 ? "GIG Logistics" : "—"}. Ref: GIG${orderId}88`,
-        time: idx >= 2 ? "May 3, 8:00 AM" : "",
-        done: idx >= 2,
-      },
-      {
-        status: "delivered",
-        label: "Delivered",
-        desc: "Your order has been delivered. Enjoy! 🎉",
-        time: idx >= 3 ? "May 3, 3:45 PM" : "",
-        done: idx >= 3,
-      },
-    ],
-  }
-}
 
 const CONFETTI_EMOJIS = ["🎉", "🎊", "✨", "💜", "🛍️", "⭐"]
 
@@ -128,8 +66,26 @@ function DeliveredCelebration() {
 }
 
 export function TrackingClient({ orderId, initialOrder }: { orderId: string; initialOrder: TrackingOrder | null }) {
-  const order = initialOrder ?? getMockOrder(orderId.toUpperCase())
+  const order = initialOrder
   const [copied, setCopied] = React.useState(false)
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="sticky top-0 z-30 flex h-12 items-center justify-between px-4 bg-background/90 backdrop-blur-sm border-b border-border">
+          <Link href="/" className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft className="h-4 w-4" /> Lummy
+          </Link>
+        </header>
+        <main className="mx-auto flex max-w-md flex-col items-center justify-center px-4 py-24 text-center">
+          <Package className="mb-4 h-10 w-10 text-muted-foreground" />
+          <h1 className="font-display text-2xl font-extrabold">Order not found</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            We could not find tracking details for order #{orderId}. Check the link or contact the seller for an update.
+          </p>
+        </main>
+      </div>
+    )
+  }
   const currentIdx = statusOrder.indexOf(order.status)
 
   const handleShare = () => {
@@ -216,12 +172,16 @@ export function TrackingClient({ orderId, initialOrder }: { orderId: string; ini
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.16 }}
           className="rounded-2xl border border-border bg-card p-4 flex gap-3">
           <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-muted flex-shrink-0">
-            <Image src={order.product.image} alt={order.product.name} fill className="object-cover" unoptimized />
+            {order.product.image ? (
+              <Image src={order.product.image} alt={order.product.name} fill className="object-cover" unoptimized />
+            ) : (
+              <Package className="absolute inset-0 m-auto h-7 w-7 text-muted-foreground" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm leading-snug">{order.product.name}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Qty: {order.product.qty}</p>
-            <p className="font-display font-bold text-brand-purple mt-1">₦{order.product.price.toLocaleString()}</p>
+            <p className="font-display font-bold text-brand-purple mt-1">{formatMoney(order.product.price, order.product.currency)}</p>
           </div>
         </motion.div>
 

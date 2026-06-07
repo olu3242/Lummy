@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server"
 import type { StatCard } from "@/data/mock/dashboard"
-import { formatCurrency } from "@/lib/utils"
+import { formatMinorMoney } from "@/lib/globalization"
 
 export interface DashboardMetrics {
   stats: StatCard[]
@@ -11,6 +11,27 @@ export interface DashboardMetrics {
 // Fetch 30-day rolling metrics from creator_metrics_daily
 export async function getCreatorMetrics(creatorId: string): Promise<DashboardMetrics | null> {
   const supabase = createClient()
+  const { data: creator } = await supabase
+    .from("creator_profiles")
+    .select("user_id")
+    .eq("id", creatorId)
+    .maybeSingle()
+  const { data: profile } = creator?.user_id
+    ? await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", creator.user_id)
+        .maybeSingle()
+    : { data: null }
+  const { data: organization } = profile?.organization_id
+    ? await supabase
+        .from("organizations")
+        .select("currency_code,locale")
+        .eq("id", profile.organization_id)
+        .maybeSingle()
+    : { data: null }
+  const currency = (organization as { currency_code?: string | null; locale?: string | null } | null)?.currency_code ?? "USD"
+  const locale = (organization as { currency_code?: string | null; locale?: string | null } | null)?.locale ?? "en-US"
 
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
@@ -51,7 +72,7 @@ export async function getCreatorMetrics(creatorId: string): Promise<DashboardMet
     {
       id: "revenue",
       label: "Total Revenue (30d)",
-      value: formatCurrency(totalRevenue / 100), // stored in kobo
+      value: formatMinorMoney(totalRevenue, currency, locale),
       rawValue: totalRevenue,
       change: "+live",
       trend: "up",
@@ -104,7 +125,7 @@ export async function getCreatorMetrics(creatorId: string): Promise<DashboardMet
   })
 
   const revenueByMonth = Object.entries(byMonth).map(([month, v]) => ({
-    month: new Intl.DateTimeFormat("en-NG", { month: "short" }).format(new Date(`${month}-01`)),
+    month: new Intl.DateTimeFormat(locale, { month: "short" }).format(new Date(`${month}-01`)),
     revenue: Math.round(v.revenue / 100),
     orders: v.orders,
   }))

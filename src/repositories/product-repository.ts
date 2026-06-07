@@ -14,7 +14,7 @@ export async function createProduct(organizationId: string, input: { title: stri
     .single();
 }
 
-export async function createProductForCurrentUser(input: { title: string; price: number; description?: string; image_url?: string }) {
+export async function createProductForCurrentUser(input: { title: string; price: number; description?: string; image_url?: string; currency?: string }) {
   const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
@@ -27,7 +27,13 @@ export async function createProductForCurrentUser(input: { title: string; price:
   if (membership.error) throw membership.error;
   if (!membership.data) throw new Error('Forbidden');
 
-  const created = await createProduct(profile.data.organization_id, input);
+  const organization = await supabase.from('organizations').select('currency_code').eq('id', profile.data.organization_id).maybeSingle();
+  if (organization.error) throw organization.error;
+
+  const created = await createProduct(profile.data.organization_id, {
+    ...input,
+    currency: input.currency ?? organization.data?.currency_code ?? 'USD',
+  });
   if (created.error) throw created.error;
   return created.data;
 }
@@ -38,6 +44,9 @@ export async function getPublishedProductsByHandle(handle: string) {
   if (storefront.error) throw storefront.error;
   if (!storefront.data?.is_active) return [];
 
+  const organization = await supabase.from('organizations').select('currency_code').eq('id', storefront.data.organization_id).maybeSingle();
+  if (organization.error) throw organization.error;
+
   const products = await supabase
     .from('products')
     .select('*')
@@ -45,5 +54,9 @@ export async function getPublishedProductsByHandle(handle: string) {
     .eq('status', 'active')
     .order('created_at', { ascending: false });
   if (products.error) throw products.error;
-  return products.data;
+  const fallbackCurrency = organization.data?.currency_code ?? 'USD';
+  return (products.data ?? []).map(product => ({
+    ...product,
+    currency: product.currency ?? fallbackCurrency,
+  }));
 }

@@ -33,6 +33,12 @@ export async function GET() {
     return NextResponse.json({ products: [] })
   }
 
+  const { data: organization } = await admin
+    .from("organizations")
+    .select("currency_code")
+    .eq("id", storefront.organization_id)
+    .maybeSingle()
+
   const { data: products } = await admin
     .from("products")
     .select("id, title, price, currency, image_url")
@@ -41,5 +47,11 @@ export async function GET() {
     .order("created_at", { ascending: false })
     .limit(20)
 
-  return NextResponse.json({ products: products ?? [] })
+  const fallbackCurrency = organization?.currency_code ?? "USD"
+  return NextResponse.json({
+    products: (products ?? []).map(product => ({
+      ...product,
+      currency: product.currency ?? fallbackCurrency,
+    })),
+  })
 }

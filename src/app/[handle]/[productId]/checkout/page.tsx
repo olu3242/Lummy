@@ -21,7 +21,7 @@ import { storefrontCreator } from "@/data/mock/storefront"
 interface CheckoutProduct {
   id: string
   name: string
-  price: number        // in kobo/smallest unit
+  price: number
   currency: string
   image: string
   creatorId: string
@@ -44,20 +44,17 @@ interface CustomerForm {
   notes: string
 }
 
-const NIGERIAN_STATES = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
-  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
-  "FCT (Abuja)", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina",
-  "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun",
-  "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba",
-  "Yobe", "Zamfara",
+const REGION_OPTIONS = [
+  "Local / same city",
+  "Domestic",
+  "International",
 ]
 
-const DELIVERY_FEE = 1500
-const DELIVERY_DAYS = { lagos: "1–2", others: "3–5" }
+const DELIVERY_FEE = 0
+const DELIVERY_DAYS = { local: "1-2", domestic: "3-5", international: "5-10" }
 
 const emptyForm: CustomerForm = {
-  name: "", phone: "", email: "", address: "", city: "", state: "Lagos", notes: "",
+  name: "", phone: "", email: "", address: "", city: "", state: "Local / same city", notes: "",
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -118,8 +115,11 @@ function OrderSummary({ product, qty, form }: {
   const subtotal = product.price * qty
   const delivery = DELIVERY_FEE
   const total = subtotal + delivery
-  const isLagos = form.state === "Lagos"
-  const days = isLagos ? DELIVERY_DAYS.lagos : DELIVERY_DAYS.others
+  const days = form.state === "International"
+    ? DELIVERY_DAYS.international
+    : form.state === "Domestic"
+      ? DELIVERY_DAYS.domestic
+      : DELIVERY_DAYS.local
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -141,7 +141,7 @@ function OrderSummary({ product, qty, form }: {
           <span>Subtotal</span><span>{formatMinorMoney(subtotal, product.currency)}</span>
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Delivery</span>
+          <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Delivery estimate</span>
           <span>{formatMinorMoney(delivery, product.currency)}</span>
         </div>
         <div className="flex justify-between text-sm font-extrabold border-t border-border pt-2 mt-2">
@@ -201,14 +201,14 @@ function DetailsStep({ form, setForm }: { form: CustomerForm; setForm: React.Dis
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input value={form.phone} onChange={e => set("phone", e.target.value)}
-              type="tel" placeholder="+234 803 000 0000" className={cn(inputCls, "pl-9")} />
+              type="tel" placeholder="+1 555 000 0000" className={cn(inputCls, "pl-9")} />
           </div>
         </div>
 
         <div>
           <FieldLabel>Email <span className="text-muted-foreground font-normal">(optional)</span></FieldLabel>
-          <input value={form.email} onChange={e => set("email", e.target.value)}
-            type="email" placeholder="amaka@email.com" className={inputCls} />
+            <input value={form.email} onChange={e => set("email", e.target.value)}
+            type="email" placeholder="name@email.com" className={inputCls} />
         </div>
 
         <div className="sm:col-span-2">
@@ -216,21 +216,21 @@ function DetailsStep({ form, setForm }: { form: CustomerForm; setForm: React.Dis
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input value={form.address} onChange={e => set("address", e.target.value)}
-              placeholder="14 Palm Avenue, Lekki Phase 1" className={cn(inputCls, "pl-9")} />
+              placeholder="Street address, apartment, or delivery notes" className={cn(inputCls, "pl-9")} />
           </div>
         </div>
 
         <div>
           <FieldLabel required>City</FieldLabel>
           <input value={form.city} onChange={e => set("city", e.target.value)}
-            placeholder="Lagos" className={inputCls} />
+            placeholder="City" className={inputCls} />
         </div>
 
         <div>
-          <FieldLabel required>State</FieldLabel>
+          <FieldLabel required>Delivery region</FieldLabel>
           <select value={form.state} onChange={e => set("state", e.target.value)}
             className={cn(inputCls, "cursor-pointer")}>
-            {NIGERIAN_STATES.map(s => <option key={s}>{s}</option>)}
+            {REGION_OPTIONS.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
