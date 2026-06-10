@@ -25,7 +25,8 @@ export async function completeOnboarding(input: {
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
-  await saveOnboardingProfile({ full_name: input.fullName, phone: input.phone, country: input.country, currency: input.currency, onboarding_step: 'organization' });
+  const realFullName = (auth.user.user_metadata?.full_name as string | undefined) || input.fullName;
+  await saveOnboardingProfile({ full_name: realFullName, phone: input.phone, country: input.country, currency: input.currency, onboarding_step: 'organization' });
   const organization = await ensureOrganizationForUser({ userId: auth.user.id, orgName: input.orgName, country: input.country, currency: input.currency });
 
   const storefront = await upsertStorefront(organization.id, { handle: input.handle });
