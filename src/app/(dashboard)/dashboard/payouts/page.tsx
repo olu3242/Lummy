@@ -110,15 +110,37 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
   const [step, setStep] = React.useState<WithdrawStep>("amount")
   const [rawAmount, setRawAmount] = React.useState("")
   const [processing, setProcessing] = React.useState(false)
+  const [bankName, setBankName] = React.useState("")
+  const [accountNumber, setAccountNumber] = React.useState("")
+  const [accountName, setAccountName] = React.useState("")
+  const [apiError, setApiError] = React.useState<string | null>(null)
 
   const amount = parseInt(rawAmount.replace(/\D/g, "") || "0", 10)
   const fee = calcFee(amount)
   const net = amount - fee
   const amountValid = amount >= MIN_WITHDRAWAL && amount <= balance
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setProcessing(true)
-    setTimeout(() => { setProcessing(false); setStep("success") }, 1800)
+    setApiError(null)
+    try {
+      const res = await fetch("/api/payouts/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, bankName, accountNumber, accountName }),
+      })
+      const data = await res.json() as { withdrawal?: { id: string }; message?: string; error?: string }
+      if (!res.ok) {
+        setApiError(data.message ?? data.error ?? "Withdrawal request failed")
+        setProcessing(false)
+        return
+      }
+      setStep("success")
+    } catch {
+      setApiError("Network error — please try again")
+    } finally {
+      setProcessing(false)
+    }
   }
 
   React.useEffect(() => {
@@ -221,49 +243,40 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                 <ArrowLeft className="h-4 w-4" />
               </button>
               <div>
-                <h2 className="font-display text-lg font-extrabold">Confirm Withdrawal</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Review before sending</p>
+                <h2 className="font-display text-lg font-extrabold">Bank Details</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Where to send ₦{net.toLocaleString()}</p>
               </div>
             </div>
-            <div className="px-6 pb-6 space-y-4">
-              <div className="rounded-2xl border border-border p-4 space-y-3">
-                <div className="flex items-center gap-3 pb-3 border-b border-border">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-green/10">
-                    <Banknote className="h-5 w-5 text-brand-green" />
-                  </div>
-                  <div>
-                    <p className="font-display text-xl font-extrabold text-brand-green">₦{net.toLocaleString()}</p>
-                    <p className="text-[10px] text-muted-foreground">Amount you&apos;ll receive</p>
-                  </div>
-                </div>
-                {[
-                  { label: "Withdrawal amount", value: `₦${amount.toLocaleString()}` },
-                  { label: "Processing fee",     value: `-₦${fee.toLocaleString()}` },
-                  { label: "Settlement time",    value: "1–2 business days" },
-                ].map(r => (
-                  <div key={r.label} className="flex justify-between text-xs">
-                    <span className="text-muted-foreground">{r.label}</span>
-                    <span className="font-semibold">{r.value}</span>
-                  </div>
-                ))}
+            <div className="px-6 pb-6 space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">Bank name</label>
+                <input value={bankName} onChange={e => setBankName(e.target.value)} placeholder="e.g. GTBank"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
               </div>
-              <div className="rounded-2xl border border-border p-4 flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-purple/10">
-                  <Building2 className="h-4 w-4 text-brand-purple" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-semibold">GTBank — 0123456789</p>
-                  <p className="text-xs text-muted-foreground">Adunola Fashionista · Verified ✓</p>
-                </div>
-                <ShieldCheck className="h-4 w-4 text-brand-green" />
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">Account number</label>
+                <input value={accountNumber} onChange={e => setAccountNumber(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                  placeholder="10-digit NUBAN" inputMode="numeric"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
               </div>
-              <Button className="w-full h-11 gap-2" onClick={handleConfirm} disabled={processing}>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5">Account name</label>
+                <input value={accountName} onChange={e => setAccountName(e.target.value)} placeholder="Full name on account"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+              </div>
+              {apiError && (
+                <p className="text-xs text-brand-coral flex items-center gap-1">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" /> {apiError}
+                </p>
+              )}
+              <Button className="w-full h-11 gap-2 mt-2" onClick={handleConfirm}
+                disabled={processing || !bankName || accountNumber.length < 10 || !accountName}>
                 {processing
-                  ? <><RefreshCw className="h-4 w-4 animate-spin" />Processing…</>
-                  : <><ArrowUpRight className="h-4 w-4" />Confirm withdrawal</>}
+                  ? <><RefreshCw className="h-4 w-4 animate-spin" />Submitting…</>
+                  : <><ArrowUpRight className="h-4 w-4" />Submit withdrawal request</>}
               </Button>
               <p className="text-[10px] text-center text-muted-foreground">
-                By confirming, you agree to Lummy&apos;s payout terms.
+                Withdrawals are processed within 1–2 business days. A 1.5% fee applies.
               </p>
             </div>
           </div>

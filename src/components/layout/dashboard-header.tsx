@@ -2,13 +2,11 @@
 
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image"
 
 import { Menu, Search } from "lucide-react"
 import { ThemeToggle } from "@/components/shared/theme-toggle"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
 import { NotificationCenter } from "@/components/dashboard/notification-center"
-import { cn } from "@/lib/utils"
+import { createClient } from "@/lib/supabase/client"
 
 interface DashboardHeaderProps {
   onMenuClick: () => void
@@ -16,6 +14,17 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
+  const [initials, setInitials] = React.useState("C")
+
+  React.useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      const name = (user.user_metadata?.full_name as string | undefined) || user.email || ""
+      setInitials(name.charAt(0).toUpperCase() || "C")
+    })
+  }, [])
+
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-border bg-background/95 backdrop-blur-sm px-4 lg:px-6">
       {/* Mobile hamburger */}
@@ -56,8 +65,8 @@ export function DashboardHeader({ onMenuClick, title }: DashboardHeaderProps) {
 
         {/* Avatar */}
         <Link href="/dashboard/settings" className="flex items-center gap-2 group">
-          <div className="relative w-8 h-8 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-brand-purple/40 transition-all">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
+          <div className="flex w-8 h-8 rounded-full ring-2 ring-border group-hover:ring-brand-purple/40 transition-all items-center justify-center bg-brand-purple/20 text-brand-purple text-sm font-bold">
+            {initials}
           </div>
         </Link>
       </div>

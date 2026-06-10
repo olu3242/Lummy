@@ -35,9 +35,10 @@ import {
   Link2,
   Lightbulb,
   MessageCircle,
+  LogOut,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
+import { createClient } from "@/lib/supabase/client"
 
 interface NavItem {
   label: string
@@ -105,6 +106,34 @@ interface SidebarProps {
 
 export function Sidebar({ open, onClose }: SidebarProps) {
   const pathname = usePathname()
+  const [displayName, setDisplayName] = React.useState<string>("")
+  const [displayHandle, setDisplayHandle] = React.useState<string>("")
+  const [storeName, setStoreName] = React.useState<string>("")
+  const [storeHandle, setStoreHandle] = React.useState<string>("")
+
+  React.useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return
+      const meta = user.user_metadata
+      setDisplayName((meta?.full_name as string | undefined) || user.email?.split("@")[0] || "Creator")
+      supabase.from("profiles").select("organization_id,full_name").eq("id", user.id).maybeSingle().then(({ data: profile }) => {
+        if (profile?.full_name) setDisplayName(profile.full_name)
+        if (!profile?.organization_id) return
+        supabase.from("storefronts").select("handle").eq("organization_id", profile.organization_id).maybeSingle().then(({ data: sf }) => {
+          if (sf?.handle) { setStoreHandle(sf.handle); setDisplayHandle(sf.handle) }
+        })
+        supabase.from("organizations").select("name").eq("id", profile.organization_id).maybeSingle().then(({ data: org }) => {
+          if (org?.name) setStoreName(org.name)
+        })
+      })
+    })
+  }, [])
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/signout", { method: "POST" })
+    window.location.href = "/login"
+  }
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -129,15 +158,14 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Store quick-info */}
       <div className="px-4 py-3 mx-3 mt-3 rounded-2xl bg-white/4 border border-white/6 flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="relative w-8 h-8 rounded-xl overflow-hidden flex-shrink-0">
-            <Image src={mockCreatorProfile.avatar} alt="Store" fill className="object-cover" unoptimized />
+          <div className="flex w-8 h-8 rounded-xl flex-shrink-0 items-center justify-center bg-brand-purple/20 text-brand-purple text-xs font-bold">
+            {(storeName || displayName).charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
-              <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.storeName}</p>
-              {mockCreatorProfile.verified && <BadgeCheck className="w-3 h-3 text-brand-purple flex-shrink-0" />}
+              <p className="text-white text-xs font-semibold truncate">{storeName || "Your Store"}</p>
             </div>
-            <p className="text-white/40 text-[10px] truncate">{mockCreatorProfile.storeUrl}</p>
+            <p className="text-white/40 text-[10px] truncate">{storeHandle ? `lummy.co/${storeHandle}` : "Setting up…"}</p>
           </div>
           <Link href="/dashboard/store" className="flex-shrink-0 p-1 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
             <ChevronRight className="w-3.5 h-3.5" />
@@ -192,16 +220,21 @@ export function Sidebar({ open, onClose }: SidebarProps) {
       {/* Creator profile footer */}
       <div className="flex-shrink-0 border-t border-white/5 p-4">
         <div className="flex items-center gap-3">
-          <div className="relative w-9 h-9 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-brand-purple/20">
-            <Image src={mockCreatorProfile.avatar} alt={mockCreatorProfile.name} fill className="object-cover" unoptimized />
+          <div className="flex w-9 h-9 rounded-full flex-shrink-0 ring-2 ring-brand-purple/20 items-center justify-center bg-brand-purple/20 text-brand-purple text-sm font-bold">
+            {displayName.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-white text-xs font-semibold truncate">{mockCreatorProfile.name}</p>
-            <p className="text-white/40 text-[10px] truncate">@{mockCreatorProfile.handle}</p>
+            <p className="text-white text-xs font-semibold truncate">{displayName || "Creator"}</p>
+            <p className="text-white/40 text-[10px] truncate">{displayHandle ? `@${displayHandle}` : "Loading…"}</p>
           </div>
-          <Link href="/dashboard/settings" className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition-colors">
-            <Settings className="w-3.5 h-3.5" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link href="/dashboard/settings" className="p-1.5 rounded-lg hover:bg-white/5 text-white/30 hover:text-white transition-colors">
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
+            <button onClick={handleLogout} className="p-1.5 rounded-lg hover:bg-brand-coral/10 text-white/30 hover:text-brand-coral transition-colors" title="Log out">
+              <LogOut className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

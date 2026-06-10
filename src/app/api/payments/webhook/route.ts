@@ -121,8 +121,10 @@ export async function POST(req: Request) {
       await upsertConversionAttribution({ orgId: parsed.metadata.organizationId, orderId: parsed.metadata.orderId, checkoutId: parsed.metadata.orderId, conversionType: 'payment', conversionStatus: 'payment_completed', revenueAmount: Number(paymentRow.data?.amount || 0) });
 
       // ── P0: Notifications on payment ──────────────────────────────────────
+      const paymentRecord = await supabase.from('payments').select('amount,currency').eq('id', parsed.metadata.paymentId).maybeSingle()
       const amountNgn = Number(paymentRow.data?.amount || 0)
-      const amountFormatted = new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", maximumFractionDigits: 0 }).format(amountNgn)
+      const paymentCurrency = (paymentRecord.data as { currency?: string } | null)?.currency || 'NGN'
+      const amountFormatted = new Intl.NumberFormat(paymentCurrency === 'NGN' ? 'en-NG' : 'en-US', { style: 'currency', currency: paymentCurrency, maximumFractionDigits: 0 }).format(amountNgn)
       const sdkCtx = { tenantId: parsed.metadata.organizationId, correlationId }
 
       // 1. Enrich order data for notifications
@@ -197,7 +199,7 @@ export async function POST(req: Request) {
       void emitEvent('payment_received', sdkCtx, {
         orderId:        parsed.metadata.orderId,
         paymentId:      parsed.metadata.paymentId,
-        amountKobo:     amountNgn * 100,
+        amountMinorUnit: amountNgn * 100,
         amountFormatted,
         correlationId,
       }, `payment_received:${parsed.metadata.paymentId}`)

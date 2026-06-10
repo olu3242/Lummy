@@ -74,8 +74,28 @@ function saveLS(key: string, value: unknown) {
 }
 
 function ProfileSection() {
-  const defaults = { firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }
+  const defaults = { firstName: "", lastName: "", email: "", phone: "", bio: "", location: "" }
   const [form, setForm] = React.useState(() => loadLS(PROFILE_KEY, defaults))
+  React.useEffect(() => {
+    // Only load from DB if localStorage is empty (user hasn't edited yet)
+    if (form.email) return
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        const meta = user.user_metadata
+        const fullName: string = (meta?.full_name as string | undefined) || ""
+        const [first = "", ...rest] = fullName.split(" ")
+        setForm(f => ({ ...f, firstName: first, lastName: rest.join(" "), email: user.email || "" }))
+        supabase.from("profiles").select("full_name,phone").eq("id", user.id).maybeSingle().then(({ data: p }) => {
+          if (!p) return
+          const [fn = "", ...ln] = (p.full_name || fullName).split(" ")
+          setForm(f => ({ ...f, firstName: fn, lastName: ln.join(" "), phone: p.phone || "" }))
+        })
+      })
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const [saved, setSaved] = React.useState(false)
 
   const save = () => {

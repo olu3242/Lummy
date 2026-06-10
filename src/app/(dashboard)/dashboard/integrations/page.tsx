@@ -47,7 +47,7 @@ const INTEGRATIONS: Integration[] = [
     id: "paystack", name: "Paystack",
     description: "Accept card payments, bank transfers, and USSD from Nigerian customers.",
     logo: "💳", category: "payments", status: "connected",
-    connectedAs: "sade@sadeboutique.com",
+    connectedAs: process.env.NEXT_PUBLIC_PAYSTACK_ACCOUNT ?? "configured",
     features: ["Card payments", "Bank transfer", "USSD", "Instant settlement", "Split payments"],
     docsUrl: "https://paystack.com/docs",
     lastSynced: "2026-05-13T14:30:00Z", healthScore: 99,
