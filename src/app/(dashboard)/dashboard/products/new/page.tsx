@@ -500,17 +500,36 @@ export default function NewProductPage() {
   const handleNext = () => { if (step < 3) setStep(s => s + 1) }
   const handleBack = () => { if (step > 1) setStep(s => s - 1) }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
-    setTimeout(() => {
-      setSaving(false)
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.name,
+          price: Number(form.price) || 0,
+          description: form.description || undefined,
+          image_url: form.imageUrl || undefined,
+          status: form.status === "draft" ? "draft" : "active",
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { message?: string; error?: string }
+        toast({ title: data.message ?? data.error ?? "Failed to save product", variant: "error" })
+        setSaving(false)
+        return
+      }
       toast({
         title: form.status === "draft" ? "Product saved as draft" : "Product published!",
         description: `"${form.name}" is ${form.status === "draft" ? "saved as a draft" : "now live in your store"}.`,
         variant: "success",
       })
       router.push("/dashboard/products")
-    }, 1000)
+    } catch {
+      toast({ title: "Network error — please try again", variant: "error" })
+      setSaving(false)
+    }
   }
 
   const progressPct = ((step - 1) / (STEPS.length - 1)) * 100

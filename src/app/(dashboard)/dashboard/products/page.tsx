@@ -602,7 +602,7 @@ export default function ProductsPage() {
             id: p.id,
             name: p.title,
             description: p.description ?? "",
-            price: Math.round(p.price / 100), // kobo → Naira for display
+            price: Number(p.price), // stored in naira (numeric 12,2) — same unit as checkout/storefront
             stock: null,
             category: "Other",
             status: (p.status ?? "active") as DashboardProduct["status"],

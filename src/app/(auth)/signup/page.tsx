@@ -84,7 +84,6 @@ export default function SignupPage() {
   const [handleStatus, setHandleStatus] = React.useState<HandleStatus>("idle")
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null)
   const handleTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-  const supabase = React.useMemo(() => createClient(), [])
 
   const onHandleChange = (val: string) => {
     const cleaned = val.toLowerCase().replace(/[^a-z0-9._-]/g, "")
@@ -98,6 +97,7 @@ export default function SignupPage() {
         setHandleStatus("taken")
         return
       }
+      const supabase = createClient()
       const { data } = await supabase.from("storefronts").select("handle").eq("handle", cleaned).limit(1)
       setHandleStatus((data?.length ?? 0) > 0 ? "taken" : "available")
     }, 650)
@@ -108,6 +108,7 @@ export default function SignupPage() {
     setErrorMessage(null)
     if (handleStatus === "taken") return
     setIsLoading(true)
+    const supabase = createClient()
     const { error } = await supabase.auth.signUp({
       email,
       password,
