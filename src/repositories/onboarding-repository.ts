@@ -54,19 +54,27 @@ export async function saveOnboardingProfile(input: {
 export async function ensureOrganizationForUser(input: { userId: string; orgName: string; country?: string; currency?: string }) {
   const supabase = createClient();
 
+  // Use a separate query (not an embedded join) to avoid RLS-on-embedded-resource ambiguity.
+  // Embedded PostgREST joins apply the parent table's RLS to the nested resource, which can
+  // cause is_org_member() to return false before the membership row is confirmed.
   const existingMembership = await supabase
     .from('organization_members')
-    .select('organization_id, role, organizations(*)')
+    .select('organization_id')
     .eq('user_id', input.userId)
     .eq('role', 'owner')
     .limit(1)
     .maybeSingle();
 
   if (existingMembership.error) throw existingMembership.error;
-  if (existingMembership.data?.organizations) {
-    const orgs = existingMembership.data.organizations;
-    const org = Array.isArray(orgs) ? orgs[0] : orgs;
-    return org as unknown as { id: string; name: string; slug: string };
+
+  if (existingMembership.data?.organization_id) {
+    const orgRow = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', existingMembership.data.organization_id)
+      .maybeSingle();
+    if (orgRow.error) throw orgRow.error;
+    if (orgRow.data) return orgRow.data as unknown as { id: string; name: string; slug: string };
   }
 
   const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;
@@ -83,7 +91,6 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
       break;
     }
   }
-  // If all 5 attempts collide, append a random suffix to guarantee uniqueness
   if (!slug) slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
 
   const createdOrg = await supabase
@@ -92,13 +99,25 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
       owner_id: input.userId,
       name: input.orgName,
       slug,
-      country: input.country ?? 'US',
-      currency: input.currency ?? 'USD',
+      country: input.country ?? 'NG',
+      currency: input.currency ?? 'NGN',
     })
     .select('*')
     .single();
 
-  if (createdOrg.error) throw createdOrg.error;
+  if (createdOrg.error) {
+    // UNIQUE violation on owner_id: a partial previous attempt created the org but didn't finish.
+    // Re-fetch via owner_id direct lookup (bypasses membership join entirely).
+    if (createdOrg.error.code === '23505') {
+      const ownerOrg = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('owner_id', input.userId)
+        .maybeSingle();
+      if (ownerOrg.data) return ownerOrg.data as unknown as { id: string; name: string; slug: string };
+    }
+    throw createdOrg.error;
+  }
 
   const membership = await supabase.from('organization_members').insert({
     organization_id: createdOrg.data.id,
