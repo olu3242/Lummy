@@ -1,8 +1,22 @@
 import { createClient } from '@/lib/supabase/server';
+import { randomUUID } from 'crypto';
+import { logApiEvent } from '@/lib/ops-observability';
 
 
 
 type SourcePlatform = 'Instagram' | 'TikTok' | 'WhatsApp' | 'Facebook' | 'Twitter/X' | 'YouTube' | 'Direct' | 'Referral';
+
+function logRepositoryError(query: string, error: { code?: string; message?: string; details?: string; hint?: string }, extra: Record<string, unknown> = {}) {
+  logApiEvent('error', 'dashboard.repository_query_failed', {
+    correlationId: extra.correlationId ?? randomUUID(),
+    query,
+    code: error.code,
+    message: error.message,
+    details: error.details,
+    hint: error.hint,
+    ...extra,
+  });
+}
 
 function normalizeSourcePlatform(value?: string | null): SourcePlatform {
   const v = String(value || '').toLowerCase();
@@ -102,7 +116,10 @@ async function getCurrentOrgId() {
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();
-  if (membership.error) throw membership.error;
+  if (membership.error) {
+    logRepositoryError('getCurrentOrgId.organization_members', membership.error, { userId: auth.user.id });
+    throw membership.error;
+  }
   return { supabase, organizationId: membership.data?.organization_id ?? null };
 }
 
@@ -110,7 +127,10 @@ export async function getDashboardPayments(limit = 20) {
   const { supabase, organizationId } = await getCurrentOrgId();
   if (!organizationId) return [];
   const rows = await supabase.from('payments').select('id,order_id,status,amount,currency,provider,paid_at,created_at,orders!inner(customer_email,status,organization_id)').eq('organization_id', organizationId).order('created_at', { ascending: false }).limit(limit);
-  if (rows.error) throw rows.error;
+  if (rows.error) {
+    logRepositoryError('getDashboardPayments.payments', rows.error, { organizationId });
+    throw rows.error;
+  }
   return rows.data;
 }
 
@@ -119,9 +139,15 @@ export async function getDashboardPaymentSummary() {
   if (!organizationId) return { totalRevenue: 0, pendingRevenue: 0, totalOrders: 0, paidOrders: 0, pendingPayments: 0, failedPayments: 0, conversionRate: 0, sources: [] as Array<{ name: string; value: number; color: string }>, recentRevenue: [] as Array<{ label: string; revenue: number; orders: number }> };
 
   const payments = await supabase.from('payments').select('status,amount,provider,created_at').eq('organization_id', organizationId);
-  if (payments.error) throw payments.error;
+  if (payments.error) {
+    logRepositoryError('getDashboardPaymentSummary.payments', payments.error, { organizationId });
+    throw payments.error;
+  }
   const orders = await supabase.from('orders').select('id,status,created_at').eq('organization_id', organizationId);
-  if (orders.error) throw orders.error;
+  if (orders.error) {
+    logRepositoryError('getDashboardPaymentSummary.orders', orders.error, { organizationId });
+    throw orders.error;
+  }
 
   const totalRevenue = (payments.data ?? []).filter((p) => p.status === 'succeeded').reduce((a, p) => a + Number(p.amount), 0);
   const totalOrders = (orders.data ?? []).length;
@@ -159,19 +185,28 @@ export async function getAiConversionSummary() {
     .select('id,conversion_status,source_channel')
     .eq('org_id', organizationId)
     .eq('source_channel', 'whatsapp');
-  if (interactions.error) throw interactions.error;
+  if (interactions.error) {
+    logRepositoryError('getAiConversionSummary.customer_interactions', interactions.error, { organizationId });
+    throw interactions.error;
+  }
 
   const recovery = await supabase
     .from('conversion_recovery_queue')
     .select('id,recovery_status')
     .eq('org_id', organizationId);
-  if (recovery.error) throw recovery.error;
+  if (recovery.error) {
+    logRepositoryError('getAiConversionSummary.conversion_recovery_queue', recovery.error, { organizationId });
+    throw recovery.error;
+  }
 
   const attribution = await supabase
     .from('conversion_attribution')
     .select('source_platform,conversion_type,conversion_status,revenue_amount')
     .eq('org_id', organizationId);
-  if (attribution.error) throw attribution.error;
+  if (attribution.error) {
+    logRepositoryError('getAiConversionSummary.conversion_attribution', attribution.error, { organizationId });
+    throw attribution.error;
+  }
 
   const rows = interactions.data ?? [];
   const activeInquiries = rows.filter((r) => r.conversion_status === 'new' || r.conversion_status === 'intent_detected').length;
@@ -297,7 +332,10 @@ export async function getCustomerMemorySummary() {
   const { supabase, organizationId } = await getCurrentOrgId();
   if (!organizationId) return { repeatCustomers: 0, highValueCustomers: 0, inactiveCustomers: 0, abandonedBuyers: 0, recentBuyers: 0, opportunities: [] as string[] };
   const profiles = await supabase.from('customer_profiles').select('id,lifecycle_stage,total_orders,ai_summary').eq('org_id', organizationId);
-  if (profiles.error) throw profiles.error;
+  if (profiles.error) {
+    logRepositoryError('getCustomerMemorySummary.customer_profiles', profiles.error, { organizationId });
+    throw profiles.error;
+  }
   const rows = profiles.data ?? [];
   return {
     repeatCustomers: rows.filter((r) => r.lifecycle_stage === 'repeat_customer').length,
@@ -314,11 +352,25 @@ export async function getDashboardOpsSummary() {
   const { supabase, organizationId } = await getCurrentOrgId();
   if (!organizationId) return { staleInquiries: 0, unpaidOrders: 0, webhookIssues: 0, recoveryPending: 0 };
   const stale = await supabase.from('customer_interactions').select('id,created_at').eq('org_id', organizationId).eq('source_channel', 'whatsapp').in('conversion_status', ['new','intent_detected']);
-  if (stale.error) throw stale.error;
+  if (stale.error) {
+    logRepositoryError('getDashboardOpsSummary.customer_interactions', stale.error, { organizationId });
+    throw stale.error;
+  }
   const unpaid = await supabase.from('orders').select('id,status').eq('organization_id', organizationId).neq('status','paid');
-  if (unpaid.error) throw unpaid.error;
+  if (unpaid.error) {
+    logRepositoryError('getDashboardOpsSummary.orders', unpaid.error, { organizationId });
+    throw unpaid.error;
+  }
   const failures = await supabase.from('messaging_failures').select('id,created_at').eq('tenant_id', organizationId).limit(200);
   const recovery = await supabase.from('conversion_recovery_queue').select('id,recovery_status').eq('org_id', organizationId).eq('recovery_status','pending');
+  if (failures.error) {
+    logRepositoryError('getDashboardOpsSummary.messaging_failures', failures.error, { organizationId });
+    throw failures.error;
+  }
+  if (recovery.error) {
+    logRepositoryError('getDashboardOpsSummary.conversion_recovery_queue', recovery.error, { organizationId });
+    throw recovery.error;
+  }
   return { staleInquiries: (stale.data ?? []).length, unpaidOrders: (unpaid.data ?? []).length, webhookIssues: (failures.data ?? []).length, recoveryPending: (recovery.data ?? []).length };
 }
 
@@ -396,26 +448,26 @@ export async function getGrowthIntelligenceSummary() {
     .from('orders')
     .select('id,organization_id,status,amount,customer_email,created_at')
     .eq('organization_id', organizationId);
-  if (orders.error) throw orders.error;
+  if (orders.error) {
+    logRepositoryError('getGrowthIntelligenceSummary.orders', orders.error, { organizationId });
+    throw orders.error;
+  }
 
   const products = await supabase
     .from('products')
     .select('id,title,price,status')
     .eq('organization_id', organizationId);
-  if (products.error) throw products.error;
+  if (products.error) {
+    logRepositoryError('getGrowthIntelligenceSummary.products', products.error, { organizationId });
+    throw products.error;
+  }
 
   const attribution = await supabase
     .from('conversion_attribution')
     .select('source_platform,conversion_type,conversion_status,revenue_amount')
     .eq('org_id', organizationId);
   if (attribution.error) {
-    console.error('[dashboard.bootstrap]', {
-      query: 'getGrowthIntelligenceSummary.conversion_attribution',
-      code: attribution.error.code,
-      message: attribution.error.message,
-      details: attribution.error.details,
-      hint: attribution.error.hint,
-    });
+    logRepositoryError('getGrowthIntelligenceSummary.conversion_attribution', attribution.error, { organizationId });
   }
 
   const profiles = await supabase
@@ -423,13 +475,7 @@ export async function getGrowthIntelligenceSummary() {
     .select('lifecycle_stage,total_orders,total_revenue')
     .eq('org_id', organizationId);
   if (profiles.error) {
-    console.error('[dashboard.bootstrap]', {
-      query: 'getGrowthIntelligenceSummary.customer_profiles',
-      code: profiles.error.code,
-      message: profiles.error.message,
-      details: profiles.error.details,
-      hint: profiles.error.hint,
-    });
+    logRepositoryError('getGrowthIntelligenceSummary.customer_profiles', profiles.error, { organizationId });
   }
 
   const productMap = new Map<string, { title: string; revenue: number; orders: number; repeatOrders: number; pending: number }>();

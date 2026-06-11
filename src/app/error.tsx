@@ -32,6 +32,14 @@ export default function GlobalError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  React.useEffect(() => {
+    console.error("[app/error]", {
+      digest: error.digest,
+      message: error.message,
+      stack: error.stack,
+    })
+  }, [error])
+
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 text-center">
       <motion.div

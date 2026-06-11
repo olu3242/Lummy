@@ -3,6 +3,7 @@ import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { createClient } from "@/lib/supabase/server"
+import { logApiEvent } from "@/lib/ops-observability"
 
 type TopProduct = {
   id: string
@@ -12,7 +13,7 @@ type TopProduct = {
   sales: number
 }
 
-async function getTopProducts(): Promise<TopProduct[]> {
+async function getTopProducts(correlationId?: string): Promise<TopProduct[]> {
   const supabase = createClient()
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return []
@@ -24,7 +25,18 @@ async function getTopProducts(): Promise<TopProduct[]> {
     .order("created_at", { ascending: true })
     .limit(1)
     .maybeSingle()
-  if (membership.error || !membership.data?.organization_id) return []
+  if (membership.error) {
+    logApiEvent("error", "dashboard.top_products_query_failed", {
+      correlationId,
+      query: "TopProducts.membership",
+      code: membership.error.code,
+      message: membership.error.message,
+      details: membership.error.details,
+      hint: membership.error.hint,
+    })
+    return []
+  }
+  if (!membership.data?.organization_id) return []
 
   const products = await supabase
     .from("products")
@@ -33,7 +45,8 @@ async function getTopProducts(): Promise<TopProduct[]> {
     .eq("status", "active")
     .limit(20)
   if (products.error) {
-    console.error("[dashboard.bootstrap]", {
+    logApiEvent("error", "dashboard.top_products_query_failed", {
+      correlationId,
       query: "TopProducts.products",
       code: products.error.code,
       message: products.error.message,
@@ -53,9 +66,18 @@ async function getTopProducts(): Promise<TopProduct[]> {
     .slice(0, 5)
 }
 
-export async function TopProducts() {
-  const sorted = await getTopProducts().catch((error) => {
-    console.error("[TopProducts]", error)
+export async function TopProducts({ correlationId }: { correlationId?: string }) {
+  const sorted = await getTopProducts(correlationId).catch((error) => {
+    const err = error as { code?: string; message?: string; details?: string; hint?: string }
+    logApiEvent("error", "dashboard.top_products_failed", {
+      correlationId,
+      query: "getTopProducts",
+      code: err?.code,
+      message: err?.message ?? String(error),
+      details: err?.details,
+      hint: err?.hint,
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return []
   })
 

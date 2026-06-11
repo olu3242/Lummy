@@ -7,6 +7,7 @@ import { RecentOrders } from "@/components/dashboard/recent-orders"
 import { TopProducts } from "@/components/dashboard/top-products"
 import { ActivityFeed } from "@/components/dashboard/activity-feed"
 import { getAiConversionSummary, getCustomerMemorySummary, getDashboardOpsSummary, getDashboardPaymentSummary, getGrowthIntelligenceSummary } from "@/repositories/order-repository"
+import { logApiEvent } from "@/lib/ops-observability"
 
 const emptyPaymentSummary = {
   totalRevenue: 0,
@@ -51,30 +52,32 @@ const emptyGrowth = {
   growthInsights: [] as string[],
 }
 
-async function safeQuery<T>(name: string, query: () => Promise<T>, fallback: T): Promise<T> {
+async function safeQuery<T>(name: string, query: () => Promise<T>, fallback: T, correlationId: string): Promise<T> {
   try {
     const result = await query()
     return result ?? fallback
   } catch (error) {
     const err = error as { code?: string; message?: string; details?: string; hint?: string }
-    console.error("[dashboard.bootstrap]", {
+    logApiEvent("error", "dashboard.server_query_failed", {
+      correlationId,
       query: name,
       code: err?.code,
       message: err?.message ?? String(error),
       details: err?.details,
       hint: err?.hint,
+      stack: error instanceof Error ? error.stack : undefined,
     })
     return fallback
   }
 }
 
-export async function DashboardOverview() {
+export async function DashboardOverview({ correlationId }: { correlationId: string }) {
   const [summary, aiSummary, customerMemory, ops, growth] = await Promise.all([
-    safeQuery("getDashboardPaymentSummary", getDashboardPaymentSummary, emptyPaymentSummary),
-    safeQuery("getAiConversionSummary", getAiConversionSummary, emptyAiSummary),
-    safeQuery("getCustomerMemorySummary", getCustomerMemorySummary, emptyCustomerMemory),
-    safeQuery("getDashboardOpsSummary", getDashboardOpsSummary, emptyOps),
-    safeQuery("getGrowthIntelligenceSummary", getGrowthIntelligenceSummary, emptyGrowth),
+    safeQuery("getDashboardPaymentSummary", getDashboardPaymentSummary, emptyPaymentSummary, correlationId),
+    safeQuery("getAiConversionSummary", getAiConversionSummary, emptyAiSummary, correlationId),
+    safeQuery("getCustomerMemorySummary", getCustomerMemorySummary, emptyCustomerMemory, correlationId),
+    safeQuery("getDashboardOpsSummary", getDashboardOpsSummary, emptyOps, correlationId),
+    safeQuery("getGrowthIntelligenceSummary", getGrowthIntelligenceSummary, emptyGrowth, correlationId),
   ])
   const safeGrowthInsights = Array.isArray(growth.growthInsights) ? growth.growthInsights : []
   const safeReorderOpportunities = Array.isArray(growth.reorderOpportunities) ? growth.reorderOpportunities : []
@@ -151,8 +154,8 @@ export async function DashboardOverview() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2"><RecentOrders limit={5} /></div>
-        <TopProducts />
+        <div className="lg:col-span-2"><RecentOrders limit={5} correlationId={correlationId} /></div>
+        <TopProducts correlationId={correlationId} />
       </div>
 
       <div className="grid grid-cols-1 gap-4" style={{ minHeight: 340 }}>

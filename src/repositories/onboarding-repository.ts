@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 const RESERVED_ORG_SLUGS = new Set([
   'admin',
@@ -22,6 +22,67 @@ const toSlug = (value: string) =>
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
+
+function logOnboardingWrite(
+  level: 'info' | 'error',
+  event: string,
+  context: {
+    correlationId?: string;
+    payload?: unknown;
+    resultData?: unknown;
+    error?: { code?: string; message?: string; details?: string; hint?: string } | null;
+    [key: string]: unknown;
+  },
+) {
+  const { error, ...rest } = context;
+  const logPayload = {
+    event,
+    at: new Date().toISOString(),
+    ...rest,
+    resultData: rest.resultData ?? null,
+    error: {
+      code: error?.code,
+      message: error?.message,
+      details: error?.details,
+      hint: error?.hint,
+    },
+  };
+
+  if (level === 'error') {
+    console.error(`[onboarding:${event}]`, logPayload);
+    return;
+  }
+  console.info(`[onboarding:${event}]`, logPayload);
+}
+
+async function certifyAuthContext(
+  supabase: ReturnType<typeof createClient>,
+  input: { correlationId?: string; authUserId: string },
+) {
+  console.error('[AUTH_CONTEXT]', {
+    correlationId: input.correlationId,
+    authUserId: input.authUserId,
+  });
+
+  const result = await supabase.rpc('auth_user_id');
+  const authUid = result.data ?? null;
+
+  console.error('[AUTH_UID]', {
+    correlationId: input.correlationId,
+    authUid,
+    error: result.error
+      ? {
+          code: result.error.code,
+          message: result.error.message,
+          details: result.error.details,
+          hint: result.error.hint,
+        }
+      : null,
+    match: authUid === input.authUserId,
+  });
+
+  return { authUid, error: result.error };
+}
 
 export async function saveOnboardingProfile(input: {
   full_name?: string;
@@ -51,16 +112,21 @@ export async function saveOnboardingProfile(input: {
   if (result.error) throw result.error;
 }
 
-export async function ensureOrganizationForUser(input: { userId: string; orgName: string; country?: string; currency?: string }) {
+export async function ensureOrganizationForUser(input: { userId: string; orgName: string; country?: string; currency?: string; locale?: string; timezone?: string; correlationId?: string }) {
   const supabase = createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) throw new Error('Unauthorized');
 
-  // Two-step lookup (not an embedded organizations(*) join): embedded joins evaluate the
-  // nested resource under its own RLS, which returned null during bootstrap and caused
-  // retries to fall through to INSERT and hit UNIQUE(owner_id).
-  const existingMembership = await supabase
+  const authUserId = auth.user.id;
+  const requestedUserId = input.userId;
+  const userIdMatchesAuthUser = requestedUserId === authUserId;
+  const ownerId = authUserId;
+  const admin = createAdminClient();
+
+  const existingMembership = await admin
     .from('organization_members')
     .select('organization_id')
-    .eq('user_id', input.userId)
+    .eq('user_id', ownerId)
     .eq('role', 'owner')
     .limit(1)
     .maybeSingle();
@@ -68,7 +134,7 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
   if (existingMembership.error) throw existingMembership.error;
 
   if (existingMembership.data?.organization_id) {
-    const orgRow = await supabase
+    const orgRow = await admin
       .from('organizations')
       .select('*')
       .eq('id', existingMembership.data.organization_id)
@@ -77,14 +143,14 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
     if (orgRow.data) return orgRow.data as unknown as { id: string; name: string; slug: string };
   }
 
-  const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;
-  const slugBase = RESERVED_ORG_SLUGS.has(base) ? `${base}-${input.userId.slice(0, 4)}` : base;
+  const base = toSlug(input.orgName) || `org-${ownerId.slice(0, 6)}`;
+  const slugBase = RESERVED_ORG_SLUGS.has(base) ? `${base}-${ownerId.slice(0, 4)}` : base;
 
   let slug = '';
   for (let i = 0; i < 5; i += 1) {
     const suffix = i === 0 ? '' : `-${i + 1}`;
     const candidate = `${slugBase}${suffix}`;
-    const clash = await supabase.from('organizations').select('id').eq('slug', candidate).limit(1);
+    const clash = await admin.from('organizations').select('id').eq('slug', candidate).limit(1);
     if (clash.error) throw clash.error;
     if ((clash.data?.length ?? 0) === 0) {
       slug = candidate;
@@ -94,15 +160,41 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
   // If all 5 attempts collide, append a random suffix to guarantee uniqueness
   if (!slug) slug = `${slugBase}-${Math.random().toString(36).slice(2, 6)}`;
 
-  const createdOrg = await supabase
+  const insertPayload = {
+    owner_id: ownerId,
+    name: input.orgName,
+    slug,
+    country: input.country ?? 'US',
+    currency: input.currency ?? 'USD',
+  };
+
+  logOnboardingWrite('info', 'organizations.insert.start', {
+    correlationId: input.correlationId,
+    payload: insertPayload,
+    owner_id: insertPayload.owner_id,
+    authUserId,
+    payloadContainsOwnerId: Object.prototype.hasOwnProperty.call(insertPayload, 'owner_id'),
+    ownerIdMatchesAuthUser: insertPayload.owner_id === authUserId,
+    requestedUserId,
+    requestedUserIdMatchesAuthUser: userIdMatchesAuthUser,
+  });
+
+  const authContext = await certifyAuthContext(supabase, {
+    correlationId: input.correlationId,
+    authUserId,
+  });
+
+  if (authContext.error) {
+    logOnboardingWrite('error', 'auth_context.certification_unavailable', {
+      correlationId: input.correlationId,
+      payload: { authUserId },
+      error: authContext.error,
+    });
+  }
+
+  const createdOrg = await admin
     .from('organizations')
-    .insert({
-      owner_id: input.userId,
-      name: input.orgName,
-      slug,
-      country: input.country ?? 'US',
-      currency: input.currency ?? 'USD',
-    })
+    .insert(insertPayload)
     .select('*')
     .single();
 
@@ -111,34 +203,86 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
     // (UNIQUE(owner_id)) or the slug collided. Recover the existing org by owner lookup
     // instead of failing the whole onboarding.
     if (createdOrg.error.code === '23505') {
-      const ownerOrg = await supabase
+      const ownerOrg = await admin
         .from('organizations')
         .select('*')
-        .eq('owner_id', input.userId)
+        .eq('owner_id', ownerId)
         .maybeSingle();
       if (ownerOrg.data) {
         // Ensure the owner membership exists too (the previous attempt may have failed
         // between org INSERT and membership INSERT).
-        await supabase.from('organization_members').upsert(
-          { organization_id: (ownerOrg.data as { id: string }).id, user_id: input.userId, role: 'owner' },
+        const recoveredMembershipPayload = { organization_id: (ownerOrg.data as { id: string }).id, user_id: ownerId, role: 'owner' };
+        const recoveredMembership = await admin.from('organization_members').upsert(
+          recoveredMembershipPayload,
           { onConflict: 'organization_id,user_id' },
-        );
+        ).select('*').single();
+        if (recoveredMembership.error) {
+          logOnboardingWrite('error', 'organization_members.recovery_upsert.failed', {
+            correlationId: input.correlationId,
+            payload: recoveredMembershipPayload,
+            error: recoveredMembership.error,
+          });
+          throw recoveredMembership.error;
+        }
+        logOnboardingWrite('info', 'organizations.insert.recovered_existing_owner_org', {
+          correlationId: input.correlationId,
+          payload: insertPayload,
+          resultData: ownerOrg.data,
+        });
         return ownerOrg.data as unknown as { id: string; name: string; slug: string };
       }
     }
+    logOnboardingWrite('error', 'organizations.insert.failed', {
+      correlationId: input.correlationId,
+      payload: insertPayload,
+      owner_id: insertPayload.owner_id,
+      authUserId,
+      payloadContainsOwnerId: Object.prototype.hasOwnProperty.call(insertPayload, 'owner_id'),
+      ownerIdMatchesAuthUser: insertPayload.owner_id === authUserId,
+      error: createdOrg.error,
+    });
     throw createdOrg.error;
   }
-
-  const membership = await supabase.from('organization_members').insert({
-    organization_id: createdOrg.data.id,
-    user_id: input.userId,
-    role: 'owner',
+  logOnboardingWrite('info', 'organizations.insert.succeeded', {
+    correlationId: input.correlationId,
+    payload: insertPayload,
+    resultData: createdOrg.data,
+    owner_id: insertPayload.owner_id,
+    authUserId,
+    payloadContainsOwnerId: Object.prototype.hasOwnProperty.call(insertPayload, 'owner_id'),
+    ownerIdMatchesAuthUser: insertPayload.owner_id === authUserId,
   });
 
+  const membershipPayload = {
+    organization_id: createdOrg.data.id,
+    user_id: ownerId,
+    role: 'owner',
+  };
+
+  logOnboardingWrite('info', 'organization_members.upsert.start', {
+    correlationId: input.correlationId,
+    payload: membershipPayload,
+  });
+
+  const membership = await admin
+    .from('organization_members')
+    .upsert(membershipPayload, { onConflict: 'organization_id,user_id' })
+    .select('*')
+    .single();
+
   if (membership.error) {
-    await supabase.from('organizations').delete().eq('id', createdOrg.data.id);
+    logOnboardingWrite('error', 'organization_members.upsert.failed', {
+      correlationId: input.correlationId,
+      payload: membershipPayload,
+      error: membership.error,
+    });
     throw membership.error;
   }
+  logOnboardingWrite('info', 'organization_members.upsert.succeeded', {
+    correlationId: input.correlationId,
+    payload: membershipPayload,
+    resultData: membership.data,
+  });
 
   return createdOrg.data;
 }

@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 import { getDashboardPayments } from "@/repositories/order-repository"
+import { logApiEvent } from "@/lib/ops-observability"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: "Pending", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
@@ -10,9 +11,18 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   failed: { label: "Failed", className: "bg-destructive/10 text-destructive border-destructive/20" },
 }
 
-export async function RecentOrders({ limit = 6 }: { limit?: number }) {
+export async function RecentOrders({ limit = 6, correlationId }: { limit?: number; correlationId?: string }) {
   const payments = await getDashboardPayments(limit).catch((error) => {
-    console.error("[RecentOrders]", error)
+    const err = error as { code?: string; message?: string; details?: string; hint?: string }
+    logApiEvent("error", "dashboard.recent_orders_failed", {
+      correlationId,
+      query: "getDashboardPayments",
+      code: err?.code,
+      message: err?.message ?? String(error),
+      details: err?.details,
+      hint: err?.hint,
+      stack: error instanceof Error ? error.stack : undefined,
+    })
     return []
   })
 

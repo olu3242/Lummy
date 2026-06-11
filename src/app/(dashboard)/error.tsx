@@ -13,6 +13,14 @@ export default function DashboardError({
   error: Error & { digest?: string }
   reset: () => void
 }) {
+  React.useEffect(() => {
+    console.error("[dashboard/error]", {
+      digest: error.digest,
+      message: error.message,
+      stack: error.stack,
+    })
+  }, [error])
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 text-center">
       <motion.div

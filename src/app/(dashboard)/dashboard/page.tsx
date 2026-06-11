@@ -168,7 +168,7 @@ export default async function DashboardPage() {
         <Button size="sm" variant="default" asChild><Link href="/dashboard/ai" className="flex items-center gap-1.5">View Brief <ArrowRight className="h-3.5 w-3.5" /></Link></Button>
       </div>
 
-      <DashboardOverview />
+      <DashboardOverview correlationId={correlationId} />
     </div>
   )
 }
