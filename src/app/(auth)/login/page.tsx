@@ -4,11 +4,12 @@ import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
-import { Eye, EyeOff, Mail, Lock, ArrowRight, MessageCircle, TrendingUp, ShoppingBag, AlertCircle } from "lucide-react"
+import { Eye, EyeOff, Mail, Lock, ArrowRight, MessageCircle, TrendingUp, ShoppingBag, AlertCircle, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { images } from "@/config/images"
+import { createClient } from "@/lib/supabase/client"
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 20 },
@@ -16,28 +17,81 @@ const fadeUp = (delay = 0) => ({
   transition: { duration: 0.5, ease: "easeOut", delay },
 })
 
-const MOCK_EMAIL = "sade@sadeboutique.com"
-
 export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
+  const [googleLoading, setGoogleLoading] = React.useState(false)
   const [error, setError] = React.useState("")
   const [email, setEmail] = React.useState("")
+  const [password, setPassword] = React.useState("")
   const [shakeKey, setShakeKey] = React.useState(0)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true)
+    setError("")
+    try {
+      const supabase = createClient()
+      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+          queryParams: { access_type: "offline", prompt: "consent" },
+        },
+      })
+      if (oauthError) {
+        setError(oauthError.message)
+        setGoogleLoading(false)
+      }
+      // On success, browser redirects to Google — no further action needed
+    } catch {
+      setError("Google sign-in failed. Please try again.")
+      setGoogleLoading(false)
+    }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError("")
     setIsLoading(true)
-    setTimeout(() => {
-      setIsLoading(false)
-      if (email.toLowerCase() !== MOCK_EMAIL) {
+    try {
+      const supabase = createClient()
+      const { data: { user }, error: authError } = await supabase.auth.signInWithPassword({ email, password })
+      if (authError || !user) {
         setError("Incorrect email or password. Please try again.")
         setShakeKey(k => k + 1)
         return
       }
-      window.location.href = "/dashboard"
-    }, 1200)
+      const bootstrap = await fetch("/api/account/bootstrap", { method: "POST" })
+      if (!bootstrap.ok) {
+        setError("We couldn't prepare your creator workspace. Please try again.")
+        setShakeKey(k => k + 1)
+        return
+      }
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarding_completed, organization_id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      // Only redirect to onboarding on positive confirmation of incomplete state.
+      // A null profile (query returned no row or transient error) goes to dashboard
+      // and lets the dashboard's own guard decide — avoids login→onboarding→login loops.
+      if (profile && (profile.onboarding_completed === false || !profile.organization_id)) {
+        window.location.href = "/onboarding"
+        return
+      }
+
+      // Read ?next= param for post-login redirect — validate to prevent open redirect
+      const params = new URLSearchParams(window.location.search)
+      const next = params.get("next") ?? ""
+      const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard"
+      window.location.href = safeNext
+    } catch {
+      setError("Something went wrong. Please try again.")
+      setShakeKey(k => k + 1)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -74,7 +128,7 @@ export default function LoginPage() {
             {/* Floating stat */}
             <div className="absolute -bottom-4 -right-4 glass-card rounded-2xl px-3 py-2 flex items-center gap-2">
               <TrendingUp className="w-3.5 h-3.5 text-brand-green" />
-              <span className="text-white text-xs font-bold">+₦847k</span>
+              <span className="text-white text-xs font-bold">+$12k</span>
             </div>
           </div>
 
@@ -91,7 +145,7 @@ export default function LoginPage() {
           <div className="mt-8 grid grid-cols-3 gap-3">
             {[
               { icon: ShoppingBag, label: "Orders", value: "1,234", color: "text-brand-purple" },
-              { icon: TrendingUp, label: "Revenue", value: "₦847k", color: "text-brand-green" },
+              { icon: TrendingUp, label: "Revenue", value: "$12k", color: "text-brand-green" },
               { icon: MessageCircle, label: "WhatsApp", value: "58%", color: "text-[#25D366]" },
             ].map(({ icon: Icon, label, value, color }) => (
               <div key={label} className="glass-card rounded-2xl p-3 text-center">
@@ -153,7 +207,7 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <Label htmlFor="password" className="text-white/70">Password</Label>
-                <Link href="#" className="text-xs text-brand-purple hover:underline">
+                <Link href="/forgot-password" className="text-xs text-brand-purple hover:underline">
                   Forgot password?
                 </Link>
               </div>
@@ -163,6 +217,8 @@ export default function LoginPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   icon={<Lock className="h-4 w-4" />}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple focus-visible:border-brand-purple/50 pr-10"
                   required
                 />
@@ -206,25 +262,32 @@ export default function LoginPage() {
             </div>
           </motion.div>
 
-          {/* Social login (placeholder) */}
+          {/* Google OAuth */}
           <motion.button
             {...fadeUp(0.25)}
-            className="w-full flex items-center justify-center gap-3 h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white/70 hover:bg-white/8 hover:text-white transition-all duration-200"
+            type="button"
+            onClick={handleGoogleLogin}
+            disabled={googleLoading || isLoading}
+            className="w-full flex items-center justify-center gap-3 h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24">
-              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-            </svg>
-            Continue with Google
+            {googleLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
+                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+              </svg>
+            )}
+            {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
           </motion.button>
 
           <motion.p {...fadeUp(0.3)} className="mt-6 text-center text-xs text-white/25">
             By logging in, you agree to our{" "}
-            <Link href="#" className="text-white/40 hover:text-white/60 underline">Terms</Link>
+            <Link href="/terms" className="text-white/40 hover:text-white/60 underline">Terms</Link>
             {" "}and{" "}
-            <Link href="#" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
+            <Link href="/privacy" className="text-white/40 hover:text-white/60 underline">Privacy Policy</Link>
           </motion.p>
         </div>
       </div>

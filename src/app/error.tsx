@@ -2,9 +2,28 @@
 
 import * as React from "react"
 import { motion } from "framer-motion"
-import { AlertTriangle, RefreshCw, Home, Zap } from "lucide-react"
+import { AlertTriangle, RefreshCw, Home } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { SmartLogo } from "@/components/shared/smart-logo"
+import { createClient } from "@/lib/supabase/client"
+
+function GoHomeButton() {
+  const [href, setHref] = React.useState("/")
+  React.useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      if (data.user) setHref("/dashboard")
+    })
+  }, [])
+  return (
+    <Link href={href}>
+      <Button variant="outline" className="w-full gap-2">
+        <Home className="h-4 w-4" />
+        Go home
+      </Button>
+    </Link>
+  )
+}
 
 export default function GlobalError({
   error,
@@ -22,12 +41,12 @@ export default function GlobalError({
         className="max-w-sm w-full space-y-6"
       >
         {/* Logo */}
-        <Link href="/" className="inline-flex items-center gap-2 group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-            <Zap className="h-4.5 w-4.5 text-white fill-white h-5 w-5" />
-          </div>
-          <span className="font-display text-lg font-bold">Lummy</span>
-        </Link>
+        <SmartLogo
+          imageClassName="h-9 w-9 rounded-xl"
+          textClassName="font-display text-lg font-bold"
+          className="inline-flex items-center gap-2 group"
+          imageSize={36}
+        />
 
         {/* Error icon */}
         <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-brand-coral/10 border border-brand-coral/20 mx-auto">
@@ -49,12 +68,7 @@ export default function GlobalError({
             <RefreshCw className="h-4 w-4" />
             Try again
           </Button>
-          <Link href="/">
-            <Button variant="outline" className="w-full gap-2">
-              <Home className="h-4 w-4" />
-              Go home
-            </Button>
-          </Link>
+          <GoHomeButton />
         </div>
       </motion.div>
     </div>

@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -25,25 +26,7 @@ interface Payout {
   note?: string
 }
 
-const mockPayouts: Payout[] = [
-  { id: "PAY-001", amount: 125000, date: "May 5, 2026",  method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8812993" },
-  { id: "PAY-002", amount: 87500,  date: "Apr 29, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "pending",   ref: "TXN8811204", note: "Expected May 1" },
-  { id: "PAY-003", amount: 210000, date: "Apr 14, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8809876" },
-  { id: "PAY-004", amount: 55000,  date: "Mar 30, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8807541" },
-  { id: "PAY-005", amount: 168000, date: "Mar 15, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8805322" },
-  { id: "PAY-006", amount: 42000,  date: "Feb 28, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "failed",    ref: "TXN8803100", note: "Account limit reached" },
-  { id: "PAY-007", amount: 98000,  date: "Feb 14, 2026", method: "GTBank •••• 4521", bank: "GTBank",  status: "completed", ref: "TXN8801455" },
-]
-
-const MONTHLY_EARNINGS = [
-  { month: "Nov", value: 145000 },
-  { month: "Dec", value: 198000 },
-  { month: "Jan", value: 162000 },
-  { month: "Feb", value: 140000 },
-  { month: "Mar", value: 223000 },
-  { month: "Apr", value: 297500 },
-  { month: "May", value: 312500 },
-]
+const EMPTY_MONTHLY_EARNINGS: { month: string; value: number }[] = []
 
 const statusConfig = {
   completed: { label: "Paid",    color: "bg-brand-green/10 text-brand-green",   icon: CheckCircle2 },
@@ -52,13 +35,8 @@ const statusConfig = {
 } as const
 
 const MIN_WITHDRAWAL = 5000
-const BALANCE = 312500
-const PENDING = 87000
 const FEE_RATE = 0.015
 const FEE_CAP = 1500
-
-const NEXT_PAYOUT_DATE = "Tuesday, May 14"
-const NEXT_PAYOUT_AMOUNT = 87000
 
 function calcFee(amount: number) {
   return Math.min(Math.round(amount * FEE_RATE), FEE_CAP)
@@ -89,7 +67,7 @@ function EarningsChart({ data }: { data: { month: string; value: number }[] }) {
             />
             {isCurrent && (
               <text x={x + barW / 2} y={H - bh - 5} textAnchor="middle" fontSize="8" fontWeight="bold" fill="#6C4EF3">
-                ₦{Math.round(d.value / 1000)}k
+                {formatCompactMoney(Math.round(d.value / 1000))}
               </text>
             )}
             <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize="8" fill="currentColor" opacity="0.45">
@@ -106,19 +84,39 @@ function EarningsChart({ data }: { data: { month: string; value: number }[] }) {
 
 type WithdrawStep = "amount" | "confirm" | "success"
 
-function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: number }) {
+function WithdrawModal({ onClose, balance, onSuccess }: { onClose: () => void; balance: number; onSuccess: () => void }) {
   const [step, setStep] = React.useState<WithdrawStep>("amount")
   const [rawAmount, setRawAmount] = React.useState("")
   const [processing, setProcessing] = React.useState(false)
+  const [apiError, setApiError] = React.useState("")
 
   const amount = parseInt(rawAmount.replace(/\D/g, "") || "0", 10)
   const fee = calcFee(amount)
   const net = amount - fee
   const amountValid = amount >= MIN_WITHDRAWAL && amount <= balance
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     setProcessing(true)
-    setTimeout(() => { setProcessing(false); setStep("success") }, 1800)
+    setApiError("")
+    try {
+      const res = await fetch("/api/payouts/request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount, currency_code: "NGN" }),
+      })
+      const data = await res.json() as { error?: string }
+      if (!res.ok) {
+        setApiError(data.error ?? "Request failed. Try again.")
+        setProcessing(false)
+        return
+      }
+      setStep("success")
+      onSuccess()
+    } catch {
+      setApiError("Network error — check your connection and try again.")
+    } finally {
+      setProcessing(false)
+    }
   }
 
   React.useEffect(() => {
@@ -145,7 +143,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             <div className="flex items-center justify-between px-6 pt-6 pb-4">
               <div>
                 <h2 className="font-display text-lg font-extrabold">Withdraw Funds</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Available: <strong className="text-foreground">₦{balance.toLocaleString()}</strong></p>
+                <p className="text-xs text-muted-foreground mt-0.5">Available: <strong className="text-foreground">{formatMoney(balance)}</strong></p>
               </div>
               <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-xl border border-border hover:bg-accent">
                 <X className="h-4 w-4" />
@@ -155,7 +153,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
               <div>
                 <label className="block text-xs font-semibold mb-2">Enter amount</label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display font-bold text-xl text-muted-foreground">₦</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-display font-bold text-xl text-muted-foreground">$</span>
                   <input
                     autoFocus inputMode="numeric"
                     value={rawAmount ? parseInt(rawAmount.replace(/\D/g, ""), 10).toLocaleString() : ""}
@@ -168,7 +166,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   {[50000, 100000, 200000].map(v => (
                     <button key={v} onClick={() => setRawAmount(String(v))}
                       className="flex-1 h-7 rounded-lg border border-border text-[11px] font-semibold hover:bg-accent transition-colors">
-                      ₦{v / 1000}k
+                      {formatCompactMoney(v / 1000)}
                     </button>
                   ))}
                   <button onClick={() => setRawAmount(String(balance))}
@@ -183,22 +181,22 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   className="rounded-xl bg-muted/50 border border-border p-3 space-y-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Amount</span>
-                    <span className="font-semibold">₦{amount.toLocaleString()}</span>
+                    <span className="font-semibold">{formatMoney(amount)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Processing fee (1.5%)</span>
-                    <span className="font-semibold text-brand-coral">−₦{fee.toLocaleString()}</span>
+                    <span className="font-semibold text-brand-coral">−{formatMoney(fee)}</span>
                   </div>
                   <div className="flex justify-between border-t border-border pt-2 text-sm font-bold">
                     <span>You receive</span>
-                    <span className="text-brand-green">₦{net.toLocaleString()}</span>
+                    <span className="text-brand-green">{formatMoney(net)}</span>
                   </div>
                 </motion.div>
               )}
 
               {amount > 0 && amount < MIN_WITHDRAWAL && (
                 <p className="text-xs text-brand-coral flex items-center gap-1">
-                  <AlertCircle className="h-3.5 w-3.5" /> Minimum withdrawal is ₦{MIN_WITHDRAWAL.toLocaleString()}
+                  <AlertCircle className="h-3.5 w-3.5" /> Minimum withdrawal is {formatMoney(MIN_WITHDRAWAL)}
                 </p>
               )}
               {amount > balance && (
@@ -232,13 +230,13 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                     <Banknote className="h-5 w-5 text-brand-green" />
                   </div>
                   <div>
-                    <p className="font-display text-xl font-extrabold text-brand-green">₦{net.toLocaleString()}</p>
+                    <p className="font-display text-xl font-extrabold text-brand-green">{formatMoney(net)}</p>
                     <p className="text-[10px] text-muted-foreground">Amount you&apos;ll receive</p>
                   </div>
                 </div>
                 {[
-                  { label: "Withdrawal amount", value: `₦${amount.toLocaleString()}` },
-                  { label: "Processing fee",     value: `-₦${fee.toLocaleString()}` },
+                  { label: "Withdrawal amount", value: formatMoney(amount) },
+                  { label: "Processing fee",     value: `-${formatMoney(fee)}` },
                   { label: "Settlement time",    value: "1–2 business days" },
                 ].map(r => (
                   <div key={r.label} className="flex justify-between text-xs">
@@ -252,11 +250,16 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
                   <Building2 className="h-4 w-4 text-brand-purple" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">GTBank — 0123456789</p>
-                  <p className="text-xs text-muted-foreground">Adunola Fashionista · Verified ✓</p>
+                  <p className="text-sm font-semibold">Bank account</p>
+                  <p className="text-xs text-muted-foreground">Add a bank account in Settings to receive payouts</p>
                 </div>
                 <ShieldCheck className="h-4 w-4 text-brand-green" />
               </div>
+              {apiError && (
+                <p className="text-xs text-brand-coral flex items-center gap-1.5">
+                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />{apiError}
+                </p>
+              )}
               <Button className="w-full h-11 gap-2" onClick={handleConfirm} disabled={processing}>
                 {processing
                   ? <><RefreshCw className="h-4 w-4 animate-spin" />Processing…</>
@@ -281,7 +284,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
               <h2 className="font-display text-xl font-extrabold">Withdrawal Requested!</h2>
               <p className="text-sm text-muted-foreground mt-1.5">
-                <strong className="text-foreground">₦{net.toLocaleString()}</strong> will arrive in your GTBank account within 1–2 business days.
+                <strong className="text-foreground">{formatMoney(net)}</strong> will arrive in your bank account within 1–2 business days.
               </p>
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
@@ -290,7 +293,7 @@ function WithdrawModal({ onClose, balance }: { onClose: () => void; balance: num
             </motion.div>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} className="w-full">
               <Button className="w-full h-10" onClick={() => {
-                toast({ title: "Withdrawal submitted", description: `₦${net.toLocaleString()} is on its way to your bank.`, variant: "success" })
+                toast({ title: "Withdrawal submitted", description: `${formatMoney(net)} is on its way to your bank.`, variant: "success" })
                 onClose()
               }}>Done</Button>
             </motion.div>
@@ -345,7 +348,7 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
         <div className="px-5 py-4 space-y-4">
           {/* Amount */}
           <div className="text-center py-3">
-            <p className="font-display text-3xl font-extrabold">₦{payout.amount.toLocaleString()}</p>
+            <p className="font-display text-3xl font-extrabold">{formatMoney(payout.amount)}</p>
             <span className={cn("inline-block mt-1 text-[11px] font-semibold px-2.5 py-0.5 rounded-full", cfg.color)}>
               {cfg.label}
             </span>
@@ -354,9 +357,9 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
           {/* Details */}
           <div className="rounded-2xl border border-border divide-y divide-border overflow-hidden text-xs">
             {[
-              { label: "Gross amount",    value: `₦${payout.amount.toLocaleString()}` },
-              { label: "Processing fee",  value: `-₦${fee.toLocaleString()}`, red: true },
-              { label: "Net received",    value: `₦${net.toLocaleString()}`, green: true },
+              { label: "Gross amount",    value: formatMoney(payout.amount) },
+              { label: "Processing fee",  value: `-${formatMoney(fee)}`, red: true },
+              { label: "Net received",    value: formatMoney(net), green: true },
               { label: "Bank account",    value: payout.method },
               { label: "Settlement",      value: "1–2 business days" },
             ].map(row => (
@@ -406,9 +409,9 @@ function PayoutDetailDrawer({ payout, onClose }: { payout: Payout; onClose: () =
 
 // ─── Export helper ─────────────────────────────────────────────────────────────
 
-function exportPayoutsCSV() {
-  const header = ["ID", "Date", "Amount (₦)", "Method", "Reference", "Status"]
-  const rows = mockPayouts.map(p => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
+function exportPayoutsCSV(payoutsToExport: Payout[]) {
+  const header = ["ID", "Date", "Amount", "Method", "Reference", "Status"]
+  const rows = payoutsToExport.map((p: Payout) => [p.id, p.date, p.amount, p.method, p.ref, p.status].join(","))
   const csv = [header.join(","), ...rows].join("\n")
   const blob = new Blob([csv], { type: "text/csv" })
   const url = URL.createObjectURL(blob)
@@ -429,19 +432,55 @@ export default function PayoutsPage() {
   const [showAddBank, setShowAddBank] = React.useState(false)
   const [bankName, setBankName] = React.useState("")
   const [bankAcct, setBankAcct] = React.useState("")
+  const [balance, setBalance] = React.useState(0)
+  const [pending, setPending] = React.useState(0)
+  const [monthlyEarnings, setMonthlyEarnings] = React.useState(EMPTY_MONTHLY_EARNINGS)
+  const [payouts, setPayouts] = React.useState<Payout[]>([])
 
-  const balance = BALANCE
-  const totalPaid = mockPayouts.filter(p => p.status === "completed").reduce((s, p) => s + p.amount, 0)
+  const loadPayouts = React.useCallback(() => {
+    fetch("/api/payouts")
+      .then(r => r.ok ? r.json() : null)
+      .then((res: { data?: Array<{ id: string; amount: number; currency_code: string; status: string; requested_at: string; payout_accounts?: { bank_name?: string; account_number?: string } }> } | null) => {
+        if (res?.data) {
+          setPayouts(res.data.map(p => ({
+            id: p.id,
+            amount: Number(p.amount),
+            date: new Date(p.requested_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }),
+            method: "Bank Transfer",
+            bank: p.payout_accounts?.bank_name ?? "Bank Account",
+            status: (p.status === "paid" ? "completed" : p.status === "failed" ? "failed" : "pending") as Payout["status"],
+            ref: p.id.slice(0, 8).toUpperCase(),
+          })))
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  React.useEffect(() => {
+    fetch("/api/analytics")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { summary?: { revenue?: number; pendingRevenue?: number }; monthlyData?: Array<{ month: string; revenue: number }> } | null) => {
+        if (data?.summary?.revenue) setBalance(data.summary.revenue)
+        if (data?.summary?.pendingRevenue) setPending(data.summary.pendingRevenue)
+        if (data?.monthlyData?.length) {
+          setMonthlyEarnings(data.monthlyData.map(m => ({ month: m.month, value: m.revenue })))
+        }
+      })
+      .catch(() => {})
+    loadPayouts()
+  }, [loadPayouts])
+
+  const totalPaid = payouts.filter(p => p.status === "completed").reduce((s, p) => s + p.amount, 0)
 
   const filteredPayouts = filterTab === "all"
-    ? mockPayouts
-    : mockPayouts.filter(p => p.status === filterTab)
+    ? payouts
+    : payouts.filter(p => p.status === filterTab)
 
   const filterCounts: Record<FilterTab, number> = {
-    all: mockPayouts.length,
-    completed: mockPayouts.filter(p => p.status === "completed").length,
-    pending: mockPayouts.filter(p => p.status === "pending").length,
-    failed: mockPayouts.filter(p => p.status === "failed").length,
+    all: payouts.length,
+    completed: payouts.filter(p => p.status === "completed").length,
+    pending: payouts.filter(p => p.status === "pending").length,
+    failed: payouts.filter(p => p.status === "failed").length,
   }
 
   return (
@@ -460,9 +499,9 @@ export default function PayoutsPage() {
       {/* Balance cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { label: "Available Balance", value: `₦${balance.toLocaleString()}`,    icon: Wallet,     color: "text-brand-purple", bg: "bg-brand-purple/10" },
-          { label: "Pending Clearance", value: `₦${PENDING.toLocaleString()}`,    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
-          { label: "Total Paid Out",    value: `₦${totalPaid.toLocaleString()}`,  icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10" },
+          { label: "Available Balance", value: formatMoney(balance),    icon: Wallet,     color: "text-brand-purple", bg: "bg-brand-purple/10" },
+          { label: "Pending Clearance", value: formatMoney(pending),    icon: Clock,      color: "text-amber-500",    bg: "bg-amber-500/10"   },
+          { label: "Total Paid Out",    value: formatMoney(totalPaid),  icon: TrendingUp, color: "text-brand-green",  bg: "bg-brand-green/10" },
         ].map((card, i) => (
           <motion.div key={card.label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className="rounded-2xl border border-border bg-card p-5">
@@ -491,7 +530,7 @@ export default function PayoutsPage() {
             </div>
           </div>
           <div className="text-muted-foreground">
-            <EarningsChart data={MONTHLY_EARNINGS} />
+            <EarningsChart data={monthlyEarnings} />
           </div>
         </motion.div>
 
@@ -505,25 +544,16 @@ export default function PayoutsPage() {
                 <Calendar className="h-4 w-4 text-brand-purple" />
               </div>
               <div>
-                <p className="font-display text-lg font-extrabold">₦{NEXT_PAYOUT_AMOUNT.toLocaleString()}</p>
-                <p className="text-[10px] text-muted-foreground">{NEXT_PAYOUT_DATE}</p>
+                <p className="font-display text-lg font-extrabold">{pending > 0 ? formatMoney(pending) : "—"}</p>
+                <p className="text-[10px] text-muted-foreground">{pending > 0 ? "Next scheduled payout" : "No pending payout"}</p>
               </div>
             </div>
           </div>
 
-          <div className="border-t border-border pt-4 space-y-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Projection</p>
-            {[
-              { label: "This month (est.)", value: "₦340,000", up: true },
-              { label: "Next month (est.)", value: "₦385,000", up: true },
-            ].map(row => (
-              <div key={row.label} className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-semibold flex items-center gap-0.5 text-brand-green">
-                  <ArrowUpRight className="h-3 w-3" />{row.value}
-                </span>
-              </div>
-            ))}
+          <div className="border-t border-border pt-4">
+            <p className="text-[10px] text-muted-foreground leading-relaxed">
+              Projections will appear once your store starts processing orders.
+            </p>
           </div>
 
           <div className="border-t border-border pt-4">
@@ -549,15 +579,13 @@ export default function PayoutsPage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-purple/10">
-            <Building2 className="h-5 w-5 text-brand-purple" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+            <Building2 className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="flex-1">
-            <p className="text-sm font-semibold">GTBank — 0123456789</p>
-            <p className="text-xs text-muted-foreground">Adunola Fashionista · Verified ✓</p>
+            <p className="text-sm text-muted-foreground">No bank account linked yet</p>
+            <p className="text-xs text-muted-foreground/60">Add an account to receive payouts</p>
           </div>
-          <ShieldCheck className="h-4 w-4 text-brand-green" />
-          <button className="text-xs text-muted-foreground hover:text-brand-purple">Change</button>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-3 text-xs text-muted-foreground border-t border-border pt-4">
           <div><p className="font-semibold text-foreground">Tuesday & Friday</p><p>Payout schedule</p></div>
@@ -604,7 +632,7 @@ export default function PayoutsPage() {
         className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="flex items-center justify-between px-5 py-3.5 border-b border-border">
           <h2 className="font-semibold text-sm">Payout History</h2>
-          <button onClick={exportPayoutsCSV} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={() => exportPayoutsCSV(payouts)} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
         </div>
@@ -648,7 +676,7 @@ export default function PayoutsPage() {
                         <cfg.icon className={cn("h-4 w-4", cfg.color.split(" ")[1])} />
                       </div>
                       <div>
-                        <p className="text-sm font-semibold">₦{payout.amount.toLocaleString()}</p>
+                        <p className="text-sm font-semibold">{formatMoney(payout.amount)}</p>
                         <p className="text-xs text-muted-foreground">{payout.date} · {payout.method}</p>
                       </div>
                     </div>
@@ -669,14 +697,14 @@ export default function PayoutsPage() {
         className="rounded-2xl border border-border bg-muted/30 p-4 flex gap-3">
         <AlertCircle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground leading-relaxed">
-          Minimum withdrawal is <strong className="text-foreground">₦5,000</strong>. Payouts are processed every Tuesday and Friday.
-          A <strong className="text-foreground">1.5% fee</strong> applies (capped at ₦1,500). Bank verification takes 1–2 minutes.
+          Minimum withdrawal applies. Payouts are processed every Tuesday and Friday.
+          A <strong className="text-foreground">1.5% fee</strong> applies. Bank verification takes 1–2 minutes.
         </p>
       </motion.div>
 
       {/* Modals */}
       <AnimatePresence>
-        {showWithdraw && <WithdrawModal onClose={() => setShowWithdraw(false)} balance={balance} />}
+        {showWithdraw && <WithdrawModal onClose={() => setShowWithdraw(false)} balance={balance} onSuccess={() => { setShowWithdraw(false); loadPayouts() }} />}
         {selectedPayout && <PayoutDetailDrawer payout={selectedPayout} onClose={() => setSelectedPayout(null)} />}
       </AnimatePresence>
     </div>

@@ -1,0 +1,104 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/automation-processor",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/analytics-rollup",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/health-scoring",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/churn-scoring",
+      "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/api/cron/notification-cleanup",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/stuck-queue-recovery",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-digest",
+      "schedule": "0 7 * * 1"
+    },
+    {
+      "path": "/api/cron/marketplace-intelligence",
+      "schedule": "0 5 * * *"
+    },
+    {
+      "path": "/api/cron/intelligence-scoring",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/creator-success-monitoring",
+      "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/ecosystem-intelligence",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/trust-intelligence",
+      "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/discovery-intelligence",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/marketplace-expansion",
+      "schedule": "0 10 * * *"
+    },
+    {
+      "path": "/api/cron/economy-intelligence",
+      "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/retention-intelligence",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/scaling-coordination",
+      "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/revenue-stability",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/recovery-kernel",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron/scaling-kernel",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/governance-kernel",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/marketplace-kernel",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/intervention-system",
+      "schedule": "0 19 * * *"
+    },
+    {
+      "path": "/api/cron/stability-governance",
+      "schedule": "0 20 * * *"
+    },
+    {
+      "path": "/api/cron/stabilization-scaling",
+      "schedule": "0 21 * * *"
+    }
+  ]
+}

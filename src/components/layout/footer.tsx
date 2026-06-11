@@ -1,35 +1,74 @@
 import Link from "next/link"
-import { Zap, Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
+import Image from "next/image"
+import { Twitter, Instagram, Linkedin, Youtube } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
+import { BRAND } from "@/config/branding"
 
 const footerLinks = {
-  Product: [
-    { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Creator Gallery", href: "#gallery" },
-    { label: "AI Assistant", href: "#ai" },
-    { label: "WhatsApp Commerce", href: "#whatsapp" },
-    { label: "Changelog", href: "#" },
+  Company: [
+    { label: "About", href: "/#features" },
+    { label: "Careers", href: "/careers" },
+    { label: "Press", href: "/press" },
+    { label: "Contact", href: "mailto:support@lummy.com" },
+    { label: "Partners", href: "/partner-program" },
+    { label: "Affiliates", href: "/affiliate-program" },
   ],
   Creators: [
-    { label: "Success Stories", href: "#testimonials" },
-    { label: "Creator Community", href: "#" },
-    { label: "Refer a Creator", href: "#" },
-    { label: "Creator Blog", href: "#" },
+    { label: "Storefronts", href: "/signup" },
+    { label: "Products", href: "/#features" },
+    { label: "Growth", href: "/#how-it-works" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Success Stories", href: "/#testimonials" },
+    { label: "Discover Creators", href: "/discover" },
   ],
-  Company: [
-    { label: "About Lummy", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Press Kit", href: "#" },
-    { label: "Contact", href: "#" },
+  Support: [
+    { label: "Help Center", href: "/dashboard/help" },
+    { label: "Contact Support", href: "mailto:support@lummy.com" },
+    { label: "Status", href: "/status" },
+    { label: "Accessibility", href: "/accessibility" },
+  ],
+  Trust: [
+    { label: "Security", href: "/security" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Compliance", href: "/compliance" },
+    { label: "Trust Center", href: "/trust" },
   ],
   Legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
-    { label: "Refund Policy", href: "#" },
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Cookies", href: "/cookies" },
+    { label: "Refunds", href: "/refunds" },
+    { label: "Acceptable Use", href: "/acceptable-use" },
+  ],
+  Compliance: [
+    { label: "Payments", href: "/legal/payments" },
+    { label: "Merchant Terms", href: "/legal/merchant-terms" },
+    { label: "Chargebacks", href: "/legal/chargebacks" },
+    { label: "Prohibited Businesses", href: "/legal/prohibited-businesses" },
+    { label: "Platform Fees", href: "/legal/platform-fees" },
   ],
 }
+
+const securityCommitments = [
+  "Encryption in Transit",
+  "Encryption at Rest",
+  "Role-Based Access Controls",
+  "Audit Logging",
+  "Secure Payments",
+  "Account Protection",
+  "Multi-Tenant Isolation",
+  "Disaster Recovery",
+]
+
+const certificationRoadmap = [
+  "SOC 2 Type I",
+  "SOC 2 Type II",
+  "ISO 27001",
+  "GDPR Compliance",
+  "CCPA Compliance",
+  "NDPA Compliance",
+  "PCI-DSS Alignment",
+]
 
 const socials = [
   { icon: Twitter, label: "Twitter", href: "#" },
@@ -43,17 +82,15 @@ export function Footer() {
     <footer className="bg-brand-midnight border-t border-white/8">
       {/* Main grid */}
       <div className="container py-16 lg:py-20">
-        <div className="grid grid-cols-2 gap-8 lg:grid-cols-6">
+        <div className="grid grid-cols-2 gap-8 lg:grid-cols-4 xl:grid-cols-7">
           {/* Brand col */}
           <div className="col-span-2 lg:col-span-2">
             <Link href="/" className="flex items-center gap-2 group w-fit">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-                <Zap className="h-4 w-4 text-white fill-white" />
-              </div>
-              <span className="font-display text-xl font-bold text-white">Lummy</span>
+              <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl" />
+              <span className="font-display text-xl font-bold text-white">{BRAND.name}</span>
             </Link>
             <p className="mt-4 text-sm text-white/50 leading-relaxed max-w-xs">
-              The creator commerce OS for Africa. Turn your followers into customers with storefronts, WhatsApp orders, and AI-powered growth tools.
+              {BRAND.name} helps creators and businesses launch, sell, and grow online from anywhere in the world.
             </p>
             <div className="mt-6 flex items-center gap-3">
               {socials.map(({ icon: Icon, label, href }) => (
@@ -94,15 +131,53 @@ export function Footer() {
 
       <Separator className="bg-white/8" />
 
+      <div className="container py-10">
+        <div className="grid gap-8 lg:grid-cols-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4">Security Commitments</p>
+            <div className="flex flex-wrap gap-2">
+              {securityCommitments.map((item) => (
+                <span key={item} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">{item}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4">Certifications Roadmap</p>
+            <div className="flex flex-wrap gap-2">
+              {certificationRoadmap.map((item) => (
+                <span key={item} className="rounded-full border border-white/10 px-3 py-1 text-xs text-white/50">{item}</span>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-4">Corporate Information</p>
+            <div className="space-y-1.5 text-xs text-white/45">
+              <p>Lummy Technologies</p>
+              <p>Registered Business Information</p>
+              <p>Business Registration Number</p>
+              <p>Registered Address</p>
+              <p><a href="mailto:support@lummy.com" className="hover:text-white">support@lummy.com</a></p>
+              <p><a href="mailto:privacy@lummy.com" className="hover:text-white">privacy@lummy.com</a></p>
+              <p><a href="mailto:legal@lummy.com" className="hover:text-white">legal@lummy.com</a></p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Separator className="bg-white/8" />
+
       {/* Bottom bar */}
-      <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 py-6">
-        <p className="text-xs text-white/30">
-          © 2025 Lummy Technologies Ltd. · Built for African creators.
-        </p>
-        <div className="flex items-center gap-1">
-          <span className="text-xs text-white/30">Made with</span>
-          <span className="text-brand-coral text-xs">♥</span>
-          <span className="text-xs text-white/30">in Lagos</span>
+      <div className="container py-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-3xl space-y-2">
+            <p className="text-xs text-white/30">© 2025 Lummy Technologies. All rights reserved.</p>
+            <p className="text-xs leading-5 text-white/30">
+              Lummy provides global commerce, storefront, and payment enablement tools for independent creators and businesses.
+              Feature availability may vary by country and payment provider. Users are responsible for complying with applicable
+              local laws, tax obligations, and regulatory requirements.
+            </p>
+          </div>
+          <p className="text-xs text-white/30">Built for creators everywhere.</p>
         </div>
       </div>
     </footer>

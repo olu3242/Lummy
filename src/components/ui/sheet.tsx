@@ -27,6 +27,7 @@ SheetOverlay.displayName = "SheetOverlay"
 
 interface SheetContentProps extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> {
   side?: "left" | "right" | "top" | "bottom"
+  children?: React.ReactNode
 }
 
 const sideVariants = {

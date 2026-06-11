@@ -76,11 +76,11 @@ export function TestimonialsSection() {
         >
           <p className="text-sm font-semibold uppercase tracking-widest text-primary mb-3">Creator stories</p>
           <h2 className="font-display text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight">
-            Real creators.<br />
-            <span className="gradient-text">Real results.</span>
+            Before and after.<br />
+            <span className="gradient-text">Creator growth stories.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-            Thousands of African creators use Lummy to build businesses that earn while they sleep.
+            Creators use Lummy to move from scattered messages and manual selling into a clearer, more trusted buying experience.
           </p>
         </motion.div>
       </div>
@@ -100,9 +100,9 @@ export function TestimonialsSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="mt-14 pt-10 border-t border-border"
         >
-          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">As seen on</p>
+          <p className="text-center text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-6">Built for credibility across</p>
           <div className="flex flex-wrap items-center justify-center gap-8 opacity-30">
-            {["TechCabal", "Techpoint", "BusinessDay NG", "Nairametrics", "The Guardian"].map(name => (
+            {["Creators", "Small Businesses", "Digital Sellers", "Service Providers", "Independent Brands"].map(name => (
               <span key={name} className="font-display font-bold text-sm text-foreground">{name}</span>
             ))}
           </div>

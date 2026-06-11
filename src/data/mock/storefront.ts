@@ -13,7 +13,7 @@ export interface StorefrontReview {
   date: string
 }
 
-export const mockStorefrontReviews: StorefrontReview[] = [
+export const storefrontReviewSamples: StorefrontReview[] = [
   {
     id: "r1",
     name: "Adaeze O.",
@@ -27,7 +27,7 @@ export const mockStorefrontReviews: StorefrontReview[] = [
     name: "Kemi A.",
     avatar: images.creators.zara,
     rating: 5,
-    comment: "Third order from Sade's store and quality never disappoints. The beaded necklace set was a hit at my sister's engagement 💜",
+    comment: "Third order from this store and quality never disappoints. The beaded necklace set was a hit at my sister's engagement 💜",
     productName: "Beaded Necklace Set",
     date: "November 2024",
   },

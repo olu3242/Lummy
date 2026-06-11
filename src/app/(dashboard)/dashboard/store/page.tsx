@@ -12,19 +12,19 @@ import {
   Clock, ChevronDown, X, Sparkles, LayoutGrid, List, Package,
   Star, Users, ShoppingBag, Tag, Plus, Trash2, Wand2,
 } from "lucide-react"
+import { PublishToggle } from "@/components/dashboard/publish-toggle"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-import { mockCreatorProfile } from "@/data/mock/dashboard"
 import { useStoreSchema } from "@/store/hooks/use-store-schema"
+import { useUpload } from "@/hooks/use-upload"
 import { StorefrontPreview } from "@/store/preview/storefront-preview"
 import { ThemeEditorPanel } from "@/store/editor/theme-editor-panel"
 import { SectionListEditor } from "@/store/editor/section-list-editor"
 import { SectionSettingsEditor } from "@/store/editor/section-settings-editor"
 import { SectionAddDialog } from "@/store/editor/section-add-dialog"
+import type { StorefrontCreator } from "@/store/schema/types"
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const STORE_KEY = "lummy_store_settings"
 
 const ACCENT_COLORS = [
   { name: "Purple",  value: "#6C4EF3" },
@@ -37,7 +37,7 @@ const ACCENT_COLORS = [
   { name: "Fuchsia", value: "#D946EF" },
 ]
 
-const FONTS = [
+const FONTS: { value: StoreSettings["font"]; label: string; desc: string }[] = [
   { value: "inter",    label: "Inter",    desc: "Clean & modern" },
   { value: "playfair", label: "Playfair", desc: "Elegant serif" },
   { value: "poppins",  label: "Poppins",  desc: "Rounded & friendly" },
@@ -84,7 +84,7 @@ interface StoreHours {
 
 interface StoreSettings {
   accent: string
-  font: string
+  font: "inter" | "playfair" | "poppins" | "mono"
   layout: LayoutValue
   sections: StoreSection[]
   announcement: AnnouncementBar
@@ -103,8 +103,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
   font: "inter",
   layout: "grid-3",
   sections: DEFAULT_SECTIONS,
-  announcement: { enabled: false, text: "🎉 Free delivery on orders above ₦15,000!", ctaLabel: "Shop now", ctaUrl: "", style: "purple" },
-  seo: { title: "Sade's Boutique — Authentic African Fashion", description: "Shop premium Ankara prints, beaded jewellery, and African accessories. Fast delivery in Lagos.", keywords: "ankara, african fashion, lagos fashion, nigerian designer" },
+  announcement: { enabled: false, text: "🎉 Free delivery on orders above $15!", ctaLabel: "Shop now", ctaUrl: "", style: "purple" },
+  seo: { title: "", description: "", keywords: "" },
   hours: {
     enabled: false,
     timezone: "Africa/Lagos",
@@ -113,20 +113,79 @@ const DEFAULT_SETTINGS: StoreSettings = {
   customDomain: "",
   showReviews: true,
   showStock: true,
-  currency: "NGN",
+  currency: "USD",
 }
 
-function loadSettings(): StoreSettings {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS
-  try {
-    const raw = localStorage.getItem(STORE_KEY)
-    if (raw) return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as StoreSettings }
-  } catch {}
-  return DEFAULT_SETTINGS
+type StoreDetails = {
+  storeName: string
+  handle: string
+  bio: string
+  whatsapp: string
+  location: string
+  avatarUrl: string
+  coverUrl: string
+  socialLinks: {
+    instagram: string
+    twitter: string
+    tiktok: string
+  }
 }
 
-function saveSettings(s: StoreSettings) {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(s)) } catch {}
+type AccountConfigResponse = {
+  profile?: {
+    full_name?: string | null
+    phone?: string | null
+    avatar_url?: string | null
+  } | null
+  organization?: {
+    name?: string | null
+  } | null
+  storefront?: {
+    handle?: string | null
+    bio?: string | null
+    hero_image?: string | null
+    social_links?: Record<string, string | null> | null
+    theme?: Partial<StoreSettings> | null
+    store_schema?: { theme?: { accent?: string; font?: StoreSettings["font"]; layout?: LayoutValue } } | null
+  } | null
+}
+
+type StoreSchemaThemePayload = {
+  theme?: {
+    accent?: string
+    font?: StoreSettings["font"]
+    layout?: LayoutValue
+  }
+} | null
+
+const emptyStoreDetails: StoreDetails = {
+  storeName: "",
+  handle: "",
+  bio: "",
+  whatsapp: "",
+  location: "",
+  avatarUrl: "",
+  coverUrl: "",
+  socialLinks: { instagram: "", twitter: "", tiktok: "" },
+}
+
+function isDummyCreatorText(value?: string) {
+  return /sade|sadeboutique|sade\.styles|ankara|nigerian designer/i.test(value ?? "")
+}
+
+function normalizeStoreSettings(theme?: Partial<StoreSettings> | null, schemaTheme?: StoreSchemaThemePayload): StoreSettings {
+  const schemaTokens = schemaTheme?.theme ?? null
+  return {
+    ...DEFAULT_SETTINGS,
+    ...(theme ?? {}),
+    accent: theme?.accent ?? schemaTokens?.accent ?? DEFAULT_SETTINGS.accent,
+    font: theme?.font ?? schemaTokens?.font ?? DEFAULT_SETTINGS.font,
+    layout: theme?.layout ?? schemaTokens?.layout ?? DEFAULT_SETTINGS.layout,
+    sections: theme?.sections ?? DEFAULT_SETTINGS.sections,
+    announcement: { ...DEFAULT_SETTINGS.announcement, ...(theme?.announcement ?? {}) },
+    seo: { ...DEFAULT_SETTINGS.seo, ...(theme?.seo ?? {}) },
+    hours: { ...DEFAULT_SETTINGS.hours, ...(theme?.hours ?? {}) },
+  }
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -168,6 +227,7 @@ type TabKey = "appearance" | "sections" | "announcement" | "seo" | "hours" | "do
 
 export default function StorePage() {
   const [settings, setSettings] = React.useState<StoreSettings>(DEFAULT_SETTINGS)
+  const [storeDetails, setStoreDetails] = React.useState<StoreDetails>(emptyStoreDetails)
   const [activeTab, setActiveTab] = React.useState<TabKey>("details")
   const [saving, setSaving] = React.useState(false)
   const [copiedUrl, setCopiedUrl] = React.useState(false)
@@ -179,21 +239,125 @@ export default function StorePage() {
   const [selectedSectionId, setSelectedSectionId] = React.useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = React.useState(false)
 
-  React.useEffect(() => { setSettings(loadSettings()) }, [])
+  // Store media upload
+  const [coverUrl, setCoverUrl] = React.useState("")
+  const [avatarUrl, setAvatarUrl] = React.useState("")
+  const coverInputRef = React.useRef<HTMLInputElement>(null)
+  const avatarInputRef = React.useRef<HTMLInputElement>(null)
+  const { upload: uploadCover, uploading: coverUploading } = useUpload({
+    type: "banner",
+    onSuccess: (url) => {
+      setCoverUrl(url)
+      setStoreDetails(prev => ({ ...prev, coverUrl: url }))
+      fetch("/api/account/config", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ storefront: { hero_image: url } }) }).catch(() => {})
+      toast({ title: "Cover updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
+  const { upload: uploadAvatar, uploading: avatarUploading } = useUpload({
+    type: "avatar",
+    onSuccess: (url) => {
+      setAvatarUrl(url)
+      setStoreDetails(prev => ({ ...prev, avatarUrl: url }))
+      fetch("/api/account/config", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ profile: { avatar_url: url } }) }).catch(() => {})
+      toast({ title: "Avatar updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as AccountConfigResponse
+        if (!res.ok) throw new Error("Failed to load storefront")
+        return payload
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const social = payload.storefront?.social_links ?? {}
+        const nextDetails: StoreDetails = {
+          storeName: payload.organization?.name ?? "",
+          handle: payload.storefront?.handle ?? "",
+          bio: payload.storefront?.bio ?? "",
+          whatsapp: payload.profile?.phone ?? "",
+          location: "",
+          avatarUrl: payload.profile?.avatar_url ?? "",
+          coverUrl: payload.storefront?.hero_image ?? "",
+          socialLinks: {
+            instagram: social.instagram ?? "",
+            twitter: social.twitter ?? "",
+            tiktok: social.tiktok ?? "",
+          },
+        }
+        setStoreDetails(nextDetails)
+        setCoverUrl(nextDetails.coverUrl)
+        setAvatarUrl(nextDetails.avatarUrl)
+        const persistedSettings = normalizeStoreSettings(payload.storefront?.theme ?? null, payload.storefront?.store_schema ?? null)
+        setSettings({
+          ...persistedSettings,
+          seo: {
+            ...persistedSettings.seo,
+            title: !persistedSettings.seo.title || isDummyCreatorText(persistedSettings.seo.title) ? (nextDetails.storeName ? `${nextDetails.storeName} | Lummy` : "") : persistedSettings.seo.title,
+            description: !persistedSettings.seo.description || isDummyCreatorText(persistedSettings.seo.description) ? nextDetails.bio : persistedSettings.seo.description,
+            keywords: isDummyCreatorText(persistedSettings.seo.keywords) ? "" : persistedSettings.seo.keywords,
+          },
+        })
+      })
+      .catch((error) => toast({ title: "Storefront load failed", description: error instanceof Error ? error.message : "Failed to load storefront", variant: "error" }))
+    return () => { cancelled = true }
+  }, [])
 
   const update = (patch: Partial<StoreSettings>) => setSettings(prev => ({ ...prev, ...patch }))
 
-  const handleSave = () => {
+  const handleSave = async () => {
     setSaving(true)
-    saveSettings(settings)
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/account/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organization: { name: storeDetails.storeName },
+          profile: { phone: storeDetails.whatsapp, avatar_url: storeDetails.avatarUrl },
+          storefront: {
+            handle: storeDetails.handle,
+            bio: storeDetails.bio,
+            hero_image: storeDetails.coverUrl,
+            social_links: storeDetails.socialLinks,
+            theme: settings,
+            store_schema: {
+              ...storeSchema.schema,
+              theme: {
+                ...storeSchema.schema.theme,
+                accent: settings.accent,
+                font: settings.font,
+                layout: settings.layout,
+              },
+            },
+          },
+        }),
+      })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error || "Failed to save storefront")
+      await storeSchema.persist({
+        ...storeSchema.schema,
+        theme: {
+          ...storeSchema.schema.theme,
+          accent: settings.accent,
+          font: settings.font,
+          layout: settings.layout,
+        },
+      })
       setSaving(false)
       toast({ title: "Store saved!", description: "Your changes are live on the storefront.", variant: "success" })
-    }, 900)
+    } catch (error) {
+      setSaving(false)
+      toast({ title: "Store save failed", description: error instanceof Error ? error.message : "Failed to save storefront", variant: "error" })
+    }
   }
 
   const copyStoreUrl = () => {
-    navigator.clipboard.writeText(`https://${mockCreatorProfile.storeUrl}`)
+    navigator.clipboard.writeText(`https://${storeUrl}`)
     setCopiedUrl(true)
     setTimeout(() => setCopiedUrl(false), 2000)
     toast({ title: "URL copied!" })
@@ -210,19 +374,38 @@ export default function StorePage() {
     { key: "domain",       label: "Domain",       icon: Globe },
   ]
 
-  const p = mockCreatorProfile
+  const storeUrl = storeDetails.handle ? `lummy.co/${storeDetails.handle}` : "lummy.co/"
+  const previewHref = storeDetails.handle ? `/${storeDetails.handle}` : "/dashboard/store"
+  const initial = (storeDetails.storeName || "Store").charAt(0).toUpperCase()
+  const previewCreator: StorefrontCreator = {
+    name: storeDetails.storeName || "Your store",
+    handle: storeDetails.handle,
+    storeName: storeDetails.storeName || "Your store",
+    avatar: storeDetails.avatarUrl,
+    cover: storeDetails.coverUrl,
+    bio: storeDetails.bio,
+    location: storeDetails.location,
+    verified: Boolean(storeDetails.handle),
+    whatsapp: storeDetails.whatsapp,
+    socialLinks: storeDetails.socialLinks,
+    stats: { totalOrders: 0, avgRating: 0, reviewCount: 0 },
+    publicProducts: [],
+    categories: ["All"],
+    reviewSummary: { average: 0, total: 0, breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 } },
+  }
 
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-4xl">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="space-y-1.5">
           <h1 className="text-xl font-bold">My Store</h1>
           <p className="text-sm text-muted-foreground">Customize how your store looks and works</p>
+          <PublishToggle handle={storeDetails.handle} />
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <a
-            href={`https://${p.storeUrl}`}
+            href={previewHref}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-semibold hover:bg-accent transition-colors"
@@ -249,7 +432,7 @@ export default function StorePage() {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-muted-foreground">Your store URL</p>
-          <p className="text-sm font-bold font-mono truncate">{p.storeUrl}</p>
+          <p className="text-sm font-bold font-mono truncate">{storeUrl}</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <button onClick={copyStoreUrl} className="flex items-center gap-1.5 text-xs font-semibold text-brand-purple hover:underline">
@@ -258,7 +441,7 @@ export default function StorePage() {
           </button>
           <button
             onClick={() => {
-              const msg = encodeURIComponent(`Hey! Check out my store on Lummy 🛍️\n\nhttps://${p.storeUrl}`)
+              const msg = encodeURIComponent(`Hey! Check out my store on Lummy 🛍️\n\nhttps://${storeUrl}`)
               window.open(`https://wa.me/?text=${msg}`, "_blank")
             }}
             className="flex items-center gap-1.5 rounded-xl bg-[#25D366]/10 text-[#25D366] px-3 py-1.5 text-xs font-semibold hover:bg-[#25D366]/20 transition-colors"
@@ -303,28 +486,45 @@ export default function StorePage() {
             <div className="space-y-4">
               {/* Cover + avatar */}
               <div className="rounded-2xl border border-border bg-card overflow-hidden">
-                <div className="relative h-36 bg-muted group cursor-pointer">
-                  <Image src={p.cover} alt="Cover" fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                <div className="relative h-36 bg-muted group cursor-pointer" onClick={() => coverInputRef.current?.click()}>
+                  {coverUrl ? (
+                    <Image src={coverUrl} alt="Cover" fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                  ) : (
+                    <div className="absolute inset-0 bg-muted" />
+                  )}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="flex items-center gap-2 bg-black/60 backdrop-blur-sm rounded-2xl px-4 py-2 text-white text-xs font-semibold">
-                      <Camera className="h-3.5 w-3.5" /> Change Cover
+                      {coverUploading
+                        ? <><div className="h-3.5 w-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Uploading…</>
+                        : <><Camera className="h-3.5 w-3.5" /> Change Cover</>}
                     </div>
                   </div>
+                  <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadCover(f) }} />
                 </div>
                 <div className="px-5 pb-4">
                   <div className="relative -mt-8 mb-3 w-fit">
-                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-background border border-border cursor-pointer group">
-                      <Image src={p.avatar} alt={p.name} fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden ring-4 ring-background border border-border cursor-pointer group"
+                      onClick={() => avatarInputRef.current?.click()}>
+                      {avatarUrl ? (
+                        <Image src={avatarUrl} alt={storeDetails.storeName || "Store avatar"} fill className="object-cover group-hover:opacity-75 transition-opacity" unoptimized />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-brand-purple/10 text-lg font-bold text-brand-purple">{initial}</div>
+                      )}
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
-                        <Camera className="h-4 w-4 text-white" />
+                        {avatarUploading
+                          ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          : <Camera className="h-4 w-4 text-white" />}
                       </div>
+                      <input ref={avatarInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden"
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f) }} />
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-base font-bold">{p.storeName}</p>
-                    {p.verified && <BadgeCheck className="h-4 w-4 text-brand-purple" />}
+                    <p className="text-base font-bold">{storeDetails.storeName || "Your store"}</p>
+                    {storeDetails.handle && <BadgeCheck className="h-4 w-4 text-brand-purple" />}
                   </div>
-                  <p className="text-xs text-muted-foreground">{p.storeUrl}</p>
+                  <p className="text-xs text-muted-foreground">{storeUrl}</p>
                 </div>
               </div>
 
@@ -334,31 +534,31 @@ export default function StorePage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold">Store Name</label>
-                    <input defaultValue={p.storeName} className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors" />
+                    <input value={storeDetails.storeName} onChange={e => setStoreDetails(prev => ({ ...prev, storeName: e.target.value }))} className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold">Handle</label>
                     <div className="flex items-center rounded-xl border border-border bg-background overflow-hidden">
                       <span className="px-3 text-xs text-muted-foreground border-r border-border py-2.5 bg-muted/40 flex-shrink-0">lummy.co/</span>
-                      <input defaultValue={p.handle} className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none" />
+                      <input value={storeDetails.handle} onChange={e => setStoreDetails(prev => ({ ...prev, handle: e.target.value }))} className="flex-1 px-3 py-2.5 text-sm bg-transparent outline-none" />
                     </div>
                   </div>
                   <div className="space-y-1.5 sm:col-span-2">
                     <label className="text-xs font-semibold">Bio / Description</label>
-                    <textarea defaultValue={p.bio} rows={3} className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors resize-none" />
+                    <textarea value={storeDetails.bio} onChange={e => setStoreDetails(prev => ({ ...prev, bio: e.target.value }))} rows={3} className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors resize-none" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold">WhatsApp</label>
                     <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
                       <MessageCircle className="h-3.5 w-3.5 text-[#25D366] flex-shrink-0" />
-                      <input defaultValue={p.whatsapp} className="flex-1 text-sm bg-transparent outline-none" />
+                      <input value={storeDetails.whatsapp} onChange={e => setStoreDetails(prev => ({ ...prev, whatsapp: e.target.value }))} className="flex-1 text-sm bg-transparent outline-none" />
                     </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-xs font-semibold">Location</label>
                     <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5">
                       <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                      <input defaultValue={p.location} className="flex-1 text-sm bg-transparent outline-none" />
+                      <input value={storeDetails.location} onChange={e => setStoreDetails(prev => ({ ...prev, location: e.target.value }))} className="flex-1 text-sm bg-transparent outline-none" />
                     </div>
                   </div>
                 </div>
@@ -368,15 +568,20 @@ export default function StorePage() {
               <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
                 <p className="text-sm font-bold">Social Links</p>
                 {[
-                  { label: "Instagram", icon: Instagram, color: "text-pink-400", value: p.socialLinks.instagram },
-                  { label: "Twitter / X", icon: Twitter, color: "text-sky-400", value: p.socialLinks.twitter },
-                  { label: "TikTok", icon: Link2, color: "text-red-400", value: p.socialLinks.tiktok },
-                ].map(({ label, icon: Icon, color, value }) => (
+                  { key: "instagram" as const, label: "Instagram", icon: Instagram, color: "text-pink-400" },
+                  { key: "twitter" as const, label: "Twitter / X", icon: Twitter, color: "text-sky-400" },
+                  { key: "tiktok" as const, label: "TikTok", icon: Link2, color: "text-red-400" },
+                ].map(({ key, label, icon: Icon, color }) => (
                   <div key={label} className="flex items-center gap-3">
                     <div className={cn("flex h-9 w-9 items-center justify-center rounded-xl bg-muted flex-shrink-0", color)}>
                       <Icon className="h-4 w-4" />
                     </div>
-                    <input defaultValue={value} placeholder={`@your${label.toLowerCase()}handle`} className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-purple/50 transition-colors" />
+                    <input
+                      value={storeDetails.socialLinks[key]}
+                      onChange={e => setStoreDetails(prev => ({ ...prev, socialLinks: { ...prev.socialLinks, [key]: e.target.value } }))}
+                      placeholder={`@your${label.toLowerCase()}handle`}
+                      className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-brand-purple/50 transition-colors"
+                    />
                   </div>
                 ))}
               </div>
@@ -399,15 +604,28 @@ export default function StorePage() {
                     />
                   </div>
                 ))}
+                <div className="space-y-1.5 pt-1 border-t border-border">
+                  <label className="text-xs font-semibold">Store Currency</label>
+                  <p className="text-[10px] text-muted-foreground">All prices on your storefront will display in this currency</p>
+                  <select
+                    value={settings.currency}
+                    onChange={e => update({ currency: e.target.value })}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors"
+                  >
+                    {(["USD","GBP","EUR","CAD","AUD","NGN","ZAR","KES","GHS"] as const).map(c => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Stats */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {[
-                  { label: "Revenue", value: "₦2.85M", icon: ShoppingBag, color: "text-brand-green" },
+                  { label: "Revenue", value: "$2.85k", icon: ShoppingBag, color: "text-brand-green" },
                   { label: "Orders", value: "1,234", icon: Package, color: "text-brand-purple" },
                   { label: "Views", value: "18,429", icon: Eye, color: "text-brand-coral" },
-                  { label: "Rating", value: `${p.stats.avgRating}★`, icon: Star, color: "text-amber-500" },
+                  { label: "Rating", value: "0★", icon: Star, color: "text-amber-500" },
                 ].map(s => {
                   const Icon = s.icon
                   return (
@@ -495,7 +713,7 @@ export default function StorePage() {
 
                 {/* Right: live preview */}
                 <div className="rounded-2xl border border-border bg-muted/30 p-3 min-h-[500px]">
-                  <StorefrontPreview schema={storeSchema.schema} />
+                  <StorefrontPreview schema={storeSchema.schema} creator={previewCreator} />
                 </div>
               </div>
 
@@ -587,7 +805,7 @@ export default function StorePage() {
                   <p className="text-sm font-semibold">Live preview</p>
                   <p className="text-[11px] text-muted-foreground">Accent: <span className="font-mono">{settings.accent}</span> · Font: {settings.font} · Layout: {settings.layout}</p>
                 </div>
-                <a href={`https://${p.storeUrl}`} target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-xs text-brand-purple hover:underline flex-shrink-0">
+                <a href={previewHref} target="_blank" rel="noopener noreferrer" className="ml-auto flex items-center gap-1 text-xs text-brand-purple hover:underline flex-shrink-0">
                   <ExternalLink className="h-3 w-3" /> Preview store
                 </a>
               </div>
@@ -690,7 +908,7 @@ export default function StorePage() {
                             <input
                               value={settings.announcement.text}
                               onChange={e => update({ announcement: { ...settings.announcement, text: e.target.value } })}
-                              placeholder="🎉 Free delivery on orders above ₦15,000!"
+                              placeholder="🎉 Free delivery on orders above $15!"
                               maxLength={100}
                               className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-brand-purple/50 transition-colors"
                             />
@@ -786,7 +1004,7 @@ export default function StorePage() {
               <div className="rounded-2xl border border-border bg-card p-5 space-y-3">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google preview</p>
                 <div className="rounded-xl border border-border bg-white/2 p-4 space-y-1.5">
-                  <p className="text-xs text-muted-foreground">{p.storeUrl}</p>
+                  <p className="text-xs text-muted-foreground">{storeUrl}</p>
                   <p className="text-[15px] font-semibold text-brand-indigo leading-snug">{settings.seo.title || "Your Store Title"}</p>
                   <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">{settings.seo.description || "Your store description will appear here…"}</p>
                 </div>
@@ -883,7 +1101,7 @@ export default function StorePage() {
                 <SectionHeader icon={Globe} title="Your Lummy Domain" />
                 <div className="flex items-center gap-2 rounded-xl bg-brand-purple/5 border border-brand-purple/15 px-4 py-3">
                   <Globe className="h-4 w-4 text-brand-purple flex-shrink-0" />
-                  <span className="flex-1 text-sm font-mono font-semibold">{p.storeUrl}</span>
+                  <span className="flex-1 text-sm font-mono font-semibold">{storeUrl}</span>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-green/15 text-brand-green border border-brand-green/20">Active</span>
                 </div>
               </div>
@@ -961,7 +1179,7 @@ export default function StorePage() {
 
       {/* Sticky save hint */}
       <div className="flex items-center justify-between rounded-2xl border border-border bg-card px-4 py-3">
-        <p className="text-xs text-muted-foreground">Changes are saved locally — click <strong>Save Changes</strong> to go live.</p>
+        <p className="text-xs text-muted-foreground">Changes sync to your account when you click <strong>Save Changes</strong>.</p>
         <button
           onClick={handleSave}
           disabled={saving}

@@ -2,7 +2,7 @@
 
 import { Star } from "lucide-react"
 import type { SectionProps, TestimonialsSettings } from "../schema/types"
-import { mockStorefrontReviews } from "@/data/mock/storefront"
+import { storefrontReviewSamples } from "@/data/mock/storefront"
 import { getCardRadius, getCardShadow, accentWithAlpha } from "../themes/utils"
 import { cn } from "@/lib/utils"
 
@@ -20,7 +20,7 @@ export function TestimonialsSection({ section, theme, creator }: SectionProps) {
   const s = section.settings as unknown as TestimonialsSettings
   const cardRadius = getCardRadius(theme)
   const cardShadow = getCardShadow(theme)
-  const reviews = mockStorefrontReviews.slice(0, s.maxCount ?? 4)
+  const reviews = storefrontReviewSamples.slice(0, s.maxCount ?? 4)
 
   return (
     <div className="px-4 py-6">

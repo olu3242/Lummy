@@ -10,20 +10,6 @@ import { DEFAULT_SCHEMA, SECTION_DEFAULTS } from "../schema/defaults"
 import { migrateToStoreSchema } from "../schema/migrate"
 import type { StorePreset } from "../schema/types"
 
-const SCHEMA_KEY = "lummy_store_schema_v2"
-const OLD_KEY = "lummy_store_settings"
-
-function loadSchema(): StoreSchema {
-  if (typeof window === "undefined") return DEFAULT_SCHEMA
-  try {
-    const newRaw = localStorage.getItem(SCHEMA_KEY)
-    if (newRaw) return migrateToStoreSchema(JSON.parse(newRaw))
-    const oldRaw = localStorage.getItem(OLD_KEY)
-    if (oldRaw) return migrateToStoreSchema(JSON.parse(oldRaw))
-  } catch {}
-  return DEFAULT_SCHEMA
-}
-
 let idCounter = 0
 function genId(): string {
   return `s-${Date.now()}-${++idCounter}`
@@ -34,8 +20,15 @@ export function useStoreSchema() {
   const [hydrated, setHydrated] = useState(false)
 
   useEffect(() => {
-    setSchema(loadSchema())
-    setHydrated(true)
+    fetch("/api/store/schema")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { schema?: unknown } | null) => {
+        if (data?.schema && typeof data.schema === "object") {
+          setSchema(migrateToStoreSchema(data.schema))
+        }
+      })
+      .catch(() => { /* stay on default until the user can retry */ })
+      .finally(() => setHydrated(true))
   }, [])
 
   const updateTheme = useCallback((patch: Partial<ThemeTokens>) => {
@@ -99,14 +92,35 @@ export function useStoreSchema() {
     setSchema(s => ({ ...s, hours: { ...s.hours, ...patch } }))
   }, [])
 
-  const save = useCallback(() => {
+  const save = useCallback(async () => {
     try {
-      localStorage.setItem(SCHEMA_KEY, JSON.stringify(schema))
-      toast({ title: "Store saved!", description: "Your changes are live.", variant: "success" })
+      const res = await fetch("/api/store/schema", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ schema }),
+      })
+      if (res.ok) {
+        toast({ title: "Store saved!", description: "Your changes are live.", variant: "success" })
+      } else {
+        const payload = await res.json().catch(() => null) as { error?: string } | null
+        toast({ title: "Save failed", description: payload?.error ?? "Could not sync to cloud.", variant: "error" })
+      }
     } catch {
-      toast({ title: "Save failed", description: "Could not save changes.", variant: "error" })
+      toast({ title: "Save failed", description: "Could not sync to cloud.", variant: "error" })
     }
   }, [schema])
+
+  const persist = useCallback(async (nextSchema: StoreSchema) => {
+    const res = await fetch("/api/store/schema", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ schema: nextSchema }),
+    })
+    if (!res.ok) {
+      const payload = await res.json().catch(() => null) as { error?: string } | null
+      throw new Error(payload?.error ?? "Could not sync store schema.")
+    }
+  }, [])
 
   const reset = useCallback(() => {
     setSchema(DEFAULT_SCHEMA)
@@ -139,6 +153,7 @@ export function useStoreSchema() {
     updateSEO,
     updateHours,
     save,
+    persist,
     reset,
   }
 }

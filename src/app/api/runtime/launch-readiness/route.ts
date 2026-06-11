@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getCorrelationId, logApiEvent } from '@/lib/ops-observability';
+import { getRuntimeAppUrl } from '@/lib/runtime-config';
 
 function isHttps(url?: string) {
   if (!url) return false;
@@ -9,7 +10,7 @@ function isHttps(url?: string) {
 
 export async function GET(req: Request) {
   const correlationId = getCorrelationId(req);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = getRuntimeAppUrl(req.url);
   const envChecks = {
     appUrlPresent: Boolean(appUrl), appUrlHttps: isHttps(appUrl), appUrlNotLocalhost: Boolean(appUrl && !appUrl.includes('localhost')),
     stripeSecretPresent: Boolean(process.env.STRIPE_SECRET_KEY), stripeWebhookSecretPresent: Boolean(process.env.STRIPE_WEBHOOK_SECRET),
@@ -20,7 +21,7 @@ export async function GET(req: Request) {
   };
   let dbCheck = false; let webhookTableCheck = false; let aiTelemetryTableCheck = false; let commerceEventTableCheck = false;
   try {
-    const supabase = await createClient();
+    const supabase = createClient();
     dbCheck = !(await supabase.from('profiles').select('id').limit(1)).error;
     webhookTableCheck = !(await supabase.from('provider_webhook_events').select('idempotency_key').limit(1)).error;
     aiTelemetryTableCheck = !(await supabase.from('ai_execution_logs').select('execution_id').limit(1)).error;

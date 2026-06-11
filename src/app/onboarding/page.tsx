@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { createClient } from "@/lib/supabase/client"
 import {
   ShoppingBag,
   Sparkles,
@@ -12,7 +14,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Check,
-  Zap,
   Store,
   MessageCircle,
   Copy,
@@ -28,8 +29,10 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { BRAND } from "@/config/branding"
 import { cn } from "@/lib/utils"
-import { completeOnboarding } from "@/server/actions/onboarding"
+import { COUNTRY_OPTIONS, SUPPORTED_CURRENCIES, SUPPORTED_LOCALES } from "@/lib/globalization"
+import { completeOnboarding, markStorefrontShared } from "@/server/actions/onboarding"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -47,6 +50,10 @@ interface WizardData {
   whatsapp: string
   niche: string
   location: string
+  country: string
+  currency: string
+  locale: string
+  timezone: string
   productName: string
   productPrice: string
   productDesc: string
@@ -60,6 +67,94 @@ interface WizardData {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TOTAL_STEPS = 5
+const DRAFT_KEY = "lummy_onboarding_draft"
+const STEP_KEYS = ["creator_type", "storefront_setup", "first_product", "bank_setup", "preview"] as const
+
+const emptyWizardData: WizardData = {
+  creatorType: "",
+  storeName: "",
+  handle: "",
+  whatsapp: "",
+  niche: "",
+  location: "",
+  country: "US",
+  currency: "USD",
+  locale: "en-US",
+  timezone: "America/New_York",
+  productName: "",
+  productPrice: "",
+  productDesc: "",
+  productCategory: "",
+  addProduct: false,
+  bankName: "",
+  accountNumber: "",
+  accountName: "",
+}
+
+type OnboardingDraft = {
+  step: number
+  data: WizardData
+  savedAt?: string
+}
+
+function stepToKey(step: number) {
+  return STEP_KEYS[Math.min(Math.max(step, 1), TOTAL_STEPS) - 1]
+}
+
+// Single source of truth for per-step completion. The top stepper and the
+// launch checklist MUST both derive from these predicates — steps 3 (product)
+// and 4 (bank) are skippable, so "step visited" is not the same as "step done"
+// and the two surfaces must never tell different stories.
+const STEP_COMPLETION: Record<number, (data: WizardData) => boolean> = {
+  1: (d) => !!d.creatorType,
+  2: (d) => !!d.storeName && !!d.handle && !!d.whatsapp,
+  3: (d) => d.addProduct && !!d.productName && !!d.productPrice,
+  4: (d) => !!d.bankName && !!d.accountNumber,
+}
+
+function isStepComplete(step: number, data: WizardData) {
+  return STEP_COMPLETION[step]?.(data) ?? false
+}
+
+function keyToStep(step?: string | null) {
+  const index = STEP_KEYS.findIndex((key) => key === step)
+  if (index >= 0) return index + 1
+  if (step === "completed") return TOTAL_STEPS
+  return 1
+}
+
+function normalizeDraft(value: unknown): OnboardingDraft | null {
+  if (!value || typeof value !== "object") return null
+  const draft = value as Partial<OnboardingDraft>
+  if (!draft.data || typeof draft.data !== "object") return null
+  return {
+    step: Math.min(Math.max(Number(draft.step) || 1, 1), TOTAL_STEPS),
+    data: { ...emptyWizardData, ...draft.data },
+    savedAt: draft.savedAt,
+  }
+}
+
+function formatSavedAt(value: string | null) {
+  if (!value) return "Saving enabled"
+
+  try {
+    const saved = new Date(value).getTime()
+
+    if (Number.isNaN(saved)) {
+      return "Saving enabled"
+    }
+
+    const diff = Math.max(0, Date.now() - saved)
+    const minutes = Math.floor(diff / 60000)
+
+    if (minutes < 1) return "Last saved just now"
+    if (minutes === 1) return "Last saved 1 min ago"
+
+    return `Last saved ${minutes} mins ago`
+  } catch {
+    return "Saving enabled"
+  }
+}
 
 const creatorTypes = [
   {
@@ -203,7 +298,7 @@ function StepStoreSetup({
           <Input
             value={data.storeName}
             onChange={(e) => onChange({ storeName: e.target.value })}
-            placeholder="Sade's Fashion Store"
+            placeholder="Your Fashion Store"
             icon={<Store className="h-4 w-4" />}
             className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
           />
@@ -221,7 +316,7 @@ function StepStoreSetup({
             <Input
               value={data.handle}
               onChange={(e) => onChange({ handle: e.target.value.toLowerCase().replace(/[^a-z0-9._-]/g, "") })}
-              placeholder="sade.styles"
+              placeholder="your-store"
               icon={<AtSign className="h-4 w-4" />}
               className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple pl-[88px]"
             />
@@ -271,10 +366,71 @@ function StepStoreSetup({
           <Input
             value={data.location}
             onChange={(e) => onChange({ location: e.target.value })}
-            placeholder="Lagos, Nigeria"
+            placeholder="City, Country"
             icon={<MapPin className="h-4 w-4" />}
             className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Country</Label>
+            <select
+              value={data.country}
+              onChange={(e) => {
+                const country = COUNTRY_OPTIONS.find((option) => option.code === e.target.value)
+                onChange({
+                  country: e.target.value,
+                  currency: country?.currency ?? data.currency,
+                  locale: country?.locale ?? data.locale,
+                  timezone: country?.timezone ?? data.timezone,
+                })
+              }}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {COUNTRY_OPTIONS.map((option) => (
+                <option key={option.code} value={option.code} className="bg-brand-midnight text-white">{option.label}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Currency</Label>
+            <select
+              value={data.currency}
+              onChange={(e) => onChange({ currency: e.target.value })}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {SUPPORTED_CURRENCIES.map((currency) => (
+                <option key={currency} value={currency} className="bg-brand-midnight text-white">{currency}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Language</Label>
+            <select
+              value={data.locale}
+              onChange={(e) => onChange({ locale: e.target.value })}
+              className="h-11 w-full rounded-xl border border-white/10 bg-white/5 px-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-purple"
+            >
+              {SUPPORTED_LOCALES.map((locale) => (
+                <option key={locale} value={locale} className="bg-brand-midnight text-white">{locale}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-white/70">Timezone</Label>
+            <Input
+              value={data.timezone}
+              onChange={(e) => onChange({ timezone: e.target.value })}
+              placeholder="America/New_York"
+              className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/25 focus-visible:ring-brand-purple"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -335,7 +491,7 @@ function StepFirstProduct({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-white/70">Price (₦)</Label>
+              <Label className="text-white/70">Price ({data.currency})</Label>
               <Input
                 value={data.productPrice}
                 onChange={(e) => onChange({ productPrice: e.target.value })}
@@ -394,7 +550,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
     setTimeout(() => {
       setVerifying(false)
       setVerified(true)
-      onChange({ accountName: data.storeName ? `${data.storeName.toUpperCase()}` : "ADUNOLA FASHIONISTA" })
+      onChange({ accountName: data.storeName ? `${data.storeName.toUpperCase()}` : "" })
     }, 1800)
   }
 
@@ -464,7 +620,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
         <Building2 className="h-4 w-4 text-white/30 flex-shrink-0 mt-0.5" />
         <p className="text-xs text-white/40 leading-relaxed">
           Your earnings are paid out every <strong className="text-white/60">Tuesday & Friday</strong>.
-          A <strong className="text-white/60">1.5% fee</strong> applies per withdrawal (capped at ₦1,500).
+          Withdrawal fees and settlement timing vary by payment provider and country.
           You&apos;re in full control of when to withdraw.
         </p>
       </div>
@@ -477,7 +633,7 @@ function StepBankSetup({ data, onChange }: { data: WizardData; onChange: (p: Par
   )
 }
 
-function StepPreview({ data }: { data: WizardData }) {
+function StepPreview({ data, hasShared }: { data: WizardData; hasShared: boolean }) {
   const [copied, setCopied] = React.useState(false)
   const storeUrl = `lummy.co/${data.handle || "your-store"}`
 
@@ -494,9 +650,9 @@ function StepPreview({ data }: { data: WizardData }) {
         initial={{ scale: 0.5, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-lg mb-6 mx-auto"
+        className="inline-flex h-20 w-20 items-center justify-center rounded-3xl shadow-brand-lg mb-6 mx-auto overflow-hidden"
       >
-        <Zap className="h-10 w-10 text-white fill-white" />
+        <Image src={BRAND.logo} alt={BRAND.name} width={80} height={80} className="h-20 w-20" />
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
@@ -532,10 +688,10 @@ function StepPreview({ data }: { data: WizardData }) {
         className="mt-6 space-y-2 text-left max-w-xs mx-auto"
       >
         {[
-          { done: true, label: "Store created" },
+          { done: isStepComplete(2, data), label: "Store created" },
           { done: !!data.whatsapp, label: "WhatsApp connected" },
-          { done: data.addProduct && !!data.productName, label: "First product added" },
-          { done: false, label: "Share your store link" },
+          { done: isStepComplete(3, data), label: "First product added" },
+          { done: hasShared, label: "Share your store link" },
           { done: false, label: "Get your first order" },
         ].map((item) => (
           <div key={item.label} className="flex items-center gap-3">
@@ -562,28 +718,192 @@ const slideVariants = {
 }
 
 export default function OnboardingPage() {
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return null
+  }
+
+  return <OnboardingFlow />
+}
+
+function OnboardingFlow() {
+  const router = useRouter()
+  const [hydrated, setHydrated] = React.useState(false)
   const [step, setStep] = React.useState(1)
   const [dir, setDir] = React.useState(1)
-  const [data, setData] = React.useState<WizardData>({
-    creatorType: "",
-    storeName: "",
-    handle: "",
-    whatsapp: "",
-    niche: "",
-    location: "",
-    productName: "",
-    productPrice: "",
-    productDesc: "",
-    productCategory: "",
-    addProduct: false,
-    bankName: "",
-    accountNumber: "",
-    accountName: "",
-  })
+  const [submitting, setSubmitting] = React.useState(false)
+  const [data, setData] = React.useState<WizardData>(emptyWizardData)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
+  const [hasSharedStorefront, setHasSharedStorefront] = React.useState(false)
+  const [lastSavedAt, setLastSavedAt] = React.useState<string | null>(null)
+  const [restored, setRestored] = React.useState(false)
+  const [userContext, setUserContext] = React.useState<{ id: string; email: string | null } | null>(null)
 
-  const update = (partial: Partial<WizardData>) => setData((d) => ({ ...d, ...partial }))
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function restoreDraft() {
+      const supabase = createClient()
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) {
+        // Session missing — redirect to login with `next` param so they return here after auth
+        if (!cancelled) {
+          window.location.href = "/login?next=/onboarding"
+        }
+        return
+      }
+
+      setUserContext({ id: auth.user.id, email: auth.user.email ?? null })
+
+      const [{ data: profile }, { data: onboardingState }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("onboarding_completed, organization_id, onboarding_step, full_name")
+          .eq("id", auth.user.id)
+          .maybeSingle(),
+        supabase
+          .from("onboarding_states")
+          .select("current_step, completed, metadata, updated_at")
+          .eq("user_id", auth.user.id)
+          .maybeSingle(),
+      ])
+
+      if (cancelled) return
+
+      if (profile?.onboarding_completed && profile.organization_id) {
+        router.replace("/dashboard")
+        return
+      }
+
+      let localDraft: OnboardingDraft | null = null
+      try {
+        localDraft = normalizeDraft(JSON.parse(localStorage.getItem(DRAFT_KEY) ?? "null"))
+      } catch {
+        localDraft = null
+      }
+
+      const metadata = onboardingState?.metadata as { wizard_data?: WizardData; step?: number; updated_at?: string } | null
+      const dbDraft = normalizeDraft({
+        step: metadata?.step ?? keyToStep(onboardingState?.current_step ?? profile?.onboarding_step),
+        data: metadata?.wizard_data,
+        savedAt: onboardingState?.updated_at ?? metadata?.updated_at,
+      })
+
+      const dbTime = dbDraft?.savedAt ? new Date(dbDraft.savedAt).getTime() : 0
+      const localTime = localDraft?.savedAt ? new Date(localDraft.savedAt).getTime() : 0
+      const nextDraft = dbTime >= localTime ? dbDraft ?? localDraft : localDraft ?? dbDraft
+
+      if (nextDraft) {
+        setStep(nextDraft.step)
+        setData(nextDraft.data)
+        setLastSavedAt(nextDraft.savedAt ?? null)
+        setRestored(nextDraft.step > 1 || Object.values(nextDraft.data).some(Boolean))
+        try {
+          localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...nextDraft, savedAt: nextDraft.savedAt ?? new Date().toISOString() }))
+        } catch { /* ignore */ }
+      } else {
+        // No draft — new user (e.g. Google OAuth). Pre-populate name from profile.
+        const profileName = (profile as { full_name?: string | null } | null)?.full_name
+        const googleName = auth.user.user_metadata?.full_name ?? auth.user.user_metadata?.name ?? null
+        const inferredName = (profileName ?? googleName ?? "").trim()
+        if (inferredName) {
+          setData(d => ({ ...d, storeName: inferredName }))
+        }
+      }
+
+      setHydrated(true)
+    }
+
+    void restoreDraft()
+
+    return () => {
+      cancelled = true
+    }
+  }, [router])
+
+  React.useEffect(() => {
+    if (!hydrated) return
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || emptyWizardData.timezone
+    const browserLocale = navigator.language || emptyWizardData.locale
+    setData((current) => {
+      const locale = SUPPORTED_LOCALES.includes(browserLocale as never) ? browserLocale : current.locale
+      const shouldUpdateLocale = current.locale === emptyWizardData.locale && locale !== current.locale
+      const shouldUpdateTimezone = current.timezone === emptyWizardData.timezone && timezone !== current.timezone
+      return shouldUpdateLocale || shouldUpdateTimezone
+        ? { ...current, locale: shouldUpdateLocale ? locale : current.locale, timezone: shouldUpdateTimezone ? timezone : current.timezone }
+        : current
+    })
+  }, [hydrated])
+
+  React.useEffect(() => {
+    if (!hydrated || !userContext) return
+
+    const savedAt = new Date().toISOString()
+    const localDraft = { step, data, savedAt }
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify(localDraft))
+    } catch { /* ignore */ }
+
+    const timeout = window.setTimeout(() => {
+      const supabase = createClient()
+      const currentStep = stepToKey(step)
+      const metadata = {
+        wizard_data: data,
+        step,
+        storefront_setup: {
+          storeName: data.storeName,
+          handle: data.handle,
+          whatsapp: data.whatsapp,
+          niche: data.niche,
+          location: data.location,
+          country: data.country,
+          currency: data.currency,
+          locale: data.locale,
+          timezone: data.timezone,
+        },
+        updated_at: savedAt,
+      }
+
+      void Promise.all([
+        supabase.from("profiles").upsert(
+          {
+            id: userContext.id,
+            email: userContext.email,
+            phone: data.whatsapp || null,
+            onboarding_step: currentStep,
+            onboarding_completed: false,
+            updated_at: savedAt,
+          },
+          { onConflict: "id" },
+        ),
+        supabase.from("onboarding_states").upsert(
+          {
+            user_id: userContext.id,
+            current_step: currentStep,
+            completed: false,
+            metadata,
+            updated_at: savedAt,
+          },
+          { onConflict: "user_id" },
+        ),
+      ]).then(() => {
+        setLastSavedAt(savedAt)
+      }, () => null)
+    }, 700)
+
+    return () => window.clearTimeout(timeout)
+  }, [data, hydrated, step, userContext])
+
+  const update = (partial: Partial<WizardData>) => setData((d) => {
+    const next = { ...d, ...partial }
+    return next
+  })
 
   const canAdvance = () => {
     if (step === 1) return !!data.creatorType
@@ -592,8 +912,60 @@ export default function OnboardingPage() {
     return true
   }
 
-  const next = () => {
+  const persistOnboarding = async () => {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    const profileUpdate: Record<string, unknown> = {
+      business_name: data.storeName,
+      handle: data.handle,
+      whatsapp_number: data.whatsapp,
+      niche: data.niche,
+      location: data.location,
+      creator_type: data.creatorType || "product_seller",
+      onboarding_completed: true,
+      updated_at: new Date().toISOString(),
+    }
+    if (data.bankName) profileUpdate["metadata"] = { bank_name: data.bankName, account_number: data.accountNumber, account_name: data.accountName }
+
+    await supabase.from("creator_profiles").update(profileUpdate).eq("user_id", user.id)
+
+    if (data.addProduct && data.productName && data.productPrice) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("id", user.id)
+        .maybeSingle()
+
+      if (profile?.organization_id) {
+        const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
+        void Promise.resolve(supabase.from("products").insert({
+          organization_id: profile.organization_id,
+          title: data.productName,
+          description: data.productDesc || null,
+          price: priceKobo,
+          currency: data.currency,
+          status: "active",
+        })).catch(console.error)
+      }
+    }
+  }
+
+  const next = async () => {
     if (!canAdvance()) return
+    // Persist when leaving the bank setup step (step 4 → 5)
+    if (step === 4) {
+      setSubmitting(true)
+      try {
+        await persistOnboarding()
+      } catch (err) {
+        console.error("[onboarding persist]", err)
+        // Non-fatal: completeOnboarding() will upsert profile at final submission
+      } finally {
+        setSubmitting(false)
+      }
+    }
     setDir(1)
     setStep((s) => Math.min(s + 1, TOTAL_STEPS))
   }
@@ -605,70 +977,116 @@ export default function OnboardingPage() {
 
   const stepLabels = ["Creator Type", "Store Setup", "First Product", "Bank Setup", "Launch 🚀"]
 
-  const submitOnboarding = async () => {
+  const submitOnboarding = async (options: { redirect?: boolean } = { redirect: true }) => {
     try {
       setIsSubmitting(true)
       setSubmitError(null)
       await completeOnboarding({
         fullName: data.storeName || "Creator",
         phone: data.whatsapp,
+        country: data.country,
+        currency: data.currency,
+        locale: data.locale,
+        timezone: data.timezone,
         orgName: data.storeName || "Creator Workspace",
         handle: data.handle,
         productTitle: data.addProduct ? data.productName : undefined,
-        productPrice: data.addProduct && data.productPrice ? Number(data.productPrice) : undefined,
+        productPrice: data.addProduct && data.productPrice ? Math.round(Number(data.productPrice) * 100) : undefined,
         productDescription: data.addProduct ? data.productDesc : undefined,
       })
-      window.location.href = "/dashboard"
+      try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }
+      if (options.redirect !== false) {
+        window.location.href = "/dashboard"
+      }
+      return true
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : "Failed to complete onboarding")
+      return false
     } finally {
       setIsSubmitting(false)
     }
   }
+
+  const shareStorefront = async () => {
+    const completed = await submitOnboarding({ redirect: false })
+    if (!completed) return
+
+    try {
+      await markStorefrontShared()
+      setHasSharedStorefront(true)
+    } catch {
+      // Non-fatal: the share link still opens, and setup has already completed.
+    }
+
+    const origin = window.location.origin
+    const storefrontUrl = `${origin}/${data.handle}`
+    const message = `${data.storeName || "My Lummy store"} is live: ${storefrontUrl}`
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer")
+    window.location.href = "/dashboard"
+  }
+
+  if (!hydrated) return null
 
   return (
     <div className="min-h-screen bg-brand-midnight flex flex-col">
       {/* Header */}
       <header className="flex h-16 items-center justify-between px-6 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-indigo">
-            <Zap className="h-4 w-4 text-white fill-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">Lummy</span>
+          <Image src={BRAND.logo} alt={BRAND.name} width={32} height={32} className="h-8 w-8 rounded-xl" />
+          <span className="font-display text-lg font-bold text-white">{BRAND.name}</span>
         </div>
-        {step < TOTAL_STEPS && (
-          <Link href="/dashboard" className="text-xs text-white/30 hover:text-white/60 transition-colors flex items-center gap-1">
-            Skip for now <X className="h-3 w-3" />
-          </Link>
-        )}
+        <div className="text-right">
+          <span className="block text-xs text-white/20">Step {step} of {TOTAL_STEPS}</span>
+          <span className="block text-[10px] text-white/30">{formatSavedAt(lastSavedAt)}</span>
+        </div>
       </header>
+
+      {restored && (
+        <div className="mx-6 mb-5 rounded-xl border border-brand-purple/20 bg-brand-purple/10 px-3 py-2 text-xs font-medium text-brand-purple">
+          Continuing where you left off
+        </div>
+      )}
 
       {/* Progress bar */}
       <div className="px-6 mb-8 flex-shrink-0">
         <div className="flex items-center gap-2 mb-3">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className={cn(
-                  "h-1.5 w-full rounded-full transition-all duration-500",
-                  i + 1 <= step ? "bg-brand-purple" : "bg-white/10"
-                )}
-              />
-            </div>
-          ))}
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
+            const stepNo = i + 1
+            const isCurrent = stepNo === step
+            const visited = stepNo < step
+            const complete = visited && isStepComplete(stepNo, data)
+            const skipped = visited && !complete
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div
+                  title={skipped ? `${stepLabels[i]} — skipped` : undefined}
+                  className={cn(
+                    "h-1.5 w-full rounded-full transition-all duration-500",
+                    isCurrent || complete ? "bg-brand-purple" : skipped ? "bg-brand-purple/25" : "bg-white/10"
+                  )}
+                />
+              </div>
+            )
+          })}
         </div>
         <div className="flex justify-between">
-          {stepLabels.map((label, i) => (
-            <span
-              key={label}
-              className={cn(
-                "text-[10px] font-medium transition-colors",
-                i + 1 === step ? "text-brand-purple" : i + 1 < step ? "text-white/40" : "text-white/20"
-              )}
-            >
-              {label}
-            </span>
-          ))}
+          {stepLabels.map((label, i) => {
+            const stepNo = i + 1
+            const visited = stepNo < step
+            const skipped = visited && !isStepComplete(stepNo, data)
+            return (
+              <span
+                key={label}
+                className={cn(
+                  "text-[10px] font-medium transition-colors",
+                  stepNo === step ? "text-brand-purple" : skipped ? "text-white/25" : visited ? "text-white/40" : "text-white/20"
+                )}
+              >
+                {label}
+                {skipped && <span className="text-white/20"> (skipped)</span>}
+              </span>
+            )
+          })}
         </div>
       </div>
 
@@ -689,7 +1107,7 @@ export default function OnboardingPage() {
               {step === 2 && <StepStoreSetup data={data} onChange={update} />}
               {step === 3 && <StepFirstProduct data={data} onChange={update} />}
               {step === 4 && <StepBankSetup data={data} onChange={update} />}
-              {step === 5 && <StepPreview data={data} />}
+              {step === 5 && <StepPreview data={data} hasShared={hasSharedStorefront} />}
             </motion.div>
           </AnimatePresence>
         </div>
@@ -708,20 +1126,29 @@ export default function OnboardingPage() {
           {step < TOTAL_STEPS ? (
             <Button
               size="lg"
-              onClick={next}
-              disabled={!canAdvance()}
-              className={cn("flex-1 gap-2", !canAdvance() && "opacity-40")}
+              onClick={() => void next()}
+              disabled={!canAdvance() || submitting}
+              className={cn("flex-1 gap-2", (!canAdvance() || submitting) && "opacity-40")}
             >
-              Continue
-              <ArrowRight className="h-4 w-4" />
+              {submitting ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                <>
+                  Continue
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
             </Button>
           ) : (
             <div className="flex-1 flex flex-col gap-3">
-              <Button size="lg" className="w-full gap-2" onClick={submitOnboarding} disabled={isSubmitting}>
+              <Button size="lg" className="w-full gap-2" onClick={() => void submitOnboarding()} disabled={isSubmitting}>
                 {isSubmitting ? "Completing setup..." : "Go to Dashboard"}
                 <ArrowRight className="h-4 w-4" />
               </Button>
-              <Button variant="whatsapp" size="lg" className="w-full gap-2">
+              <Button variant="whatsapp" size="lg" className="w-full gap-2" onClick={() => void shareStorefront()} disabled={isSubmitting}>
                 <MessageCircle className="h-5 w-5 fill-white" />
                 Share Store on WhatsApp
               </Button>

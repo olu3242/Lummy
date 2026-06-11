@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { useUpload } from "@/hooks/use-upload"
 
 type SettingsSection = "profile" | "store" | "notifications" | "payments" | "security"
 
@@ -60,9 +61,49 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
   )
 }
 
-const PROFILE_KEY = "lummy_settings_profile"
-const STORE_KEY = "lummy_settings_store"
 const NOTIF_KEY = "lummy_settings_notifications"
+
+type ProfileForm = {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  bio: string
+  location: string
+  avatarUrl: string
+}
+
+type StoreForm = {
+  storeName: string
+  handle: string
+  instagram: string
+  twitter: string
+  tiktok: string
+}
+
+type AccountConfigResponse = {
+  user?: { email?: string | null }
+  profile?: {
+    full_name?: string | null
+    email?: string | null
+    phone?: string | null
+    avatar_url?: string | null
+  } | null
+  organization?: { name?: string | null } | null
+  storefront?: {
+    handle?: string | null
+    bio?: string | null
+    social_links?: Record<string, string | null> | null
+  } | null
+}
+
+const emptyProfile: ProfileForm = { firstName: "", lastName: "", email: "", phone: "", bio: "", location: "", avatarUrl: "" }
+const emptyStore: StoreForm = { storeName: "", handle: "", instagram: "", twitter: "", tiktok: "" }
+
+function splitName(fullName?: string | null) {
+  const parts = (fullName ?? "").trim().split(/\s+/).filter(Boolean)
+  return { firstName: parts[0] ?? "", lastName: parts.slice(1).join(" ") }
+}
 
 function loadLS<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback
@@ -73,19 +114,78 @@ function saveLS(key: string, value: unknown) {
   try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
 }
 
-function ProfileSection() {
-  const defaults = { firstName: "Sade", lastName: "Adeyemi", email: "sade@sadeboutique.com", phone: "803 456 7890", bio: "Nigerian fashion designer & curator. Ankara, accessories & luxury basics. DM to order 💜", location: "Lagos, Nigeria" }
-  const [form, setForm] = React.useState(() => loadLS(PROFILE_KEY, defaults))
-  const [saved, setSaved] = React.useState(false)
+function useLocalStorageState<T>(key: string, fallback: T) {
+  const [value, setValue] = React.useState<T>(fallback)
 
-  const save = () => {
-    saveLS(PROFILE_KEY, form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
-    toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
+  React.useEffect(() => {
+    setValue(loadLS(key, fallback))
+  }, [fallback, key])
+
+  return [value, setValue] as const
+}
+
+function ProfileSection() {
+  const [form, setForm] = React.useState<ProfileForm>(emptyProfile)
+  const [saved, setSaved] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
+  const avatarInputRef = React.useRef<HTMLInputElement>(null)
+  const { upload: uploadAvatar, uploading: avatarUploading } = useUpload({
+    type: "avatar",
+    onSuccess: (url) => {
+      setForm(f => ({ ...f, avatarUrl: url }))
+      toast({ title: "Photo updated", variant: "success" })
+    },
+    onError: (msg) => toast({ title: "Upload failed", description: msg, variant: "error" }),
+  })
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as AccountConfigResponse
+        if (!res.ok) throw new Error("Failed to load profile")
+        return payload
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const name = splitName(payload.profile?.full_name)
+        setForm({
+          firstName: name.firstName,
+          lastName: name.lastName,
+          email: payload.profile?.email ?? payload.user?.email ?? "",
+          phone: payload.profile?.phone ?? "",
+          bio: payload.storefront?.bio ?? "",
+          location: (payload.profile as Record<string, unknown> | null)?.location as string ?? "",
+          avatarUrl: payload.profile?.avatar_url ?? "",
+        })
+      })
+      .catch((error) => toast({ title: "Profile load failed", description: error instanceof Error ? error.message : "Failed to load profile", variant: "error" }))
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [])
+
+  const save = async () => {
+    try {
+      const fullName = [form.firstName, form.lastName].filter(Boolean).join(" ").trim()
+      const res = await fetch("/api/account/config", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profile: { full_name: fullName, phone: form.phone, avatar_url: form.avatarUrl, location: form.location },
+          storefront: { bio: form.bio },
+        }),
+      })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error || "Failed to save profile")
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      toast({ title: "Profile saved", description: "Your profile has been updated.", variant: "success" })
+    } catch (error) {
+      toast({ title: "Profile save failed", description: error instanceof Error ? error.message : "Failed to save profile", variant: "error" })
+    }
   }
 
-  const field = (key: keyof typeof defaults) => ({
+  const field = (key: keyof ProfileForm) => ({
     value: form[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
   })
@@ -99,16 +199,38 @@ function ProfileSection() {
 
       {/* Avatar upload */}
       <div className="flex items-center gap-4">
-        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0">
-          {form.firstName.charAt(0)}
-          <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer">
-            <Upload className="h-4 w-4 text-white" />
+        <div
+          className="relative w-16 h-16 rounded-2xl overflow-hidden bg-brand-purple/10 flex items-center justify-center text-2xl font-bold text-brand-purple flex-shrink-0 cursor-pointer group"
+          onClick={() => avatarInputRef.current?.click()}
+        >
+          {form.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={form.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span>{form.firstName.charAt(0) || "C"}</span>
+          )}
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+            {avatarUploading
+              ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Upload className="h-4 w-4 text-white" />}
           </div>
         </div>
         <div>
           <p className="text-sm font-semibold">Profile photo</p>
-          <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG · Max 2MB</p>
-          <button className="mt-1.5 text-xs text-brand-purple font-semibold hover:underline">Upload photo</button>
+          <p className="text-xs text-muted-foreground mt-0.5">JPG or PNG · Max 10 MB</p>
+          <button
+            className="mt-1.5 text-xs text-brand-purple font-semibold hover:underline"
+            onClick={() => avatarInputRef.current?.click()}
+          >
+            Upload photo
+          </button>
+          <input
+            ref={avatarInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadAvatar(f) }}
+          />
         </div>
       </div>
 
@@ -125,7 +247,7 @@ function ProfileSection() {
 
       <div>
         <label className="block text-xs font-semibold mb-1.5">Email</label>
-        <input {...field("email")} className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
+        <input {...field("email")} disabled={loading} className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
       </div>
 
       <div>
@@ -156,26 +278,54 @@ function ProfileSection() {
 }
 
 function StoreSection() {
-  const defaults = { storeName: "Sade's Boutique", handle: "sade", instagram: "sadeboutique", twitter: "sadeboutique", tiktok: "" }
-  const [form, setForm] = React.useState(() => loadLS(STORE_KEY, defaults))
+  const [form, setForm] = React.useState<StoreForm>(emptyStore)
   const [saved, setSaved] = React.useState(false)
+
+  React.useEffect(() => {
+    let cancelled = false
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as AccountConfigResponse
+        if (!res.ok) throw new Error("Failed to load store settings")
+        return payload
+      })
+      .then((payload) => {
+        if (cancelled) return
+        const social = payload.storefront?.social_links ?? {}
+        setForm({
+          storeName: payload.organization?.name ?? "",
+          handle: payload.storefront?.handle ?? "",
+          instagram: social.instagram ?? "",
+          twitter: social.twitter ?? "",
+          tiktok: social.tiktok ?? "",
+        })
+      })
+      .catch((error) => toast({ title: "Store settings load failed", description: error instanceof Error ? error.message : "Failed to load store settings", variant: "error" }))
+    return () => { cancelled = true }
+  }, [])
 
   const save = async () => {
     try {
-      const res = await fetch('/api/storefront', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName: form.storeName, handle: form.handle, social_links: { instagram: form.instagram, twitter: form.twitter, tiktok: form.tiktok } }) })
+      const res = await fetch('/api/account/config', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organization: { name: form.storeName },
+          storefront: { handle: form.handle, social_links: { instagram: form.instagram, twitter: form.twitter, tiktok: form.tiktok } },
+        }),
+      })
       const payload = await res.json()
       if (!res.ok) throw new Error(payload.error || 'Failed to save storefront settings')
-      saveLS(STORE_KEY, form)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
       toast({ title: "Store settings saved", description: "Your store details have been updated.", variant: "success" })
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to save storefront settings'
-      toast({ title: 'Store save failed', description: message, variant: 'destructive' })
+      toast({ title: 'Store save failed', description: message, variant: 'error' })
     }
   }
 
-  const field = (key: keyof typeof defaults) => ({
+  const field = (key: keyof StoreForm) => ({
     value: form[key],
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [key]: e.target.value })),
   })
@@ -233,11 +383,11 @@ function StoreSection() {
 }
 
 function NotificationsSection() {
-  const defaultPrefs = {
+  const defaultPrefs = React.useMemo(() => ({
     newOrder: true, orderStatus: true, newReview: true, lowStock: true,
     weeklySummary: true, aiInsights: false, marketing: false, whatsappAlerts: true, emailDigest: true,
-  }
-  const [prefs, setPrefs] = React.useState(() => loadLS(NOTIF_KEY, defaultPrefs))
+  }), [])
+  const [prefs, setPrefs] = useLocalStorageState(NOTIF_KEY, defaultPrefs)
   const [saved, setSaved] = React.useState(false)
   const save = () => { saveLS(NOTIF_KEY, prefs); setSaved(true); setTimeout(() => setSaved(false), 2500); toast({ title: "Notification preferences saved", variant: "success" }) }
 
@@ -304,9 +454,60 @@ function NotificationsSection() {
   )
 }
 
+const BANK_OPTIONS = ["Access Bank", "GTBank", "First Bank", "Zenith Bank", "UBA", "Opay", "Palmpay", "Kuda", "Sterling Bank", "Wema Bank"]
+
 function PaymentsSection() {
   const [saved, setSaved] = React.useState(false)
-  const save = () => { setSaved(true); setTimeout(() => setSaved(false), 2500) }
+  const [saving, setSaving] = React.useState(false)
+  const [loading, setLoading] = React.useState(true)
+  const [hasAccount, setHasAccount] = React.useState(false)
+  const [bankName, setBankName] = React.useState(BANK_OPTIONS[0])
+  const [accountNumber, setAccountNumber] = React.useState("")
+  const [accountName, setAccountName] = React.useState("")
+
+  React.useEffect(() => {
+    fetch("/api/payout-account")
+      .then(r => r.ok ? r.json() : null)
+      .then((res: { data?: { bank_name?: string; account_number?: string; account_name?: string } | null } | null) => {
+        if (res?.data) {
+          setHasAccount(true)
+          setBankName(res.data.bank_name ?? BANK_OPTIONS[0])
+          setAccountNumber(res.data.account_number ?? "")
+          setAccountName(res.data.account_name ?? "")
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const save = async () => {
+    if (!accountNumber.trim() || !accountName.trim()) {
+      toast({ title: "Fill in all bank details", variant: "error" })
+      return
+    }
+    setSaving(true)
+    try {
+      const method = hasAccount ? "PATCH" : "POST"
+      const res = await fetch("/api/payout-account", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bank_name: bankName, account_number: accountNumber.trim(), account_name: accountName.trim() }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({})) as { error?: string }
+        toast({ title: err.error ?? "Failed to save bank details", variant: "error" })
+        return
+      }
+      setHasAccount(true)
+      setSaved(true)
+      toast({ title: "Bank details saved", variant: "success" })
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      toast({ title: "Network error — try again", variant: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -315,68 +516,48 @@ function PaymentsSection() {
         <p className="text-sm text-muted-foreground mt-0.5">Bank details for payouts and payment preferences</p>
       </div>
 
-      {/* Current plan */}
-      <div className="rounded-2xl border border-brand-purple/30 bg-brand-purple/5 p-4 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-brand-purple/15 flex items-center justify-center flex-shrink-0">
-            <Zap className="h-4 w-4 text-brand-purple" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Growth Plan</p>
-            <p className="text-xs text-muted-foreground">₦4,000 / month · Renews Dec 1</p>
-          </div>
-        </div>
-        <Button size="sm" variant="outline" className="h-8 text-xs">Manage plan</Button>
-      </div>
-
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Bank details</p>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Bank name</label>
-            <select className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30">
-              <option>Access Bank</option>
-              <option>GTBank</option>
-              <option>First Bank</option>
-              <option>Zenith Bank</option>
-              <option>UBA</option>
-              <option>Opay</option>
-              <option>Palmpay</option>
-            </select>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Bank details {hasAccount && <span className="text-brand-green ml-1">· Linked</span>}
+        </p>
+        {loading ? (
+          <div className="h-32 rounded-2xl bg-muted animate-pulse" />
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Bank name</label>
+              <select
+                value={bankName}
+                onChange={e => setBankName(e.target.value)}
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              >
+                {BANK_OPTIONS.map(b => <option key={b}>{b}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Account number</label>
+              <input
+                value={accountNumber}
+                onChange={e => setAccountNumber(e.target.value)}
+                placeholder="Enter your 10-digit account number"
+                maxLength={10}
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5">Account name</label>
+              <input
+                value={accountName}
+                onChange={e => setAccountName(e.target.value)}
+                placeholder="Full name as registered with bank"
+                className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Account number</label>
-            <input defaultValue="0123456789" className="w-full h-10 px-3 rounded-xl border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-brand-purple/30" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold mb-1.5">Account name</label>
-            <input defaultValue="ADEYEMI OLUWASADE" disabled className="w-full h-10 px-3 rounded-xl border border-border bg-muted text-sm text-muted-foreground cursor-not-allowed" />
-            <p className="text-[10px] text-muted-foreground mt-1">Auto-filled after account number verification</p>
-          </div>
-        </div>
+        )}
       </div>
 
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Payout schedule</p>
-        <div className="grid grid-cols-3 gap-2">
-          {["Daily", "Weekly", "Monthly"].map((opt) => (
-            <button
-              key={opt}
-              className={cn(
-                "h-10 rounded-xl border text-xs font-semibold transition-all",
-                opt === "Weekly"
-                  ? "bg-brand-purple text-white border-brand-purple"
-                  : "border-border text-muted-foreground hover:border-foreground/20"
-              )}
-            >
-              {opt}
-            </button>
-          ))}
-        </div>
-        <p className="text-[10px] text-muted-foreground mt-2">Minimum payout: ₦5,000</p>
-      </div>
-
-      <SaveBar onSave={save} saved={saved} />
+      <SaveBar onSave={save} saved={saved || saving} />
     </div>
   )
 }
@@ -515,24 +696,9 @@ function SecuritySection() {
       {/* Active sessions */}
       <div className="pt-4 border-t border-border">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Active sessions</p>
-        <div className="space-y-2">
-          {[
-            { device: "Chrome · MacBook Pro", location: "Lagos, NG", time: "Now", current: true },
-            { device: "Safari · iPhone 15", location: "Lagos, NG", time: "2 hours ago", current: false },
-          ].map((session) => (
-            <div key={session.device} className="flex items-center justify-between gap-3 py-2.5 border-b border-border last:border-0">
-              <div>
-                <p className="text-sm font-semibold flex items-center gap-1.5">
-                  {session.device}
-                  {session.current && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-brand-green/10 text-brand-green">Current</span>}
-                </p>
-                <p className="text-xs text-muted-foreground">{session.location} · {session.time}</p>
-              </div>
-              {!session.current && (
-                <button className="text-xs text-brand-coral font-semibold hover:underline flex-shrink-0">Revoke</button>
-              )}
-            </div>
-          ))}
+        <div className="rounded-xl border border-border bg-muted/30 p-4 text-center">
+          <p className="text-xs text-muted-foreground">Current session — signed in on this device</p>
+          <p className="text-[10px] text-muted-foreground/60 mt-1">Session management coming soon</p>
         </div>
       </div>
 

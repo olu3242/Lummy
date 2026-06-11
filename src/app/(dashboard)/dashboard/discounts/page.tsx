@@ -10,6 +10,9 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
+
+let DISPLAY_CURRENCY = "NGN"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -88,9 +91,7 @@ function saveDiscounts(d: Discount[]) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatCurrency(n: number) {
-  if (n >= 1_000_000) return `₦${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000) return `₦${(n / 1_000).toFixed(0)}k`
-  return `₦${n.toLocaleString()}`
+  return formatCompactMoney(n, DISPLAY_CURRENCY)
 }
 
 function getStatus(d: Discount): DiscountStatus {
@@ -101,11 +102,11 @@ function getStatus(d: Discount): DiscountStatus {
 }
 
 function buildPromoMessage(d: Discount): string {
-  const discount = d.type === "percentage" ? `${d.value}% off` : `₦${d.value.toLocaleString()} off`
-  const min = d.minOrder ? ` on orders above ₦${d.minOrder.toLocaleString()}` : ""
+  const discount = d.type === "percentage" ? `${d.value}% off` : `${formatMoney(d.value, DISPLAY_CURRENCY)} off`
+  const min = d.minOrder ? ` on orders above ${formatMoney(d.minOrder, DISPLAY_CURRENCY)}` : ""
   const expiry = d.expires ? ` (expires ${new Date(d.expires).toLocaleDateString("en-GB", { day: "numeric", month: "short" })})` : ""
   const flash = d.isFlash ? "\n⏰ *FLASH SALE — Limited time only!*" : ""
-  return `🎉 Special offer!\n\nUse code *${d.code}* to get ${discount}${min}${expiry}.${flash}\n\nShop now 👉 lummy.co/sade.styles\n\nDM to order! 💜`
+  return `🎉 Special offer!\n\nUse code *${d.code}* to get ${discount}${min}${expiry}.${flash}\n\nShop now 👉 {storeUrl}\n\nDM to order! 💜`
 }
 
 function generateCode(prefix: string): string {
@@ -247,7 +248,7 @@ function DiscountForm({ initial, onSave, onClose }: DiscountFormProps) {
             <div className="space-y-1.5">
               <label className="text-xs font-semibold">Type</label>
               <div className="flex rounded-xl border border-border overflow-hidden">
-                {([["percentage", "%"], ["fixed", "₦"]] as const).map(([t, label]) => (
+                {([["percentage", "%"], ["fixed", "$"]] as const).map(([t, label]) => (
                   <button key={t} onClick={() => setType(t)} className={cn(
                     "flex-1 py-2.5 text-sm font-semibold transition-all",
                     type === t ? "bg-brand-purple text-white" : "text-muted-foreground hover:bg-accent"
@@ -266,7 +267,7 @@ function DiscountForm({ initial, onSave, onClose }: DiscountFormProps) {
                   placeholder={type === "percentage" ? "10" : "5000"}
                   className="flex-1 text-sm bg-transparent outline-none"
                 />
-                <span className="text-xs text-muted-foreground">{type === "percentage" ? "%" : "₦"}</span>
+                <span className="text-xs text-muted-foreground">{type === "percentage" ? "%" : "$"}</span>
               </div>
             </div>
           </div>
@@ -377,7 +378,7 @@ function DiscountForm({ initial, onSave, onClose }: DiscountFormProps) {
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold">Min order (₦)</label>
+                      <label className="text-xs font-semibold">Min order ({DISPLAY_CURRENCY})</label>
                       <input
                         type="number"
                         value={minOrder}
@@ -489,13 +490,13 @@ function DiscountCard({ discount: d, maxRevenue, onToggle, onEdit, onDelete, onC
           <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
             <span className="flex items-center gap-1 font-semibold text-foreground">
               <Percent className="h-3 w-3" />
-              {d.type === "percentage" ? `${d.value}% off` : `₦${d.value.toLocaleString()} off`}
+              {d.type === "percentage" ? `${d.value}% off` : `${formatMoney(d.value, DISPLAY_CURRENCY)} off`}
             </span>
             <span className="flex items-center gap-1">
               <Users className="h-3 w-3" />
               {targetConfig[d.target]}
             </span>
-            {d.minOrder && <span>Min ₦{(d.minOrder / 1000).toFixed(0)}k</span>}
+            {d.minOrder && <span>Min {formatCompactMoney(d.minOrder, DISPLAY_CURRENCY)}</span>}
           </div>
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -680,8 +681,14 @@ export default function DiscountsPage() {
   const [copiedId, setCopiedId] = React.useState<string | null>(null)
   const [deleteId, setDeleteId] = React.useState<string | null>(null)
   const [showAnalytics, setShowAnalytics] = React.useState(false)
-
   React.useEffect(() => { setDiscounts(loadDiscounts()) }, [])
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.currency_code) DISPLAY_CURRENCY = data.storefront.currency_code })
+      .catch(() => {})
+  }, [])
 
   const persist = (next: Discount[]) => { setDiscounts(next); saveDiscounts(next) }
 

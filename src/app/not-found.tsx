@@ -3,12 +3,13 @@
 import * as React from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowLeft, Zap, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
+import { ArrowLeft, ShoppingBag, LayoutDashboard, Home } from "lucide-react"
+import { SmartLogo } from "@/components/shared/smart-logo"
 
 const links = [
   { label: "Go home",          href: "/",              icon: Home,            desc: "Back to the landing page" },
   { label: "Open dashboard",   href: "/dashboard",     icon: LayoutDashboard, desc: "Manage your store" },
-  { label: "Browse a store",   href: "/sade.styles",   icon: ShoppingBag,     desc: "See a sample storefront" },
+  { label: "Create a store",   href: "/signup",        icon: ShoppingBag,     desc: "Start your own storefront" },
 ]
 
 export default function NotFound() {
@@ -21,12 +22,12 @@ export default function NotFound() {
         transition={{ duration: 0.4 }}
         className="mb-8"
       >
-        <Link href="/" className="inline-flex items-center gap-2.5 group">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-brand-purple to-brand-indigo shadow-brand-sm group-hover:shadow-brand transition-shadow">
-            <Zap className="h-5 w-5 text-white fill-white" />
-          </div>
-          <span className="font-display text-xl font-bold">Lummy</span>
-        </Link>
+        <SmartLogo
+          imageClassName="h-10 w-10 rounded-2xl shadow-brand-sm group-hover:shadow-brand transition-shadow"
+          textClassName="font-display text-xl font-bold"
+          className="inline-flex items-center gap-2.5 group"
+          imageSize={40}
+        />
       </motion.div>
 
       {/* 404 display */}

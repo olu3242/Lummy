@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
 import { createPaymentSession } from '../../../../packages/payments-core/src/orchestrator';
 import { resolveProvider } from '../../../../packages/payments-core/src/provider-router';
-import { validateProviderRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
+import { getRuntimeAppUrl, validateProviderRuntimeEnv, validatePublicRuntimeEnv } from '@/lib/runtime-config';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
 import { createPaymentDatabaseAdapter } from '@/lib/payments/payment-db-adapter';
 
-function buildRedirectUrl(path: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) {
-    throw new Error('Missing NEXT_PUBLIC_APP_URL for checkout redirects');
-  }
-  return `${appUrl}${path}`;
+function buildRedirectUrl(req: Request, path: string) {
+  return `${getRuntimeAppUrl(req.url)}${path}`;
 }
 
 export async function POST(req: Request) {
@@ -20,7 +16,7 @@ export async function POST(req: Request) {
   try {
     validatePublicRuntimeEnv();
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const storefront = await supabase.from('storefronts').select('organization_id,is_active,handle').eq('handle', body.handle).maybeSingle();
     if (storefront.error || !storefront.data?.is_active) {
@@ -28,18 +24,25 @@ export async function POST(req: Request) {
       return errorResponse(404, 'STOREFRONT_UNAVAILABLE', 'Storefront unavailable', correlationId);
     }
 
-    const provider = resolveProvider(String(body.method || '')).name;
+    const resolvedProvider = resolveProvider(String(body.method || '')).name;
+    if (resolvedProvider !== 'stripe' && resolvedProvider !== 'paystack') {
+      return errorResponse(400, 'UNSUPPORTED_PAYMENT_PROVIDER', 'Unsupported payment provider', correlationId);
+    }
+    const provider: 'stripe' | 'paystack' = resolvedProvider;
     validateProviderRuntimeEnv(provider);
     const created = await createPendingOrder({
       organizationId: storefront.data.organization_id,
       productId: body.productId,
       customerEmail: body.customer?.email || 'guest@lummy.local',
+      customerName: body.customer?.name || null,
+      customerPhone: body.customer?.phone || null,
+      customerAddress: body.customer?.address || null,
       quantity: body.quantity || 1,
       provider,
-    });
+    }, supabase);
 
-    const successUrl = buildRedirectUrl(`/track/${created.order.id}?status=success`);
-    const cancelUrl = buildRedirectUrl(`/track/${created.order.id}?status=cancelled`);
+    const successUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=success`);
+    const cancelUrl = buildRedirectUrl(req, `/track/${created.order.id}?status=cancelled`);
 
     const metadata = {
       orderId: created.order.id,
@@ -51,7 +54,6 @@ export async function POST(req: Request) {
 
     const session = await createPaymentSession(createPaymentDatabaseAdapter(supabase as never), provider, { amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl, cancelUrl }, correlationId)
 
-    // ensure order/payment record references provider reference
     if (session.providerReference) {
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
     }

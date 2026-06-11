@@ -101,7 +101,7 @@ export function CreatorGallerySection() {
             <span className="gradient-text">for creators.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-lg mx-auto">
-            From fashion to food, music to modest wear — African creators of every niche are building real businesses on Lummy.
+            From fashion to food, music to modest wear — creators of every niche are building real businesses on Lummy.
           </p>
         </motion.div>
 
@@ -121,7 +121,7 @@ export function CreatorGallerySection() {
           className="mt-10 text-center"
         >
           <p className="text-sm text-muted-foreground">
-            Join 2,000+ African creators already selling on Lummy →{" "}
+            Join 2,000+ creators already selling on Lummy →{" "}
             <button className="text-primary font-semibold hover:underline">
               Start your store today
             </button>

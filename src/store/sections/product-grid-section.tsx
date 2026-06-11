@@ -9,6 +9,7 @@ import type { SectionProps, ProductGridSettings, StorefrontCreator } from "../sc
 import { buildWhatsAppUrl } from "@/data/mock/storefront"
 import { getButtonRadius, getCardRadius, getCardShadow, accentWithAlpha } from "../themes/utils"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 function QuickViewModal({
   product,
@@ -22,7 +23,8 @@ function QuickViewModal({
   onClose: () => void
 }) {
   const firstName = creator.name.split(" ")[0]
-  const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, firstName)
+  const formattedPrice = formatMoney(product.price, product.currency)
+  const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, formattedPrice, firstName)
   const outOfStock = product.stock === 0
   const btnRadius = getButtonRadius(theme)
 
@@ -63,7 +65,7 @@ function QuickViewModal({
               <h2 className="font-bold text-lg leading-snug">{product.name}</h2>
             </div>
             <p className="font-bold text-lg flex-shrink-0" style={{ color: theme.accent }}>
-              ₦{product.price.toLocaleString()}
+              {formattedPrice}
             </p>
           </div>
           <p className="text-sm opacity-70 leading-relaxed line-clamp-3">{product.description}</p>
@@ -181,7 +183,8 @@ export function ProductGridSection({ section, theme, creator }: SectionProps) {
           <>
             <div className={cn("grid gap-3", cols)}>
               {paginated.map((product, i) => {
-                const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, firstName)
+                const formattedPrice = formatMoney(product.price, product.currency)
+                const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, formattedPrice, firstName)
                 const outOfStock = product.stock === 0
                 return (
                   <motion.div
@@ -221,7 +224,7 @@ export function ProductGridSection({ section, theme, creator }: SectionProps) {
                     </div>
                     <div className="p-3">
                       <p className="text-xs font-semibold leading-snug line-clamp-2 mb-1">{product.name}</p>
-                      <p className="font-bold text-sm" style={{ color: theme.accent }}>₦{product.price.toLocaleString()}</p>
+                      <p className="font-bold text-sm" style={{ color: theme.accent }}>{formattedPrice}</p>
                       {outOfStock ? (
                         <div className="mt-2.5 flex items-center justify-center w-full h-8 border border-border text-xs opacity-50 font-semibold" style={{ borderRadius: btnRadius }}>
                           Out of stock

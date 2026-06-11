@@ -1,7 +1,18 @@
-name: ci
-on: [push, pull_request]
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**", "convergence/**"]
+  pull_request:
+    branches: [main, "convergence/**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
+    name: Typecheck, Lint & Build
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -9,12 +20,97 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
-        with: { node-version: ${{ matrix.node }}, cache: pnpm }
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm check:graph
-      - run: pnpm build:references
       - run: pnpm build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key' }}
+          NEXT_PUBLIC_APP_URL: https://lummy.co
+          NEXT_PUBLIC_APP_ENV: ci
+
+  migrations:
+    name: Migration Safety
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check migration file naming
+        run: |
+          for f in supabase/migrations/*.sql; do
+            base=$(basename "$f")
+            if ! echo "$base" | grep -qE '^[0-9]{3}_[a-z0-9_]+\.sql$'; then
+              echo "Bad migration filename: $base (expected NNN_snake_case.sql)"
+              exit 1
+            fi
+          done
+          echo "All migration filenames OK"
+      - name: Check for dangerous migration patterns
+        run: |
+          ERRORS=0
+          for f in supabase/migrations/*.sql; do
+            if grep -qiE '^\s*DROP\s+(TABLE|COLUMN)\s' "$f" && ! grep -qiE 'IF\s+EXISTS' "$f"; then
+              echo "WARNING: $f contains DROP without IF EXISTS"
+              ERRORS=$((ERRORS+1))
+            fi
+            if grep -qiE '^\s*TRUNCATE\s' "$f"; then
+              echo "ERROR: $f contains TRUNCATE — data loss risk"
+              ERRORS=$((ERRORS+1))
+            fi
+          done
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "$ERRORS migration safety issue(s) found"
+            exit 1
+          fi
+          echo "Migration safety check passed"
+      - name: Verify migration sequence has no duplicates
+        run: |
+          DUPES=$(ls supabase/migrations/*.sql | xargs -I{} basename {} | cut -d_ -f1 | sort | uniq -d)
+          if [ -n "$DUPES" ]; then
+            echo "Duplicate migration prefixes found: $DUPES"
+            echo "Each NNN prefix must be unique. Use the next available number for new migrations."
+            exit 1
+          fi
+          TOTAL=$(ls supabase/migrations/*.sql | wc -l)
+          echo "Migration uniqueness check passed ($TOTAL migrations, no duplicate prefixes)"
+
+  env-audit:
+    name: Env & Secret Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check no secrets committed
+        run: |
+          PATTERNS=(
+            'sk_live_[A-Za-z0-9]+'
+            'sk_test_[A-Za-z0-9]+'
+            'SUPABASE_SERVICE_ROLE_KEY\s*=\s*[A-Za-z0-9]'
+            'ANTHROPIC_API_KEY\s*=\s*sk-ant-'
+          )
+          FOUND=0
+          for pattern in "${PATTERNS[@]}"; do
+            if grep -rqE "$pattern" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.env" .; then
+              echo "Potential secret pattern found: $pattern"
+              FOUND=$((FOUND+1))
+            fi
+          done
+          if [ "$FOUND" -gt 0 ]; then
+            echo "$FOUND potential secret(s) found in source files"
+            exit 1
+          fi
+          echo "No secrets detected in source files"
+      - name: Verify .env files are gitignored
+        run: |
+          for envfile in .env .env.local .env.production .env.staging; do
+            if [ -f "$envfile" ]; then
+              if ! git check-ignore -q "$envfile" 2>/dev/null; then
+                echo "ERROR: $envfile is tracked by git — remove it"
+                exit 1
+              fi
+            fi
+          done
+          echo ".env files gitignore check passed"

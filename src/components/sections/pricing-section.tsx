@@ -11,9 +11,9 @@ import Link from "next/link"
 
 // Annual prices per plan (monthly price × 0.8, billed annually)
 const annualPrices: Record<string, { display: string; saving: string; subtext: string }> = {
-  starter: { display: "Free",    saving: "",            subtext: "Forever"                    },
-  growth:  { display: "₦4,000",  saving: "Save ₦12k/yr", subtext: "per month, billed annually" },
-  pro:     { display: "₦9,600",  saving: "Save ₦28.8k/yr", subtext: "per month, billed annually" },
+  starter: { display: "Free",   saving: "",            subtext: "Forever"                    },
+  growth:  { display: "$8",     saving: "Save $24/yr",  subtext: "per month, billed annually" },
+  pro:     { display: "$19",    saving: "Save $60/yr",  subtext: "per month, billed annually" },
 }
 
 function AnimatedPrice({ price, subtext }: { price: string; subtext: string }) {
@@ -61,7 +61,7 @@ export function PricingSection() {
             <span className="gradient-text">Scale when you&apos;re ready.</span>
           </h2>
           <p className="mt-5 text-lg text-muted-foreground max-w-xl mx-auto">
-            No hidden fees. No lock-in. Cancel anytime. Your first storefront is always free.
+            Start with the essentials, then upgrade when you need more support, customization, and growth tools.
           </p>
 
           {/* Billing toggle */}
@@ -173,7 +173,7 @@ export function PricingSection() {
                       variant={plan.popular ? "default" : "outline"}
                       className="w-full"
                     >
-                      {plan.cta}
+                      {plan.id === "starter" ? "Start Selling Free" : plan.id === "growth" ? "Start Growing Today" : "Launch at Scale"}
                     </Button>
                   </Link>
                 </div>
@@ -212,10 +212,10 @@ export function PricingSection() {
           className="mt-10 text-center"
         >
           <p className="text-sm text-muted-foreground">
-            Running a large creator business or agency?{" "}
-            <button className="text-primary font-semibold hover:underline">
-              Talk to us about Enterprise →
-            </button>
+            Running a larger creator business or agency?{" "}
+            <a href="mailto:support@lummy.co" className="text-primary font-semibold hover:underline">
+              Get launch support →
+            </a>
           </p>
         </motion.div>
       </div>

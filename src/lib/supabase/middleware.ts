@@ -1,15 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
+import type { User } from '@supabase/supabase-js';
 
-const protectedPrefixes = ['/dashboard', '/ops', '/developers'];
-
-export const updateSession = async (request: NextRequest) => {
+// Refreshes the auth session cookie and returns the updated response + resolved user.
+// All redirect logic lives in the main middleware; this function is cookie-refresh only.
+export const updateSession = async (request: NextRequest): Promise<{ response: NextResponse; user: User | null }> => {
   let response = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return response;
+    return { response, user: null };
   }
 
   const supabase = createServerClient(
@@ -19,7 +20,7 @@ export const updateSession = async (request: NextRequest) => {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
@@ -28,16 +29,5 @@ export const updateSession = async (request: NextRequest) => {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
-
-  if (isProtected && !user) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-
-  if (user && request.nextUrl.pathname.startsWith('/onboarding')) {
-    const { data: profile } = await supabase.from('profiles').select('onboarding_completed').eq('id', user.id).single();
-    if (profile?.onboarding_completed) return NextResponse.redirect(new URL('/dashboard', request.url));
-  }
-
-  return response;
+  return { response, user };
 };

@@ -4,20 +4,21 @@ import { PaymentProviderInterface, InitializePaymentInput, ProviderInitializeRes
 function verifyStripeSignature(secret: string, rawBody: string, header?: string) {
   if (!secret || !header) return false
   try {
-    // header format: t=timestamp,v1=signature,v0=...
-    const parts = header.split(',').map(p => p.split('='))
-    const kv: Record<string,string> = {}
-    for (const [k,v] of parts) kv[k] = v
-    const t = kv['t']
-    const v1 = kv['v1']
-    if (!t || !v1) return false
-    const signed = `${t}.${rawBody}`
+    const parts = header.split(',').map((part) => part.split('='))
+    const kv: Record<string, string> = {}
+    for (const [key, value] of parts) kv[key] = value
+
+    const timestamp = kv.t
+    const v1 = kv.v1
+    if (!timestamp || !v1) return false
+
+    const signed = `${timestamp}.${rawBody}`
     const expected = crypto.createHmac('sha256', secret).update(signed).digest('hex')
     const a = Buffer.from(expected, 'hex')
     const b = Buffer.from(v1, 'hex')
     if (a.length !== b.length) return false
     return crypto.timingSafeEqual(a, b)
-  } catch (e) {
+  } catch {
     return false
   }
 }
@@ -36,7 +37,7 @@ export class StripeProvider implements PaymentProviderInterface {
     body.set('line_items[0][quantity]', '1')
     body.set('line_items[0][price_data][currency]', input.currency.toLowerCase())
     body.set('line_items[0][price_data][unit_amount]', String(Math.round(input.amount)))
-    body.set('line_items[0][price_data][product_data][name]', String(input.metadata?.productName || 'Lummy order'))
+    body.set('line_items[0][price_data][product_data][name]', String(input.metadata?.productName || input.metadata?.product_name || 'Lummy order'))
     if (input.customerEmail) body.set('customer_email', input.customerEmail)
     for (const [key, value] of Object.entries(input.metadata || {})) body.set(`metadata[${key}]`, String(value))
 
@@ -49,20 +50,30 @@ export class StripeProvider implements PaymentProviderInterface {
       },
       body,
     })
+
     const raw = await response.json() as Record<string, unknown>
-    if (!response.ok) throw new Error(`Stripe checkout initialization failed: ${String(raw.error && typeof raw.error === 'object' ? (raw.error as Record<string, unknown>).message : response.status)}`)
-    return { providerReference: String(raw.id || ''), checkoutUrl: String(raw.url || ''), status: 'initiated', raw }
+    if (!response.ok) {
+      const error = raw.error && typeof raw.error === 'object' ? (raw.error as Record<string, unknown>).message : response.status
+      throw new Error(`Stripe checkout initialization failed: ${String(error)}`)
+    }
+
+    return {
+      providerReference: String(raw.id || ''),
+      checkoutUrl: String(raw.url || ''),
+      status: 'initiated',
+      raw,
+    }
   }
 
   async verifyPayment(headers: Record<string, string>, rawBody: string): Promise<NormalizedTransaction | null> {
     const secret = process.env.STRIPE_WEBHOOK_SECRET
-    const header = headers['stripe-signature'] || headers['stripe-signature'.toLowerCase()] || headers['Stripe-Signature']
+    const header = headers['stripe-signature'] || headers['Stripe-Signature']
     if (!verifyStripeSignature(String(secret || ''), rawBody, String(header || ''))) return null
 
     let parsed: any
     try {
       parsed = JSON.parse(rawBody)
-    } catch (e) {
+    } catch {
       return null
     }
 
@@ -77,14 +88,21 @@ export class StripeProvider implements PaymentProviderInterface {
   async refundPayment(providerReference: string, amount?: number): Promise<boolean> {
     const secret = process.env.STRIPE_SECRET_KEY
     if (!secret) throw new Error('Stripe provider not configured: STRIPE_SECRET_KEY is required')
+
     const body = new URLSearchParams()
     body.set('payment_intent', providerReference)
     if (amount) body.set('amount', String(Math.round(amount)))
+
     const response = await fetch('https://api.stripe.com/v1/refunds', {
       method: 'POST',
-      headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'stripe-version': '2026-02-25.clover' },
+      headers: {
+        authorization: `Bearer ${secret}`,
+        'content-type': 'application/x-www-form-urlencoded',
+        'stripe-version': '2026-02-25.clover',
+      },
       body,
     })
+
     return response.ok
   }
 

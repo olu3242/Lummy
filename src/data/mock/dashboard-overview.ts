@@ -49,7 +49,7 @@ export const focusItems: FocusItem[] = [
 ] as const
 
 export const kpiTargets: KpiTarget[] = [
-  { label: "Weekly revenue goal", current: 468000, target: 600000, prefix: "₦" },
+  { label: "Weekly revenue goal", current: 468, target: 600, prefix: "$" },
   { label: "Orders target", current: 41, target: 60 },
   { label: "WhatsApp conversion", current: 13, target: 18, suffix: "%" },
 ] as const
@@ -138,7 +138,7 @@ export const topActions: TopAction[] = [
 ]
 
 export const overviewMeta: OverviewMeta = {
-  handle: "sade.styles",
+  handle: "your-store",
   focusRefreshLabel: "updates hourly",
   focusRefreshIcon: Clock3,
   trackerIcon: Target,

@@ -13,8 +13,20 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
-import { mockProducts } from "@/data/mock/dashboard"
-import { storefrontCreator, buildWhatsAppUrl } from "@/data/mock/storefront"
+import { formatMinorMoney } from "@/lib/globalization"
+
+// ─── Product type for checkout (real DB shape) ────────────────────────────────
+
+interface CheckoutProduct {
+  id: string
+  name: string
+  price: number
+  currency: string
+  image: string
+  creatorId: string
+  creatorWhatsApp?: string
+  storeName: string
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,20 +43,17 @@ interface CustomerForm {
   notes: string
 }
 
-const NIGERIAN_STATES = [
-  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue",
-  "Borno", "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu",
-  "FCT (Abuja)", "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina",
-  "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun",
-  "Ondo", "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba",
-  "Yobe", "Zamfara",
+const REGION_OPTIONS = [
+  "Local / same city",
+  "Domestic",
+  "International",
 ]
 
-const DELIVERY_FEE = 1500
-const DELIVERY_DAYS = { lagos: "1–2", others: "3–5" }
+const DELIVERY_FEE = 0
+const DELIVERY_DAYS = { local: "1-2", domestic: "3-5", international: "5-10" }
 
 const emptyForm: CustomerForm = {
-  name: "", phone: "", email: "", address: "", city: "", state: "Lagos", notes: "",
+  name: "", phone: "", email: "", address: "", city: "", state: "Local / same city", notes: "",
 }
 
 // ─── Sub-components ────────────────────────────────────────────────────────────
@@ -98,15 +107,18 @@ function StepIndicator({ current }: { current: CheckoutStep }) {
 // ─── Order Summary Sidebar ─────────────────────────────────────────────────────
 
 function OrderSummary({ product, qty, form }: {
-  product: { name: string; image: string; price: number; category: string }
+  product: { name: string; image: string; price: number; currency: string; category?: string }
   qty: number
   form: CustomerForm
 }) {
   const subtotal = product.price * qty
   const delivery = DELIVERY_FEE
   const total = subtotal + delivery
-  const isLagos = form.state === "Lagos"
-  const days = isLagos ? DELIVERY_DAYS.lagos : DELIVERY_DAYS.others
+  const days = form.state === "International"
+    ? DELIVERY_DAYS.international
+    : form.state === "Domestic"
+      ? DELIVERY_DAYS.domestic
+      : DELIVERY_DAYS.local
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -117,23 +129,23 @@ function OrderSummary({ product, qty, form }: {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-snug">{product.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>
-          <p className="text-sm font-bold text-brand-purple mt-1">₦{product.price.toLocaleString()} × {qty}</p>
+          {product.category && <p className="text-xs text-muted-foreground mt-0.5">{product.category}</p>}
+          <p className="text-sm font-bold text-brand-purple mt-1">{formatMinorMoney(product.price, product.currency)} × {qty}</p>
         </div>
       </div>
 
       {/* Pricing breakdown */}
       <div className="p-4 space-y-2">
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span>Subtotal</span><span>₦{subtotal.toLocaleString()}</span>
+          <span>Subtotal</span><span>{formatMinorMoney(subtotal, product.currency)}</span>
         </div>
         <div className="flex justify-between text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Delivery</span>
-          <span>₦{delivery.toLocaleString()}</span>
+          <span className="flex items-center gap-1"><Truck className="h-3 w-3" />Delivery estimate</span>
+          <span>{formatMinorMoney(delivery, product.currency)}</span>
         </div>
         <div className="flex justify-between text-sm font-extrabold border-t border-border pt-2 mt-2">
           <span>Total</span>
-          <span className="text-brand-purple">₦{total.toLocaleString()}</span>
+          <span className="text-brand-purple">{formatMinorMoney(total, product.currency)}</span>
         </div>
       </div>
 
@@ -188,14 +200,14 @@ function DetailsStep({ form, setForm }: { form: CustomerForm; setForm: React.Dis
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input value={form.phone} onChange={e => set("phone", e.target.value)}
-              type="tel" placeholder="+234 803 000 0000" className={cn(inputCls, "pl-9")} />
+              type="tel" placeholder="+1 555 000 0000" className={cn(inputCls, "pl-9")} />
           </div>
         </div>
 
         <div>
           <FieldLabel>Email <span className="text-muted-foreground font-normal">(optional)</span></FieldLabel>
-          <input value={form.email} onChange={e => set("email", e.target.value)}
-            type="email" placeholder="amaka@email.com" className={inputCls} />
+            <input value={form.email} onChange={e => set("email", e.target.value)}
+            type="email" placeholder="name@email.com" className={inputCls} />
         </div>
 
         <div className="sm:col-span-2">
@@ -203,21 +215,21 @@ function DetailsStep({ form, setForm }: { form: CustomerForm; setForm: React.Dis
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <input value={form.address} onChange={e => set("address", e.target.value)}
-              placeholder="14 Palm Avenue, Lekki Phase 1" className={cn(inputCls, "pl-9")} />
+              placeholder="Street address, apartment, or delivery notes" className={cn(inputCls, "pl-9")} />
           </div>
         </div>
 
         <div>
           <FieldLabel required>City</FieldLabel>
           <input value={form.city} onChange={e => set("city", e.target.value)}
-            placeholder="Lagos" className={inputCls} />
+            placeholder="City" className={inputCls} />
         </div>
 
         <div>
-          <FieldLabel required>State</FieldLabel>
+          <FieldLabel required>Delivery region</FieldLabel>
           <select value={form.state} onChange={e => set("state", e.target.value)}
             className={cn(inputCls, "cursor-pointer")}>
-            {NIGERIAN_STATES.map(s => <option key={s}>{s}</option>)}
+            {REGION_OPTIONS.map(s => <option key={s}>{s}</option>)}
           </select>
         </div>
 
@@ -240,18 +252,12 @@ function PaymentStep({
 }: {
   method: PaymentMethod
   setMethod: (m: PaymentMethod) => void
-  product: { name: string; price: number }
+  product: { name: string; price: number; currency: string }
   form: CustomerForm
   qty: number
 }) {
   const total = product.price * qty + DELIVERY_FEE
-
-  const waUrl = buildWhatsAppUrl(
-    storefrontCreator.whatsapp,
-    product.name,
-    `₦${(product.price).toLocaleString()}`,
-    storefrontCreator.name.split(" ")[0],
-  )
+  const totalFormatted = formatMinorMoney(total, product.currency)
 
   return (
     <motion.div key="payment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
@@ -316,7 +322,7 @@ function PaymentStep({
       <div className="rounded-2xl bg-muted/50 border border-border p-4 flex items-center justify-between">
         <div>
           <p className="text-xs text-muted-foreground">You&apos;re paying</p>
-          <p className="font-display font-extrabold text-xl text-brand-purple">₦{total.toLocaleString()}</p>
+          <p className="font-display font-extrabold text-xl text-brand-purple">{totalFormatted}</p>
         </div>
         <ShieldCheck className="h-8 w-8 text-brand-green opacity-60" />
       </div>
@@ -384,17 +390,46 @@ export default function CheckoutPage() {
   const handle = params?.handle ?? ""
   const productId = params?.productId ?? ""
 
-  const product = mockProducts.find(p => p.id === productId) ?? mockProducts[0]
-  const creator = storefrontCreator
+  // Fetch real product from DB; fall back to mock only for display skeleton
+  const [product, setProduct] = React.useState<CheckoutProduct | null>(null)
+  const [productLoading, setProductLoading] = React.useState(true)
+  const [productError, setProductError] = React.useState(false)
+  const [confirmedOrderNumber, setConfirmedOrderNumber] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    if (!productId) return
+    fetch(`/api/storefront/${handle}/product/${productId}`)
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(({ data }) => {
+        if (data) {
+          setProduct({
+            id:               data.id,
+            name:             data.name,
+            price:            Number(data.price ?? 0),
+            currency:         data.currency ?? "USD",
+            image:            data.image_url ?? "/placeholder-product.jpg",
+            creatorId:        data.creator_id,
+            creatorWhatsApp:  data.creator_whatsapp,
+            storeName:        data.store_name ?? handle,
+          })
+        } else {
+          setProductError(true)
+        }
+      })
+      .catch(() => setProductError(true))
+      .finally(() => setProductLoading(false))
+  }, [productId, handle])
 
   const [step, setStep] = React.useState<CheckoutStep>("details")
   const [form, setForm] = React.useState<CustomerForm>(emptyForm)
   const [qty, setQty] = React.useState(1)
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>("paystack")
   const [placing, setPlacing] = React.useState(false)
-  const [orderId] = React.useState(`LM${Date.now().toString().slice(-5)}`)
 
-  const total = product.price * qty + DELIVERY_FEE
+  // Use real product price or fall back to 0 while loading
+  const productPrice = product?.price ?? 0
+  const total = productPrice * qty + DELIVERY_FEE
+  const totalFormatted = product ? formatMinorMoney(total, product.currency) : formatMinorMoney(total)
 
   const detailsValid = form.name.trim() && form.phone.trim() && form.address.trim() && form.city.trim()
 
@@ -405,46 +440,101 @@ export default function CheckoutPage() {
     }
   }
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (!product) return
     setPlacing(true)
 
     if (paymentMethod === "whatsapp") {
-      const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ₦${total.toLocaleString()}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
-      const url = `https://wa.me/${creator.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(msg)}`
-      setTimeout(() => {
+      const msg = `Hi! I'd like to order:\n\n🛍 *${product.name}*\nQty: ${qty}\nTotal: ${totalFormatted}\n\n📦 Deliver to:\n${form.name}\n${form.address}, ${form.city}, ${form.state}\n${form.phone}${form.notes ? `\n\nNotes: ${form.notes}` : ""}`
+      const waNumber = (product.creatorWhatsApp ?? "").replace(/\D/g, "")
+      if (!waNumber) {
+        toast({ title: "WhatsApp contact not available for this store", variant: "default" })
         setPlacing(false)
-        setStep("confirmation")
-        window.open(url, "_blank")
-      }, 600)
+        return
+      }
+      const url = `https://wa.me/${waNumber}?text=${encodeURIComponent(msg)}`
+      setPlacing(false)
+      setStep("confirmation")
+      window.open(url, "_blank")
     } else {
-      setTimeout(() => {
+      try {
+        const res = await fetch("/api/checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            handle,
+            productId:  product.id,
+            quantity:   qty,
+            method:     "paystack",
+            customer: {
+              email:   form.email || `${form.phone.replace(/\D/g, "")}@lummy.co`,
+              name:    form.name,
+              phone:   form.phone,
+              address: `${form.address}, ${form.city}, ${form.state}`,
+            },
+          }),
+        })
+        const data = await res.json() as {
+          checkoutUrl?: string
+          order?: { id: string }
+          error?: string
+          message?: string
+        }
+        if (!res.ok || !data.checkoutUrl) {
+          toast({ title: data.message ?? data.error ?? "Payment setup failed", variant: "error" })
+          setPlacing(false)
+          return
+        }
+        // Redirect to Paystack hosted checkout
+        setConfirmedOrderNumber(data.order?.id?.slice(0, 8).toUpperCase() ?? null)
+        window.location.href = data.checkoutUrl
+      } catch {
+        toast({ title: "Network error — please try again", variant: "error" })
         setPlacing(false)
-        setStep("confirmation")
-        toast({ title: "Payment processed", description: "Order confirmed via Paystack.", variant: "success" })
-      }, 1500)
+      }
     }
+  }
+
+  // Loading / error states
+  if (productLoading) {
+    return (
+      <div className="min-h-dvh bg-background flex items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  if (productError || !product) {
+    return (
+      <div className="min-h-dvh bg-background flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-muted-foreground text-sm text-center">This product is not available.</p>
+        <Link href={`/${handle}`} className="text-brand-purple text-sm font-medium hover:underline">
+          ← Back to store
+        </Link>
+      </div>
+    )
   }
 
   if (step === "confirmation") {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-dvh bg-background flex flex-col">
         <header className="sticky top-0 z-20 flex h-14 items-center px-4 border-b border-border bg-background/90 backdrop-blur-sm">
           <Link href={`/${handle}`} className="flex items-center gap-1.5 text-sm font-semibold text-brand-purple">
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-indigo">
               <Zap className="h-3.5 w-3.5 text-white fill-white" />
             </div>
-            {creator.storeName}
+            {product.storeName}
           </Link>
         </header>
         <div className="flex-1 max-w-lg mx-auto px-4 py-8 w-full">
-          <ConfirmationStep orderId={orderId} handle={handle} />
+          <ConfirmationStep orderId={confirmedOrderNumber ?? `LM${Date.now().toString().slice(-5)}`} handle={handle} />
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-dvh bg-background flex flex-col">
       {/* Header */}
       <header className="sticky top-0 z-20 flex h-14 items-center justify-between px-4 border-b border-border bg-background/90 backdrop-blur-sm">
         <div className="flex items-center gap-3">
@@ -458,7 +548,7 @@ export default function CheckoutPage() {
             <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-indigo">
               <Zap className="h-3.5 w-3.5 text-white fill-white" />
             </div>
-            {creator.storeName}
+            {product.storeName}
           </Link>
         </div>
         <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
@@ -473,8 +563,8 @@ export default function CheckoutPage() {
         </div>
       </div>
 
-      {/* Body */}
-      <div className="flex-1 max-w-3xl mx-auto px-4 py-6 w-full">
+      {/* Body — pb-safe ensures content isn't hidden behind keyboard on iOS */}
+      <div className="flex-1 max-w-3xl mx-auto px-4 py-6 pb-8 pb-safe w-full">
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6 items-start">
 
           {/* Left: Form */}
@@ -488,7 +578,7 @@ export default function CheckoutPage() {
                   </div>
                   <div>
                     <p className="text-xs font-semibold truncate max-w-[160px]">{product.name}</p>
-                    <p className="text-xs text-brand-purple font-bold">₦{product.price.toLocaleString()}</p>
+                    <p className="text-xs text-brand-purple font-bold">{formatMinorMoney(product.price, product.currency)}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -522,7 +612,7 @@ export default function CheckoutPage() {
                 </Button>
               ) : (
                 <Button
-                  onClick={handlePlaceOrder}
+                  onClick={() => { void handlePlaceOrder() }}
                   disabled={placing}
                   variant={paymentMethod === "whatsapp" ? "whatsapp" : "default"}
                   className="flex-1 gap-2"
@@ -532,7 +622,7 @@ export default function CheckoutPage() {
                   ) : paymentMethod === "whatsapp" ? (
                     <><MessageCircle className="h-4 w-4 fill-white" />Order via WhatsApp</>
                   ) : (
-                    <><Lock className="h-4 w-4" />Pay ₦{total.toLocaleString()}</>
+                    <><Lock className="h-4 w-4" />Pay {totalFormatted}</>
                   )}
                 </Button>
               )}

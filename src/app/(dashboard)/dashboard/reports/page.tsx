@@ -55,8 +55,8 @@ const REPORTS: Report[] = [
     color: "text-brand-purple",
     bg: "bg-brand-purple/10",
     border: "border-brand-purple/20",
-    metric: "₦312,500",
-    prevMetric: "₦263,900",
+    metric: "$312.50",
+    prevMetric: "$263.90",
     metricLabel: "Net revenue",
     change: 18.4,
     sparkline: [42, 55, 48, 70, 65, 82, 78],
@@ -111,8 +111,8 @@ const REPORTS: Report[] = [
     color: "text-blue-500",
     bg: "bg-blue-500/10",
     border: "border-blue-500/20",
-    metric: "₦2.1M",
-    prevMetric: "₦1.97M",
+    metric: "$2.1M",
+    prevMetric: "$1.97M",
     metricLabel: "Stock value",
     change: 6.8,
     sparkline: [55, 62, 58, 71, 68, 74, 80],
@@ -130,11 +130,11 @@ const PREVIEW_DATA: Record<ReportType, { headers: string[]; rows: (string | numb
   revenue: {
     headers: ["Date", "Orders", "Gross Revenue", "Refunds", "Net Revenue"],
     rows: [
-      ["May 1–7", 28, "₦78,500", "₦3,200", "₦75,300"],
-      ["Apr 24–30", 34, "₦89,200", "₦1,500", "₦87,700"],
-      ["Apr 17–23", 31, "₦71,400", "₦2,800", "₦68,600"],
-      ["Apr 10–16", 22, "₦54,800", "₦0", "₦54,800"],
-      ["Apr 3–9", 19, "₦46,100", "₦900", "₦45,200"],
+      ["May 1–7", 28, "$78.50", "$3.20", "$75.30"],
+      ["Apr 24–30", 34, "$89.20", "$1.50", "$87.70"],
+      ["Apr 17–23", 31, "$71.40", "$2.80", "$68.60"],
+      ["Apr 10–16", 22, "$54.80", "$0", "$54.80"],
+      ["Apr 3–9", 19, "$46.10", "$0.90", "$45.20"],
     ],
   },
   orders: {
@@ -160,28 +160,28 @@ const PREVIEW_DATA: Record<ReportType, { headers: string[]; rows: (string | numb
   products: {
     headers: ["Product", "Category", "Units Sold", "Revenue", "Avg Rating"],
     rows: [
-      ["Ankara Print Dress", "Fashion", 42, "₦777,000", "4.9"],
-      ["Beaded Necklace Set", "Jewellery", 31, "₦744,000", "4.8"],
-      ["Leather Mini Bag", "Accessories", 27, "₦769,500", "4.7"],
-      ["Perfume Collection Box", "Beauty", 24, "₦432,000", "4.9"],
-      ["Embroidered Set", "Fashion", 22, "₦539,000", "4.6"],
+      ["Ankara Print Dress", "Fashion", 42, "$777.00", "4.9"],
+      ["Beaded Necklace Set", "Jewellery", 31, "$744.00", "4.8"],
+      ["Leather Mini Bag", "Accessories", 27, "$769.50", "4.7"],
+      ["Perfume Collection Box", "Beauty", 24, "$432.00", "4.9"],
+      ["Embroidered Set", "Fashion", 22, "$539.00", "4.6"],
     ],
   },
   inventory: {
     headers: ["Product", "SKU", "Stock", "Status", "Inv. Value"],
     rows: [
-      ["Ankara Print Dress", "APD-001", 12, "Low stock", "₦222,000"],
-      ["Beaded Necklace Set", "BNS-002", 0, "Out of stock", "₦0"],
-      ["Leather Mini Bag", "LMB-003", 45, "In stock", "₦1,282,500"],
-      ["Perfume Collection Box", "PCB-004", 8, "Low stock", "₦144,000"],
-      ["Silk Blouse", "SBL-005", 23, "In stock", "₦391,000"],
+      ["Ankara Print Dress", "APD-001", 12, "Low stock", "$222.00"],
+      ["Beaded Necklace Set", "BNS-002", 0, "Out of stock", "$0"],
+      ["Leather Mini Bag", "LMB-003", 45, "In stock", "$1,282.50"],
+      ["Perfume Collection Box", "PCB-004", 8, "Low stock", "$144.00"],
+      ["Silk Blouse", "SBL-005", 23, "In stock", "$391.00"],
     ],
   },
 }
 
 const AI_INSIGHTS: Record<ReportType, AIInsight[]> = {
   revenue: [
-    { type: "success", title: "Best week on record", body: "Apr 24–30 generated ₦87,700 net — your highest week this quarter. Ankara Print Dress drove 38% of it." },
+    { type: "success", title: "Best week on record", body: "Apr 24–30 generated $87.70 net — your highest week this quarter. Ankara Print Dress drove 38% of it." },
     { type: "tip", title: "Reduce refund rate", body: "Your refund rate is 3.8%. Adding size guides to fashion listings typically cuts returns by 40–60%." },
     { type: "warning", title: "Mid-month dip", body: "Revenue consistently drops in weeks 2–3. Consider running a flash sale around Apr 17 to smooth the curve." },
   ],
@@ -196,12 +196,12 @@ const AI_INSIGHTS: Record<ReportType, AIInsight[]> = {
     { type: "warning", title: "Lagos concentration risk", body: "73% of customers are in Lagos. Running targeted campaigns in Abuja and PH could diversify your base." },
   ],
   products: [
-    { type: "success", title: "Top 5 drive 81% of revenue", body: "Your Ankara Print Dress alone accounts for ₦777K. Restock immediately — you have 12 left." },
-    { type: "tip", title: "Bundle opportunity", body: "Customers who buy the Beaded Necklace Set often view the Embroidered Set. A bundle discount could increase AOV by ₦8,500." },
+    { type: "success", title: "Top 5 drive 81% of revenue", body: "Your Ankara Print Dress alone accounts for $777. Restock immediately — you have 12 left." },
+    { type: "tip", title: "Bundle opportunity", body: "Customers who buy the Beaded Necklace Set often view the Embroidered Set. A bundle discount could increase AOV by $8.50." },
     { type: "warning", title: "Perfume Collection low stock", body: "Only 8 units left with 24 units sold this period. You'll sell out in ~5 days at current velocity." },
   ],
   inventory: [
-    { type: "warning", title: "Beaded Necklace Set: URGENT", body: "0 units in stock but it's your #2 seller by revenue. Every day without stock costs ~₦24,000 in lost sales." },
+    { type: "warning", title: "Beaded Necklace Set: URGENT", body: "0 units in stock but it's your #2 seller by revenue. Every day without stock costs ~$24 in lost sales." },
     { type: "tip", title: "Reorder point alert", body: "Set reorder alerts for items below 10 units. Your current low-stock items (APD-001, PCB-004) need restocking within 3 days." },
     { type: "success", title: "Leather Mini Bag well stocked", body: "45 units on hand at your current sell-through rate (27/mo) gives you 50+ days of runway." },
   ],
@@ -652,7 +652,7 @@ export default function ReportsPage() {
                           <td key={j} className={cn(
                             "px-5 py-3 whitespace-nowrap",
                             j === 0 ? "font-medium text-sm" : "text-sm text-muted-foreground",
-                            typeof cell === "string" && cell.startsWith("₦") ? "font-semibold text-foreground" : "",
+                            typeof cell === "string" && cell.startsWith("$") ? "font-semibold text-foreground" : "",
                             cell === "Out of stock" ? "text-brand-coral font-semibold" : "",
                             cell === "Low stock" ? "text-amber-500 font-semibold" : "",
                             cell === "In stock" ? "text-brand-green font-semibold" : "",

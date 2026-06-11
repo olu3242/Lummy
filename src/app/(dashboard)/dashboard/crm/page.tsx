@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 interface Customer {
   id: string; name: string; phone: string; location: string
@@ -65,7 +66,7 @@ const segments = ["All", "VIP", "Repeat", "New", "At Risk"]
 
 const stats = [
   { label: "Total Customers",  value: "1,247",   icon: Users,      color: "text-brand-purple", change: "+23 this month" },
-  { label: "Avg. Order Value", value: "₦18,400", icon: ShoppingBag,color: "text-brand-green",  change: "+12% vs last month" },
+  { label: "Avg. Order Value", value: formatMoney(18400), icon: ShoppingBag,color: "text-brand-green",  change: "+12% vs last month" },
   { label: "Repeat Rate",      value: "64%",      icon: TrendingUp, color: "text-amber-500",    change: "Industry avg: 40%" },
   { label: "VIP Customers",    value: "89",       icon: Star,       color: "text-brand-coral",  change: "7.1% of base" },
 ]
@@ -245,7 +246,7 @@ function ReengagementQueue({ customers }: { customers: Customer[] }) {
             {sent.has(c.id) ? (
               <CheckCircle2 className="h-4 w-4 text-brand-green flex-shrink-0" />
             ) : (
-              <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We miss you at Sade's Boutique! It's been a while since your last order. Come check out what's new — we have beautiful pieces just added 🛍✨`)}`}
+              <a href={`https://wa.me/${c.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We miss you! It's been a while since your last order. Come check out what's new — we have beautiful pieces just added 🛍✨`)}`}
                 target="_blank" rel="noopener noreferrer"
                 onClick={() => markSent(c.id)}
                 className="flex-shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-[#25D366] text-white hover:bg-[#22c55e] transition-colors">
@@ -410,6 +411,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
     setNote(customer.notes ?? "")
     setComposeOpen(false)
     setCustomMsg("")
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer.id])
 
   const saveNote = () => {
@@ -421,7 +423,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
   const buildWA = (c: Customer) => {
     const clean = c.phone.replace(/\D/g, "")
     const firstName = c.name.split(" ")[0]
-    const text = encodeURIComponent(`Hi ${firstName}! 👋 It's Sade from Sade's Boutique. We have new arrivals you might love based on your last order (${c.lastProduct}). Come see! 🛍`)
+    const text = encodeURIComponent(`Hi ${firstName}! 👋 We have new arrivals you might love based on your last order (${c.lastProduct}). Come see! 🛍`)
     return `https://wa.me/${clean}?text=${text}`
   }
 
@@ -482,7 +484,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
             <p className="text-xs text-muted-foreground mt-0.5">Orders</p>
           </div>
           <div className="px-4 py-4 text-center">
-            <p className="font-display font-extrabold text-xl text-brand-purple">₦{(customer.totalSpend / 1000).toFixed(0)}k</p>
+            <p className="font-display font-extrabold text-xl text-brand-purple">{formatMoney(customer.totalSpend)}</p>
             <p className="text-xs text-muted-foreground mt-0.5">Spent</p>
           </div>
           <div className="px-4 py-4 text-center">
@@ -528,7 +530,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
                     <p className="text-xs font-semibold truncate">{order.product}</p>
                     <p className="text-[10px] text-muted-foreground">{order.date}</p>
                   </div>
-                  <p className="text-xs font-bold text-brand-purple flex-shrink-0">₦{order.amount.toLocaleString()}</p>
+                  <p className="text-xs font-bold text-brand-purple flex-shrink-0">{formatMoney(order.amount)}</p>
                 </div>
               )
             })}
@@ -599,7 +601,7 @@ function CustomerPanel({ customer, onClose, onUpdate }: {
 }
 
 function exportCustomersCSV(customers: Customer[]) {
-  const headers = ["Name", "Phone", "Email", "Location", "Orders", "Total Spend (₦)", "Segment", "LTV Score", "Last Order", "Last Product", "On WhatsApp"]
+  const headers = ["Name", "Phone", "Email", "Location", "Orders", "Total Spend ($)", "Segment", "LTV Score", "Last Order", "Last Product", "On WhatsApp"]
   const rows = customers.map(c => [
     c.name, c.phone, c.email ?? "", c.location,
     c.totalOrders, c.totalSpend, c.segment, c.ltv, c.lastOrderDate, c.lastProduct, c.isOnWhatsApp ? "Yes" : "No",
@@ -611,9 +613,45 @@ function exportCustomersCSV(customers: Customer[]) {
   URL.revokeObjectURL(url)
 }
 
+type ApiCustomer = {
+  id: string; customer_identifier: string | null; email: string | null; phone: string | null
+  total_orders: number; total_revenue: number; lifecycle_stage: string | null
+  ai_summary: string | null; last_interaction_at: string | null
+}
+
+const LIFECYCLE_TO_SEGMENT: Record<string, Customer["segment"]> = {
+  vip: "vip", loyal: "vip", repeat: "repeat", active: "repeat",
+  new: "new", "at-risk": "at-risk", churned: "at-risk",
+}
+
+function apiCustomerToCRM(c: ApiCustomer, index: number): Customer {
+  const daysSince = c.last_interaction_at
+    ? Math.round((Date.now() - new Date(c.last_interaction_at).getTime()) / 86_400_000)
+    : 999
+  const seg = LIFECYCLE_TO_SEGMENT[c.lifecycle_stage ?? ""] ?? "new"
+  return {
+    id: c.id,
+    name: c.customer_identifier ?? c.email ?? c.phone ?? `Customer ${index + 1}`,
+    phone: c.phone ?? "",
+    location: "",
+    totalOrders: c.total_orders ?? 0,
+    totalSpend: c.total_revenue ?? 0,
+    lastOrderDate: c.last_interaction_at ? `${daysSince}d ago` : "Never",
+    lastOrderDays: daysSince,
+    lastProduct: "",
+    segment: seg,
+    isOnWhatsApp: !!(c.phone),
+    email: c.email ?? undefined,
+    notes: c.ai_summary ?? undefined,
+    ltv: Math.min(100, Math.round((c.total_revenue ?? 0) / 1000)),
+    joinedDate: "",
+  }
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function CRMPage() {
-  const [customers, setCustomers] = React.useState<Customer[]>(mockCustomers)
+  const [customers, setCustomers] = React.useState<Customer[]>([])
+  const [crmLoading, setCrmLoading] = React.useState(true)
   const [search, setSearch]       = React.useState("")
   const [activeSegment, setActiveSegment] = React.useState("All")
   const [selectedCustomer, setSelectedCustomer] = React.useState<Customer | null>(null)
@@ -623,6 +661,18 @@ export default function CRMPage() {
   const [sortOpen, setSortOpen]   = React.useState(false)
   const [showAddModal, setShowAddModal] = React.useState(false)
   const [showSidePanels, setShowSidePanels] = React.useState(true)
+
+  React.useEffect(() => {
+    fetch("/api/customers/memory")
+      .then(r => r.json())
+      .then(({ customers: apiList }) => {
+        if (Array.isArray(apiList) && apiList.length > 0) {
+          setCustomers(apiList.map((c: ApiCustomer, i: number) => apiCustomerToCRM(c, i)))
+        }
+      })
+      .catch(() => null)
+      .finally(() => setCrmLoading(false))
+  }, [])
 
   const filtered = React.useMemo(() => {
     const q = search.toLowerCase()
@@ -667,7 +717,7 @@ export default function CRMPage() {
     toast({ title: `Opening ${targets.length} WhatsApp chats…`, description: "Your browser may block multiple tabs. Allow popups if prompted.", variant: "default" })
     targets.slice(0, 5).forEach(c => {
       const clean = c.phone.replace(/\D/g, "")
-      const text = encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 It's Sade from Sade's Boutique. We have exciting news for you! 🛍`)
+      const text = encodeURIComponent(`Hi ${c.name.split(" ")[0]}! 👋 We have exciting news for you! 🛍`)
       window.open(`https://wa.me/${clean}?text=${text}`, "_blank")
     })
   }
@@ -864,7 +914,7 @@ export default function CRMPage() {
                       </div>
                       {/* Spend */}
                       <div className="flex items-center sm:block">
-                        <p className="text-sm font-semibold text-brand-purple">₦{customer.totalSpend.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-brand-purple">{formatMoney(customer.totalSpend)}</p>
                       </div>
                       {/* LTV */}
                       <div className="flex items-center sm:block">
@@ -897,11 +947,17 @@ export default function CRMPage() {
                 })}
               </div>
 
-              {filtered.length === 0 && (
+              {crmLoading ? (
+                <div className="py-16 text-center text-sm text-muted-foreground">Loading customers…</div>
+              ) : filtered.length === 0 && (
                 <div className="py-16 text-center">
                   <Users className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
-                  <p className="text-sm font-semibold">No customers found</p>
-                  <p className="text-xs text-muted-foreground mt-1">Try a different search or filter</p>
+                  <p className="text-sm font-semibold">
+                    {customers.length === 0 ? "No customers yet" : "No customers found"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {customers.length === 0 ? "Customers appear here after their first order" : "Try a different search or filter"}
+                  </p>
                 </div>
               )}
             </div>

@@ -33,9 +33,9 @@ export const STORE_PRESETS: StorePreset[] = [
   },
   {
     id: "africa",
-    name: "Bright Africa",
+    name: "Bright Market",
     preview: "#F97316",
-    description: "Warm, vibrant, energetic — inspired by African street markets",
+    description: "Warm, vibrant, energetic — inspired by independent market culture",
     theme: {
       accent: "#F97316",
       accentFg: "#ffffff",

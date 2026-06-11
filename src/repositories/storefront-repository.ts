@@ -4,8 +4,26 @@ const RESERVED_STOREFRONT_HANDLES = new Set(['admin', 'api', 'app', 'dashboard',
 
 const normalizeHandle = (value: string) => value.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
 
+function fallbackHandle(input: { existingHandle?: string | null; storeName?: string; email?: string | null; userId: string }) {
+  const fromExisting = normalizeHandle(input.existingHandle ?? '');
+  if (fromExisting && !RESERVED_STOREFRONT_HANDLES.has(fromExisting)) return fromExisting;
+  const fromStore = normalizeHandle(input.storeName ?? '');
+  if (fromStore && !RESERVED_STOREFRONT_HANDLES.has(fromStore)) return fromStore;
+  const fromEmail = normalizeHandle(input.email?.split('@')[0] ?? '');
+  if (fromEmail && !RESERVED_STOREFRONT_HANDLES.has(fromEmail)) return fromEmail;
+  return `creator-${input.userId.slice(0, 8)}`;
+}
+
+async function availableHandle(supabase: ReturnType<typeof createClient>, organizationId: string, handle: string, userId: string) {
+  const clean = normalizeHandle(handle);
+  const clash = await supabase.from('storefronts').select('organization_id').eq('handle', clean).neq('organization_id', organizationId).limit(1);
+  if (clash.error) throw clash.error;
+  if ((clash.data?.length ?? 0) === 0) return clean;
+  return `${clean}-${userId.slice(0, 6)}`;
+}
+
 export async function upsertStorefront(organizationId: string, payload: { handle: string; bio?: string; hero_image?: string }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const cleanHandle = normalizeHandle(payload.handle);
   if (!cleanHandle || RESERVED_STOREFRONT_HANDLES.has(cleanHandle)) throw new Error('Reserved storefront handle');
 
@@ -16,7 +34,7 @@ export async function upsertStorefront(organizationId: string, payload: { handle
   return supabase
     .from('storefronts')
     .upsert(
-      { organization_id: organizationId, handle: cleanHandle, bio: payload.bio ?? null, hero_image: payload.hero_image ?? null, is_active: false },
+      { organization_id: organizationId, handle: cleanHandle, bio: payload.bio ?? null, hero_image: payload.hero_image ?? null },
       { onConflict: 'organization_id' },
     )
     .select('*')
@@ -31,18 +49,27 @@ export async function updateStorefrontForCurrentUser(input: {
   social_links?: Record<string, string>;
   publish?: boolean;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
 
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) throw profile.error;
-  if (!profile.data?.organization_id) throw new Error('No organization context');
-
-  const orgId = profile.data.organization_id;
-  const membership = await supabase.from('organization_members').select('role').eq('organization_id', orgId).eq('user_id', auth.user.id).maybeSingle();
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id, role')
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
   if (membership.error) throw membership.error;
-  if (!membership.data) throw new Error('Forbidden');
+  if (!membership.data?.organization_id) throw new Error('No organization context');
+
+  const orgId = membership.data.organization_id;
+  const existing = await supabase
+    .from('storefronts')
+    .select('handle')
+    .eq('organization_id', orgId)
+    .maybeSingle();
+  if (existing.error) throw existing.error;
 
   const patch: Record<string, unknown> = {};
 
@@ -65,6 +92,13 @@ export async function updateStorefrontForCurrentUser(input: {
     if (orgUpdate.error) throw orgUpdate.error;
   }
 
+  patch.handle = await availableHandle(
+    supabase,
+    orgId,
+    String(patch.handle ?? fallbackHandle({ existingHandle: existing.data?.handle, storeName: input.storeName, email: auth.user.email, userId: auth.user.id })),
+    auth.user.id,
+  );
+
   const storefront = await supabase
     .from('storefronts')
     .upsert({ organization_id: orgId, ...patch }, { onConflict: 'organization_id' })
@@ -75,15 +109,38 @@ export async function updateStorefrontForCurrentUser(input: {
   return storefront.data;
 }
 
+function isMissingColumnError(error: unknown) {
+  const err = error as { code?: string; message?: string };
+  return err?.code === '42703' || err?.code === 'PGRST204' || /column .* does not exist|Could not find .* column/i.test(err?.message ?? '');
+}
+
 export async function getPublishedStorefrontByHandle(handle: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const cleanHandle = normalizeHandle(handle);
-  const storefront = await supabase
+  let storefront = await supabase
     .from('storefronts')
-    .select('handle,bio,hero_image,social_links,is_active,organization_id,organizations(name)')
+    .select('handle,bio,hero_image,social_links,is_active,organization_id,store_schema,theme,organizations(name,owner_id)')
     .eq('handle', cleanHandle)
     .eq('is_active', true)
     .maybeSingle();
+
+  // store_schema/theme only exist on databases bootstrapped via migration 040+.
+  // Migration 029 created storefronts without store_schema, and 040 is
+  // `create table if not exists` (a no-op there) — retry without those columns
+  // so a legacy schema renders the storefront instead of 500ing every visitor.
+  if (storefront.error && isMissingColumnError(storefront.error)) {
+    console.error('[storefront.legacy_schema_fallback]', {
+      handle: cleanHandle,
+      code: storefront.error.code,
+      message: storefront.error.message,
+    });
+    storefront = await supabase
+      .from('storefronts')
+      .select('handle,bio,hero_image,social_links,is_active,organization_id,organizations(name,owner_id)')
+      .eq('handle', cleanHandle)
+      .eq('is_active', true)
+      .maybeSingle();
+  }
 
   if (storefront.error) throw storefront.error;
   return storefront.data;

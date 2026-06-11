@@ -14,7 +14,7 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { mockHeroAvatars, mockStats } from "@/data/mock"
+import { mockHeroAvatars } from "@/data/mock"
 import { images } from "@/config/images"
 
 // Animated number counter
@@ -26,7 +26,7 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
   React.useEffect(() => {
     if (!isInView) return
     // Extract numeric part and suffix
-    const match = value.match(/^([₦]?)(\d[\d,.]*)([\w+%★\s]*)$/)
+    const match = value.match(/^([$€£₦]?)(\d[\d,.]*)([\w+%★\s]*)$/)
     if (!match) { setDisplay(value); return }
     const [, prefix, numStr, suffix] = match
     const target = parseFloat(numStr.replace(/,/g, ""))
@@ -55,10 +55,10 @@ function AnimatedStat({ value, label }: { value: string; label: string }) {
 
 // Scrolling creator marquee
 const MARQUEE_CREATORS = [
-  "Sade's Boutique 🛍️", "Chioma Beauty 💄", "Amaka Crafts ✂️",
-  "Kemi Kitchen 🍲", "Zara Styles 👗", "Nkem Jewels 💎",
-  "Ada's Prints 🎨", "Funmi Skincare 🌿", "Blessing Wigs 👑",
-  "Temi Home Décor 🏠", "Grace Footwear 👠", "Yemi Organics 🌱",
+  "Fashion brands", "Beauty creators", "Food businesses",
+  "Service providers", "Digital creators", "Coaches",
+  "Artists", "Merch sellers", "Home brands",
+  "Wellness founders", "Designers", "Independent shops",
 ]
 
 function CreatorMarquee() {
@@ -128,7 +128,7 @@ function PhoneMockup() {
 
           {/* App header */}
           <div className="px-4 pb-3 flex items-center justify-between border-b border-white/5">
-            <span className="text-white text-[11px] font-semibold tracking-tight">Sade&apos;s Store</span>
+            <span className="text-white text-[11px] font-semibold tracking-tight">Your Store</span>
             <span className="flex items-center gap-1 text-brand-green text-[9px] font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-brand-green animate-pulse" />
               Live
@@ -146,11 +146,11 @@ function PhoneMockup() {
                 unoptimized
               />
             </div>
-            <p className="text-white text-[11px] font-semibold mt-2">Sade Okoye</p>
-            <p className="text-white/40 text-[9px]">Fashion & Beauty · Lagos</p>
+            <p className="text-white text-[11px] font-semibold mt-2">Creator Brand</p>
+            <p className="text-white/40 text-[9px]">Products · Services · Digital offers</p>
             <div className="flex gap-1.5 mt-2">
               <span className="px-2 py-0.5 rounded-full bg-brand-purple/15 border border-brand-purple/20 text-brand-purple text-[8px] font-medium">
-                45.2k followers
+                Shareable storefront
               </span>
               <span className="px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/50 text-[8px] font-medium">
                 Fashion
@@ -164,9 +164,9 @@ function PhoneMockup() {
               Products
             </p>
             {[
-              { name: "Ankara Print Dress", price: "₦25,000", img: images.products.dress },
-              { name: "Beaded Necklace Set", price: "₦8,500", img: images.products.necklace },
-              { name: "Leather Mini Bag", price: "₦18,000", img: images.products.bag },
+              { name: "Signature product", price: "Ready to buy", img: images.products.dress },
+              { name: "Best-selling service", price: "Book now", img: images.products.necklace },
+              { name: "Digital offer", price: "Instant access", img: images.products.bag },
             ].map((product) => (
               <div
                 key={product.name}
@@ -196,7 +196,7 @@ function PhoneMockup() {
           <div className="absolute bottom-4 left-3 right-3">
             <div className="w-full bg-[#25D366] rounded-2xl py-2.5 flex items-center justify-center gap-1.5">
               <MessageCircle className="w-3 h-3 text-white fill-white" />
-              <span className="text-white text-[10px] font-semibold">Order via WhatsApp</span>
+              <span className="text-white text-[10px] font-semibold">Start checkout</span>
             </div>
           </div>
         </div>
@@ -209,8 +209,8 @@ function PhoneMockup() {
             <TrendingUp className="w-4 h-4 text-brand-green" />
           </div>
           <div>
-            <p className="text-white text-xs font-bold leading-none">₦847k</p>
-            <p className="text-white/40 text-[9px] mt-0.5">Revenue this month</p>
+            <p className="text-white text-xs font-bold leading-none">More sales</p>
+            <p className="text-white/40 text-[9px] mt-0.5">from social traffic</p>
           </div>
         </div>
       </FloatingCard>
@@ -221,8 +221,8 @@ function PhoneMockup() {
             <ShoppingBag className="w-4 h-4 text-brand-purple" />
           </div>
           <div>
-            <p className="text-white text-xs font-bold leading-none">1,234</p>
-            <p className="text-white/40 text-[9px] mt-0.5">Orders total</p>
+            <p className="text-white text-xs font-bold leading-none">Fast setup</p>
+            <p className="text-white/40 text-[9px] mt-0.5">store live today</p>
           </div>
         </div>
       </FloatingCard>
@@ -231,8 +231,8 @@ function PhoneMockup() {
         <div className="flex items-center gap-2">
           <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 flex-shrink-0" />
           <div>
-            <p className="text-white text-xs font-bold leading-none">4.9 ★</p>
-            <p className="text-white/40 text-[9px] mt-0.5">Store rating</p>
+            <p className="text-white text-xs font-bold leading-none">Trust ready</p>
+            <p className="text-white/40 text-[9px] mt-0.5">professional page</p>
           </div>
         </div>
       </FloatingCard>
@@ -243,8 +243,8 @@ function PhoneMockup() {
             <TrendingUp className="w-3 h-3 text-brand-coral" />
           </div>
           <div>
-            <p className="text-brand-green text-xs font-bold leading-none">+28%</p>
-            <p className="text-white/40 text-[9px] mt-0.5">This week</p>
+            <p className="text-brand-green text-xs font-bold leading-none">Grow</p>
+            <p className="text-white/40 text-[9px] mt-0.5">with confidence</p>
           </div>
         </div>
       </FloatingCard>
@@ -278,7 +278,7 @@ export function HeroSection() {
             <motion.div {...fadeUp(0.1)} className="inline-flex items-center gap-2 mb-6">
               <Badge variant="brand-glow" size="lg" className="cursor-default">
                 <span className="w-1.5 h-1.5 rounded-full bg-brand-purple animate-pulse" />
-                Creator Commerce OS for Africa
+                Built for creators ready to sell
               </Badge>
             </motion.div>
 
@@ -287,9 +287,9 @@ export function HeroSection() {
               {...fadeUp(0.2)}
               className="font-display text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-white leading-[1.05] tracking-tight"
             >
-              Turn Followers
+              Launch, Sell,
               <br />
-              <span className="gradient-text">Into Customers.</span>
+              <span className="gradient-text">and Grow in Minutes.</span>
             </motion.h1>
 
             {/* Sub-tagline */}
@@ -297,7 +297,7 @@ export function HeroSection() {
               {...fadeUp(0.3)}
               className="mt-4 text-xl sm:text-2xl font-semibold text-white/50 tracking-tight"
             >
-              Post. Chat. Get Paid.
+              Everything you need to sell online, without the complexity.
             </motion.p>
 
             {/* Description */}
@@ -305,7 +305,7 @@ export function HeroSection() {
               {...fadeUp(0.4)}
               className="mt-6 text-base sm:text-lg text-white/40 leading-relaxed max-w-lg mx-auto lg:mx-0"
             >
-              Lummy is the creator commerce platform built for Africa. Open a storefront, sell via WhatsApp, and grow with AI — without touching a line of code.
+              Lummy helps creators turn attention into revenue with a professional storefront, simple checkout, and growth tools that keep customers coming back.
             </motion.p>
 
             {/* CTAs */}
@@ -313,15 +313,19 @@ export function HeroSection() {
               {...fadeUp(0.5)}
               className="mt-8 flex flex-col sm:flex-row gap-3 justify-center lg:justify-start"
             >
-              <Button size="xl" className="group">
-                Get Started Free
-                <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              <Button size="xl" className="group" asChild>
+                <a href="/signup">
+                  Start Selling Free
+                  <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </a>
               </Button>
-              <Button variant="outline-white" size="xl" className="group">
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
-                  <Play className="h-3 w-3 text-white fill-white ml-0.5" />
-                </div>
-                Watch Demo
+              <Button variant="outline-white" size="xl" className="group" asChild>
+                <a href="/pricing">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/15 group-hover:bg-white/25 transition-colors">
+                    <Play className="h-3 w-3 text-white fill-white ml-0.5" />
+                  </div>
+                  See How It Works
+                </a>
               </Button>
             </motion.div>
 
@@ -336,7 +340,7 @@ export function HeroSection() {
               </div>
               <div className="flex items-center gap-1 text-white/30 text-xs">
                 <CheckCircle2 className="h-3.5 w-3.5 text-brand-green" />
-                Free forever plan
+                Launch in minutes
               </div>
             </motion.div>
 
@@ -360,7 +364,7 @@ export function HeroSection() {
                 </div>
               </div>
               <p className="text-sm text-white/50">
-                <span className="text-white font-semibold">2,000+ creators</span> already selling
+                <span className="text-white font-semibold">Creators and small businesses</span> use Lummy to sell with confidence
               </p>
             </motion.div>
           </div>
@@ -384,7 +388,12 @@ export function HeroSection() {
           className="mt-24 pt-12 border-t border-white/8"
         >
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {mockStats.map((stat) => (
+            {[
+              { value: "3x", label: "more repeat customers" },
+              { value: "Hours", label: "from idea to storefront" },
+              { value: "1", label: "place to sell and manage" },
+              { value: "Secure", label: "checkout-ready business" },
+            ].map((stat) => (
               <AnimatedStat key={stat.label} value={stat.value} label={stat.label} />
             ))}
           </div>

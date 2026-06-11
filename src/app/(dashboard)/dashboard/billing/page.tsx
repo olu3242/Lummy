@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney } from "@/lib/globalization"
 
 type PlanId = "starter" | "growth" | "pro"
 
@@ -204,7 +205,7 @@ function UpgradeModal({ plan, annual, onClose }: { plan: Plan; annual: boolean; 
                   </div>
                   <div className="text-right">
                     <p className={cn("font-display text-xl font-extrabold", plan.color)}>
-                      ₦{price.toLocaleString()}
+                      {formatMoney(price)}
                     </p>
                     <p className="text-[10px] text-muted-foreground">/{annual ? "mo · billed annually" : "month"}</p>
                   </div>
@@ -239,17 +240,17 @@ function UpgradeModal({ plan, annual, onClose }: { plan: Plan; annual: boolean; 
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>{plan.name} Plan ({annual ? "Annual" : "Monthly"})</span>
-                  <span>₦{price.toLocaleString()}</span>
+                  <span>{formatMoney(price)}</span>
                 </div>
                 {annual && (
                   <div className="flex justify-between text-brand-green">
                     <span>Annual discount (20%)</span>
-                    <span>-₦{((plan.monthlyPrice - plan.annualPrice) * 12).toLocaleString()}/yr</span>
+                    <span>-{formatMoney((plan.monthlyPrice - plan.annualPrice) * 12)}/yr</span>
                   </div>
                 )}
                 <div className="flex justify-between font-bold text-sm border-t border-border pt-1.5 mt-1.5">
                   <span>Total today</span>
-                  <span>₦{price.toLocaleString()}</span>
+                  <span>{formatMoney(price)}</span>
                 </div>
               </div>
 
@@ -261,7 +262,7 @@ function UpgradeModal({ plan, annual, onClose }: { plan: Plan; annual: boolean; 
 
             <div className="p-5 pt-0">
               <Button className="w-full gap-2" size="lg" onClick={handlePay}>
-                Pay ₦{price.toLocaleString()} · Activate {plan.name}
+                Pay {formatMoney(price)} · Activate {plan.name}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -341,7 +342,7 @@ export default function BillingPage() {
               <Badge variant="brand" size="sm">Active</Badge>
             </div>
             <p className="text-2xl font-display font-extrabold text-brand-purple">
-              ₦4,000<span className="text-sm font-normal text-muted-foreground">/month</span>
+              {formatMoney(4000)}<span className="text-sm font-normal text-muted-foreground">/month</span>
             </p>
             <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
               <Clock className="h-3.5 w-3.5" />
@@ -449,7 +450,7 @@ export default function BillingPage() {
                   ) : (
                     <>
                       <p className={cn("font-display text-2xl font-extrabold", plan.color)}>
-                        ₦{price.toLocaleString()}
+                        {formatMoney(price)}
                       </p>
                       <p className="text-[10px] text-muted-foreground">
                         /month{annual ? " · billed annually" : ""}
@@ -550,7 +551,7 @@ export default function BillingPage() {
                 </div>
               </div>
               <div className="flex items-center gap-4">
-                <span className="font-display font-bold text-sm">₦{inv.amount.toLocaleString()}</span>
+                <span className="font-display font-bold text-sm">{formatMoney(inv.amount)}</span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-green/10 text-brand-green">Paid</span>
                 <button
                   onClick={() => handleDownload(inv.id)}

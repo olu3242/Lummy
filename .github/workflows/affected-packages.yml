@@ -5,9 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
-        with: { version: 10 }
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: pnpm }
+      - run: git fetch origin main --depth=1
       - run: pnpm install --frozen-lockfile
-      - run: pnpm turbo run lint typecheck build --filter='...[origin/main]'
+      - run: pnpm turbo run lint typecheck build --filter='./...[origin/main]'

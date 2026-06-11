@@ -20,12 +20,15 @@ type CreateOrderInput = {
   organizationId: string;
   productId: string;
   customerEmail: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerAddress?: string;
   quantity: number;
   provider: 'stripe' | 'paystack';
 };
 
-export async function createPendingOrder(input: CreateOrderInput) {
-  const supabase = await createClient();
+export async function createPendingOrder(input: CreateOrderInput, client?: ReturnType<typeof createClient>) {
+  const supabase = client ?? createClient();
   const product = await supabase.from('products').select('id,title,price,currency,organization_id,status').eq('id', input.productId).eq('organization_id', input.organizationId).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data || product.data.status !== 'active') throw new Error('Product unavailable');
@@ -33,17 +36,35 @@ export async function createPendingOrder(input: CreateOrderInput) {
   const quantity = Number.isFinite(input.quantity) ? Math.max(1, Math.floor(input.quantity)) : 1;
   const amount = Number(product.data.price) * quantity;
 
-  const order = await supabase.from('orders').insert({ organization_id: input.organizationId, customer_email: input.customerEmail, status: 'pending', amount, currency: product.data.currency || 'NGN', payment_provider: input.provider }).select('*').single();
+  const order = await supabase.from('orders').insert({
+    organization_id: input.organizationId,
+    customer_email: input.customerEmail,
+    customer_name: input.customerName ?? null,
+    customer_phone: input.customerPhone ?? null,
+    customer_address: input.customerAddress ?? null,
+    status: 'pending',
+    amount,
+    currency: product.data.currency || 'USD',
+    payment_provider: input.provider,
+  }).select('*').single();
   if (order.error) throw order.error;
 
-  const payment = await supabase.from('payments').insert({ order_id: order.data.id, organization_id: input.organizationId, provider: input.provider, amount, currency: product.data.currency || 'NGN', status: 'pending' }).select('*').single();
+  const payment = await supabase.from('payments').insert({ order_id: order.data.id, organization_id: input.organizationId, provider: input.provider, amount, currency: product.data.currency || 'USD', status: 'pending' }).select('*').single();
   if (payment.error) throw payment.error;
+
+  await supabase.from('order_items').insert({
+    order_id: order.data.id,
+    product_id: product.data.id,
+    product_name: product.data.title,
+    quantity,
+    price_at_time: product.data.price,
+  });
 
   return { order: order.data, payment: payment.data, product: product.data, quantity };
 }
 
 export async function markPaymentCompleted(params: { orderId: string; paymentId: string; providerReference: string; providerEventId: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
 
   // Attempt to atomically (best-effort) update payment status only if not already succeeded
   const paymentUpdate = await supabase
@@ -92,12 +113,18 @@ export async function updateOrderStatusConditionally(orderId: string, allowedFro
 }
 
 async function getCurrentOrgId() {
-  const supabase = await createClient();
+  const supabase = createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) throw new Error('Unauthorized');
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) throw profile.error;
-  return { supabase, organizationId: profile.data?.organization_id ?? null };
+  const membership = await supabase
+    .from('organization_members')
+    .select('organization_id')
+    .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (membership.error) throw membership.error;
+  return { supabase, organizationId: membership.data?.organization_id ?? null };
 }
 
 export async function getDashboardPayments(limit = 20) {
@@ -204,7 +231,7 @@ function generateCustomerSummary(input: { totalOrders: number; totalRevenue: num
   notes.push(input.totalOrders >= 2 ? 'Repeat buyer with multiple orders.' : 'Early-stage buyer profile.');
   if (input.abandoned > 0) notes.push(`Abandoned checkout signals: ${input.abandoned}.`);
   if (input.paidOrders > 0) notes.push(`Completed purchases: ${input.paidOrders}.`);
-  if (input.totalRevenue > 0) notes.push(`Total revenue: ₦${Math.round(input.totalRevenue).toLocaleString()}.`);
+  if (input.totalRevenue > 0) notes.push(`Total revenue: ${Math.round(input.totalRevenue).toLocaleString()} in the creator's store currency.`);
   if (input.checkoutGenerated > input.paidOrders) notes.push('Follow-up recommended to improve conversion.');
   return notes.join(' ').slice(0, 240);
 }
@@ -223,7 +250,7 @@ function resolveLifecycle(input: { totalOrders: number; totalRevenue: number; la
 
 
 async function resolveOrganizationStorefrontId(orgId: string) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const storefront = await supabase
     .from('storefronts')
     .select('id')
@@ -236,7 +263,7 @@ async function resolveOrganizationStorefrontId(orgId: string) {
 }
 
 export async function upsertCustomerMemoryFromInteraction(input: { orgId: string; storefrontId?: string; customerIdentifier: string; email?: string; phone?: string; preferredChannel?: string; interactionId: string; correlationId?: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const now = new Date().toISOString();
   const existing = await supabase.from('customer_profiles').select('*').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();
   if (existing.error) throw existing.error;
@@ -251,7 +278,7 @@ export async function upsertCustomerMemoryFromInteraction(input: { orgId: string
 }
 
 export async function syncCustomerMemoryForOrder(input: { orgId: string; orderId: string; paymentId?: string; correlationId?: string; }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   const order = await supabase.from('orders').select('id,organization_id,customer_email,status,amount,created_at').eq('id', input.orderId).eq('organization_id', input.orgId).maybeSingle();
   if (order.error || !order.data) throw order.error || new Error('Order not found');
 
@@ -332,7 +359,7 @@ export async function upsertConversionAttribution(input: {
   conversionStatus: string;
   revenueAmount?: number;
 }) {
-  const supabase = await createClient();
+  const supabase = createClient();
   let customerId: string | null = null;
   if (input.customerIdentifier) {
     const profile = await supabase.from('customer_profiles').select('id').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();
@@ -388,66 +415,68 @@ export async function getGrowthIntelligenceSummary() {
 
   const orders = await supabase
     .from('orders')
-    .select('id,organization_id,status,amount,customer_email,created_at,order_items(product_id,quantity,price_at_time,products(id,title,organization_id))')
+    .select('id,organization_id,status,amount,customer_email,created_at')
     .eq('organization_id', organizationId);
   if (orders.error) throw orders.error;
+
+  const products = await supabase
+    .from('products')
+    .select('id,title,price,status')
+    .eq('organization_id', organizationId);
+  if (products.error) throw products.error;
 
   const attribution = await supabase
     .from('conversion_attribution')
     .select('source_platform,conversion_type,conversion_status,revenue_amount')
     .eq('org_id', organizationId);
-  if (attribution.error) throw attribution.error;
+  if (attribution.error) {
+    console.error('[dashboard.bootstrap]', {
+      query: 'getGrowthIntelligenceSummary.conversion_attribution',
+      code: attribution.error.code,
+      message: attribution.error.message,
+      details: attribution.error.details,
+      hint: attribution.error.hint,
+    });
+  }
 
   const profiles = await supabase
     .from('customer_profiles')
     .select('lifecycle_stage,total_orders,total_revenue')
     .eq('org_id', organizationId);
-  if (profiles.error) throw profiles.error;
+  if (profiles.error) {
+    console.error('[dashboard.bootstrap]', {
+      query: 'getGrowthIntelligenceSummary.customer_profiles',
+      code: profiles.error.code,
+      message: profiles.error.message,
+      details: profiles.error.details,
+      hint: profiles.error.hint,
+    });
+  }
 
   const productMap = new Map<string, { title: string; revenue: number; orders: number; repeatOrders: number; pending: number }>();
-  const customerProduct = new Map<string, Map<string, number>>();
-
-  for (const o of orders.data ?? []) {
-    const items = Array.isArray(o.order_items) ? o.order_items : [];
-    const isPaid = o.status === 'paid';
-    for (const item of items) {
-      const pid = item?.product_id;
-      const ptitle = item?.products?.title || 'Unknown product';
-      if (!pid) continue;
-      const row = productMap.get(pid) ?? { title: ptitle, revenue: 0, orders: 0, repeatOrders: 0, pending: 0 };
-      row.orders += 1;
-      if (isPaid) row.revenue += Number(item?.price_at_time || 0) * Number(item?.quantity || 1);
-      else row.pending += 1;
-      productMap.set(pid, row);
-
-      const ckey = o.customer_email || 'unknown';
-      const pCount = customerProduct.get(ckey) ?? new Map();
-      pCount.set(pid, (pCount.get(pid) ?? 0) + 1);
-      customerProduct.set(ckey, pCount);
-    }
+  for (const product of products.data ?? []) {
+    productMap.set(product.id, {
+      title: product.title || 'Untitled product',
+      revenue: 0,
+      orders: 0,
+      repeatOrders: 0,
+      pending: product.status === 'active' ? 0 : 1,
+    });
   }
 
-  for (const byProduct of customerProduct.values()) {
-    for (const [pid, count] of byProduct.entries()) {
-      if (count >= 2) {
-        const row = productMap.get(pid);
-        if (row) row.repeatOrders += 1;
-      }
-    }
-  }
+  const productRows = Array.from(productMap.entries()).map(([id, v]) => ({ id, ...v }));
+  const topProduct = productRows.sort((a,b)=>b.revenue-a.revenue)[0] ?? null;
+  const lowPerformingProducts = productRows.filter((p)=>p.orders <= 1 || p.pending > p.orders / 2).slice(0,3).map(({id,title,orders})=>({id,title,orders}));
+  const repeatPurchaseProducts = productRows.filter((p)=>p.repeatOrders>0).sort((a,b)=>b.repeatOrders-a.repeatOrders).slice(0,3).map(({id,title,repeatOrders})=>({id,title,repeatOrders}));
 
-  const products = Array.from(productMap.entries()).map(([id, v]) => ({ id, ...v }));
-  const topProduct = products.sort((a,b)=>b.revenue-a.revenue)[0] ?? null;
-  const lowPerformingProducts = products.filter((p)=>p.orders <= 1 || p.pending > p.orders / 2).slice(0,3).map(({id,title,orders})=>({id,title,orders}));
-  const repeatPurchaseProducts = products.filter((p)=>p.repeatOrders>0).sort((a,b)=>b.repeatOrders-a.repeatOrders).slice(0,3).map(({id,title,repeatOrders})=>({id,title,repeatOrders}));
-
-  const highValue = (profiles.data ?? []).filter((p)=>p.lifecycle_stage==='high_value_customer').length;
-  const repeat = (profiles.data ?? []).filter((p)=>p.lifecycle_stage==='repeat_customer').length;
-  const atRisk = (profiles.data ?? []).filter((p)=>p.lifecycle_stage==='abandoned_customer' || p.lifecycle_stage==='inactive_customer').length;
+  const profileRows = profiles.error ? [] : profiles.data ?? [];
+  const highValue = profileRows.filter((p)=>p.lifecycle_stage==='high_value_customer').length;
+  const repeat = profileRows.filter((p)=>p.lifecycle_stage==='repeat_customer').length;
+  const atRisk = profileRows.filter((p)=>p.lifecycle_stage==='abandoned_customer' || p.lifecycle_stage==='inactive_customer').length;
   const highValueSegment = highValue > 0 ? 'high_value_customer' : repeat > atRisk ? 'repeat_buyer' : atRisk > 0 ? 'at_risk_customer' : 'high_intent_lead';
 
   const sourceTotals = new Map<string, number>();
-  for (const a of attribution.data ?? []) {
+  for (const a of attribution.error ? [] : attribution.data ?? []) {
     if (a.conversion_type === 'payment' || a.conversion_status === 'payment_completed') {
       sourceTotals.set(a.source_platform || 'Direct', (sourceTotals.get(a.source_platform || 'Direct') ?? 0) + Number(a.revenue_amount || 0));
     }

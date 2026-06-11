@@ -30,7 +30,7 @@ export function MobileNav() {
   const pathname = usePathname()
 
   return (
-    <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden">
+    <nav className="fixed bottom-0 inset-x-0 z-40 lg:hidden pb-safe">
       {/* Blur backdrop */}
       <div className="absolute inset-0 bg-background/90 backdrop-blur-md border-t border-border" />
 

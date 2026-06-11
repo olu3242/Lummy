@@ -168,6 +168,7 @@ export type StorefrontCreator = {
     name: string
     description: string
     price: number
+    currency?: string
     image: string
     category: string
     stock: number | null

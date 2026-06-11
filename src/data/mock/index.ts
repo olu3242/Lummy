@@ -64,13 +64,13 @@ export interface WorkflowStep {
 export const mockCreators: Creator[] = [
   {
     id: "1",
-    name: "Sade Okoye",
-    handle: "@sade.styles",
+    name: "Zara Bello",
+    handle: "@zara.studio",
     niche: "Fashion & Beauty",
     location: "Lagos, Nigeria",
     avatar: images.creators.sade,
     cover: images.covers.fashion,
-    revenue: "₦2.4M",
+    revenue: "$2.4k",
     followers: "45.2k",
     products: 23,
     verified: true,
@@ -84,7 +84,7 @@ export const mockCreators: Creator[] = [
     location: "Abuja, Nigeria",
     avatar: images.creators.chioma,
     cover: images.covers.food,
-    revenue: "₦1.8M",
+    revenue: "$1.8k",
     followers: "38.7k",
     products: 14,
     verified: true,
@@ -98,7 +98,7 @@ export const mockCreators: Creator[] = [
     location: "Enugu, Nigeria",
     avatar: images.creators.amaka,
     cover: images.covers.beauty,
-    revenue: "₦950k",
+    revenue: "$950",
     followers: "21.3k",
     products: 31,
     verified: false,
@@ -112,7 +112,7 @@ export const mockCreators: Creator[] = [
     location: "Lagos, Nigeria",
     avatar: images.creators.david,
     cover: images.covers.tech,
-    revenue: "₦1.2M",
+    revenue: "$1.2k",
     followers: "29.4k",
     products: 8,
     verified: true,
@@ -140,7 +140,7 @@ export const mockCreators: Creator[] = [
     location: "Kano, Nigeria",
     avatar: images.creators.fatima,
     cover: images.covers.lifestyle,
-    revenue: "₦720k",
+    revenue: "$720",
     followers: "17.8k",
     products: 19,
     verified: false,
@@ -157,21 +157,21 @@ export const mockTestimonials: Testimonial[] = [
     niche: "Food Creator · Abuja",
     avatar: images.creators.chioma,
     content:
-      "Before Lummy I was manually sending payment details in every DM. Now my WhatsApp store runs itself. I cleared ₦1.2M in my first 3 months — during a slow season.",
-    metric: "₦1.2M",
-    metricLabel: "in 3 months",
+      "Before Lummy, every order felt manual. Now customers can understand my offers, place orders faster, and come back without me explaining everything again.",
+    metric: "3x",
+    metricLabel: "more repeat customers",
     rating: 5,
   },
   {
     id: "2",
-    name: "Sade Okoye",
-    handle: "@sade.styles",
+    name: "Zara Bello",
+    handle: "@zara.studio",
     niche: "Fashion Creator · Lagos",
     avatar: images.creators.sade,
     content:
-      "The AI assistant writes my product descriptions, my captions, even my WhatsApp reply templates. It sounds exactly like me. My store now converts 5x better than my old link-in-bio.",
-    metric: "5×",
-    metricLabel: "conversion uplift",
+      "I finally look like a serious business online. My storefront feels professional, and customers trust the buying experience much more than my old link-in-bio.",
+    metric: "5x",
+    metricLabel: "stronger buyer confidence",
     rating: 5,
   },
   {
@@ -181,9 +181,9 @@ export const mockTestimonials: Testimonial[] = [
     niche: "Musician · Accra",
     avatar: images.creators.kwame,
     content:
-      "I dropped merch the same week I dropped a single. Lummy's storefront handled every order. I made $2,000 in 48 hours without touching a spreadsheet or messaging anyone individually.",
-    metric: "$2,000",
-    metricLabel: "in 48 hours",
+      "I launched merch the same week as my release. The setup was fast enough that I could focus on promotion instead of building a sales process from scratch.",
+    metric: "Hours",
+    metricLabel: "from idea to launch",
     rating: 5,
   },
   {
@@ -193,9 +193,9 @@ export const mockTestimonials: Testimonial[] = [
     niche: "Beauty Creator · Enugu",
     avatar: images.creators.amaka,
     content:
-      "Lummy gave me a proper business. Not just a page — a real storefront with analytics, WhatsApp orders, and a CRM for my repeat customers. Revenue up 200% in 60 days.",
-    metric: "+200%",
-    metricLabel: "revenue growth",
+      "Lummy gave me one place to manage my products, buyers, and follow-ups. I spend less time organizing orders and more time growing the business.",
+    metric: "1 place",
+    metricLabel: "to manage sales",
     rating: 5,
   },
 ]
@@ -223,18 +223,18 @@ export const mockPricingPlans: PricingPlan[] = [
   {
     id: "growth",
     name: "Growth",
-    price: "₦5,000",
+    price: "$9",
     priceSubtext: "per month",
     description: "For creators ready to scale.",
     features: [
       "3 storefronts",
       "Unlimited products",
-      "AI growth assistant",
-      "CRM & customer tracking",
-      "Advanced analytics",
+      "Intelligent growth support",
+      "Customer and order tracking",
+      "Performance insights",
       "Custom domain support",
       "Priority support",
-      "WhatsApp broadcast (coming soon)",
+      "Campaign support",
     ],
     cta: "Start Growing",
     popular: true,
@@ -243,18 +243,18 @@ export const mockPricingPlans: PricingPlan[] = [
   {
     id: "pro",
     name: "Pro",
-    price: "₦15,000",
+    price: "$29",
     priceSubtext: "per month",
     description: "For creator businesses at scale.",
     features: [
       "Unlimited storefronts",
       "Team accounts (5 seats)",
       "White-label option",
-      "API access",
+      "Advanced business controls",
       "Dedicated account manager",
-      "Custom integrations",
-      "SLA guarantee",
-      "Early access to all features",
+      "Migration support",
+      "Priority reliability support",
+      "Early access to new growth tools",
     ],
     cta: "Go Pro",
     popular: false,
@@ -268,49 +268,49 @@ export const mockFAQItems: FAQItem[] = [
     id: "1",
     question: "What exactly is Lummy?",
     answer:
-      "Lummy is a creator commerce operating system built for Africa. It lets you create a beautiful storefront, list your products or services, and receive orders directly via WhatsApp — all without building a website or using complex tools.",
+      "Lummy helps creators and small businesses launch a professional storefront, sell products or services, and manage customer activity without building a website or juggling multiple tools.",
   },
   {
     id: "2",
-    question: "How does the WhatsApp commerce flow work?",
+    question: "How quickly can I start selling?",
     answer:
-      "When a customer clicks on a product, Lummy generates a pre-filled WhatsApp message with the order details. The message goes to your WhatsApp number. You confirm, they pay — simple. No bot required, no tech setup.",
+      "Most creators can create a storefront, add an offer, and share a selling link the same day. You do not need design, coding, or technical setup experience.",
   },
   {
     id: "3",
-    question: "Which payment methods are supported?",
+    question: "Do I need technical skills?",
     answer:
-      "Lummy integrates with Paystack (primary) and Flutterwave (secondary). Your customers can pay by card, bank transfer, USSD, or mobile money depending on their country. More local payment methods are being added regularly.",
+      "No. Lummy is designed for creators who want a simple way to sell online without learning website builders, checkout tools, or business software.",
   },
   {
     id: "4",
-    question: "Is my money safe? When do I receive payouts?",
+    question: "Can I sell products and services?",
     answer:
-      "All payment processing is handled by Paystack and Flutterwave — both regulated and PCI-compliant. Payouts are made to your bank account within 24–72 hours of settlement, depending on your tier.",
+      "Yes. You can sell physical products, services, bookings, digital offers, and simple bundles from one storefront.",
   },
   {
     id: "5",
-    question: "Can I use Lummy outside Nigeria?",
+    question: "How do I get paid?",
     answer:
-      "Yes. Lummy is built for Africa. It currently supports creators in Nigeria, Ghana, Kenya, and South Africa with local currency support. More countries are being added based on demand.",
+      "Customers pay through a secure checkout experience, and supported payout options depend on your country and payment provider availability.",
   },
   {
     id: "6",
-    question: "What does the AI growth assistant actually do?",
+    question: "Can I customize my storefront?",
     answer:
-      "The AI assistant is powered by Claude (Anthropic). It writes product descriptions, social captions, WhatsApp reply templates, pricing suggestions, and campaign ideas — all in your voice and for your specific niche.",
+      "Yes. You can update your store name, handle, description, logo, colors, product images, and brand details so your storefront feels like your business.",
   },
   {
     id: "7",
-    question: "What are the transaction fees?",
+    question: "Do customers need an account?",
     answer:
-      "Lummy charges 0% platform fees on the Starter plan. Growth and Pro plans pay 1.5% per transaction (capped at ₦2,500). Payment gateway fees (Paystack/Flutterwave) of ~1.5% apply separately.",
+      "No. Customers can browse your storefront and start buying without creating a Lummy account.",
   },
   {
     id: "8",
-    question: "Can I migrate my existing products or store?",
+    question: "Why should I trust Lummy?",
     answer:
-      "Yes. You can import products via CSV or from a link. Our onboarding team can help you migrate from Selar, Flutterwave Storefront, or any other platform. Book a free migration call from your dashboard.",
+      "Lummy is built around secure payments, privacy-conscious account handling, and reliable storefront infrastructure so creators can sell with confidence.",
   },
 ]
 
@@ -344,10 +344,10 @@ export const mockWorkflowSteps: WorkflowStep[] = [
 
 // Stats
 export const mockStats = [
-  { value: "2,000+", label: "Active Creators" },
-  { value: "₦500M+", label: "Revenue Processed" },
-  { value: "4.9 ★", label: "Average Rating" },
-  { value: "12", label: "African Markets" },
+  { value: "3x", label: "More repeat customers" },
+  { value: "Hours", label: "From idea to storefront" },
+  { value: "1", label: "Place to manage sales" },
+  { value: "Secure", label: "Checkout-ready business" },
 ]
 
 // Social proof avatars (compact list for hero)
@@ -361,9 +361,9 @@ export const mockHeroAvatars = [
 
 // Nav items
 export const navItems = [
-  { label: "Features", href: "#features" },
+  { label: "Benefits", href: "#features" },
   { label: "How It Works", href: "#workflow" },
-  { label: "Creators", href: "#gallery" },
+  { label: "Stories", href: "#testimonials" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ]

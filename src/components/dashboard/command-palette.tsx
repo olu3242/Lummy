@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { mockProducts, mockOrders } from "@/data/mock/dashboard"
 import { cn } from "@/lib/utils"
+import { formatMoney } from "@/lib/globalization"
 
 interface CommandItem {
   id: string
@@ -73,8 +74,20 @@ export function CommandPalette() {
   const router = useRouter()
   const [query, setQuery] = React.useState("")
   const [activeIdx, setActiveIdx] = React.useState(0)
+  const [storeHandle, setStoreHandle] = React.useState("")
   const inputRef = React.useRef<HTMLInputElement>(null)
   const listRef = React.useRef<HTMLDivElement>(null)
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(async (res) => {
+        const payload = await res.json() as { storefront?: { handle?: string | null } | null }
+        if (!res.ok) throw new Error("Failed to load storefront")
+        return payload
+      })
+      .then((payload) => setStoreHandle(payload.storefront?.handle ?? ""))
+      .catch(() => setStoreHandle(""))
+  }, [])
 
   React.useEffect(() => {
     if (open) {
@@ -100,18 +113,18 @@ export function CommandPalette() {
     { id: "nav-settings",   group: "Navigation", label: "Settings",     description: "Account & store prefs", icon: Settings,        action: () => go("/dashboard/settings") },
 
     { id: "act-add-product",  group: "Actions", label: "Add new product",       icon: Plus,        iconClass: "text-brand-green",  action: () => { go("/dashboard/products"); } },
-    { id: "act-view-store",   group: "Actions", label: "View public store",     icon: ExternalLink,iconClass: "text-brand-coral",   action: () => { window.open("/sade.styles", "_blank"); setOpen(false) } },
-    { id: "act-share-store",  group: "Actions", label: "Share store link",      icon: Share2,      iconClass: "text-brand-purple",  action: () => { navigator.clipboard.writeText("https://lummy.co/sade.styles"); setOpen(false) } },
+    { id: "act-view-store",   group: "Actions", label: "View public store",     icon: ExternalLink,iconClass: "text-brand-coral",   action: () => { if (storeHandle) window.open(`/${storeHandle}`, "_blank"); setOpen(false) } },
+    { id: "act-share-store",  group: "Actions", label: "Share store link",      icon: Share2,      iconClass: "text-brand-purple",  action: () => { if (storeHandle) navigator.clipboard.writeText(`https://lummy.co/${storeHandle}`); setOpen(false) } },
     { id: "act-ai-caption",   group: "Actions", label: "Generate AI caption",   icon: Sparkles,    iconClass: "text-amber-500",     action: () => go("/dashboard/ai") },
     { id: "act-pending",      group: "Actions", label: "View pending orders",   icon: Package,     iconClass: "text-amber-500",     action: () => go("/dashboard/orders") },
-  ], [go, setOpen])
+  ], [go, setOpen, storeHandle])
 
   const productItems: CommandItem[] = React.useMemo(() =>
     mockProducts.map((p) => ({
       id: `product-${p.id}`,
       group: "Products",
       label: p.name,
-      description: `₦${p.price.toLocaleString()} · ${p.status}`,
+      description: `${formatMoney(p.price, p.currency)} · ${p.status}`,
       icon: ShoppingBag,
       iconClass: "text-brand-purple",
       action: () => go("/dashboard/products"),
@@ -123,16 +136,15 @@ export function CommandPalette() {
       id: `order-${o.id}`,
       group: "Orders",
       label: `${o.orderNumber} — ${o.customer.name}`,
-      description: `₦${o.amount.toLocaleString()} · ${o.status}`,
+      description: `${formatMoney(o.amount, o.currency)} · ${o.status}`,
       icon: ClipboardList,
       iconClass: "text-brand-coral",
       action: () => go("/dashboard/orders"),
     })),
   [go])
 
-  const allItems = [...baseItems, ...productItems, ...orderItems]
-
   const filtered = React.useMemo(() => {
+    const allItems = [...baseItems, ...productItems, ...orderItems]
     if (!query.trim()) return baseItems
     const q = query.toLowerCase()
     return allItems.filter(
@@ -141,7 +153,7 @@ export function CommandPalette() {
         (i.description?.toLowerCase().includes(q)) ||
         i.group.toLowerCase().includes(q)
     )
-  }, [query, allItems, baseItems])
+  }, [query, baseItems, productItems, orderItems])
 
   const groups = React.useMemo(() => {
     const map: Record<string, CommandItem[]> = {}

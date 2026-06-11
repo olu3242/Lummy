@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatCompactMoney } from "@/lib/globalization"
 import { mockProducts, type DashboardProduct } from "@/data/mock/dashboard"
 
 type StockStatus = "in_stock" | "low_stock" | "out_of_stock" | "unlimited"
@@ -113,7 +114,7 @@ function CategoryDonut({ products }: { products: DashboardProduct[] }) {
           ))}
           <text x={cx} y={cy + 1} textAnchor="middle" dominantBaseline="middle"
             style={{ fontSize: 10, fontWeight: 700, fill: "currentColor" }}>
-            ₦{Math.round(total / 1000)}k
+            {formatCompactMoney(total)}
           </text>
         </svg>
         <div className="space-y-1.5 flex-1 min-w-0">
@@ -121,7 +122,7 @@ function CategoryDonut({ products }: { products: DashboardProduct[] }) {
             <div key={cat} className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ background: color }} />
               <span className="text-[10px] text-muted-foreground truncate flex-1">{cat}</span>
-              <span className="text-[10px] font-semibold flex-shrink-0">₦{Math.round(val / 1000)}k</span>
+              <span className="text-[10px] font-semibold flex-shrink-0">{formatCompactMoney(val)}</span>
             </div>
           ))}
         </div>
@@ -453,8 +454,38 @@ function BulkRestockModal({ products, onClose, onSave }: {
 
 // ── Main Page ────────────────────────────────────────────────────────────────
 export default function InventoryPage() {
-  const [products, setProducts] = React.useState<DashboardProduct[]>(mockProducts)
+  const [products, setProducts] = React.useState<DashboardProduct[]>([])
+  const [productsLoading, setProductsLoading] = React.useState(true)
   const [history, setHistory] = React.useState<StockAdjustment[]>(mockHistory)
+
+  React.useEffect(() => {
+    fetch("/api/products")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { products?: Array<{ id: string; title: string; description?: string; price: number; currency?: string; image_url?: string; status: string; created_at: string }> } | null) => {
+        if (data?.products?.length) {
+          setProducts(data.products.map(p => ({
+            id: p.id,
+            name: p.title,
+            description: p.description ?? "",
+            price: p.price,
+            currency: p.currency ?? "NGN",
+            image: p.image_url ?? "",
+            category: "Products",
+            status: (p.status === "active" || p.status === "draft") ? p.status : "active",
+            sales: 0,
+            views: 0,
+            revenue: 0,
+            stock: null,
+            whatsappEnabled: false,
+            createdAt: p.created_at.slice(0, 10),
+          })))
+        } else {
+          setProducts(mockProducts)
+        }
+      })
+      .catch(() => setProducts(mockProducts))
+      .finally(() => setProductsLoading(false))
+  }, [])
   const [adjustingProduct, setAdjustingProduct] = React.useState<DashboardProduct | null>(null)
   const [search, setSearch] = React.useState("")
   const [filter, setFilter] = React.useState<StockStatus | "all">("all")
@@ -488,7 +519,7 @@ export default function InventoryPage() {
   }
 
   const exportCSV = () => {
-    const headers = ["Name", "Category", "Stock", "Status", "Price (₦)", "Sold", "Value (₦)", "Forecast (days)"]
+    const headers = ["Name", "Category", "Stock", "Status", "Price ($)", "Sold", "Value ($)", "Forecast (days)"]
     const rows = products.map(p => [
       p.name, p.category, p.stock ?? "Unlimited", STATUS_CONFIG[getStockStatus(p.stock)].label,
       p.price, p.sales, (p.stock ?? 0) * p.price, daysLeft(p) ?? "∞",
@@ -573,7 +604,7 @@ export default function InventoryPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Total units",     value: totalUnits.toLocaleString(), icon: Package,       color: "text-brand-purple", bg: "bg-brand-purple/10" },
-          { label: "Inventory value", value: `₦${Math.round(totalValue/1000)}k`, icon: BarChart3, color: "text-brand-green", bg: "bg-brand-green/10" },
+          { label: "Inventory value", value: formatCompactMoney(totalValue), icon: BarChart3, color: "text-brand-green", bg: "bg-brand-green/10" },
           { label: "Low stock",       value: lowStock,                    icon: AlertTriangle,  color: "text-amber-500",    bg: "bg-amber-500/10", alert: lowStock > 0 },
           { label: "Out of stock",    value: outOfStock,                  icon: TrendingDown,   color: "text-brand-coral",  bg: "bg-brand-coral/10", alert: outOfStock > 0 },
         ].map((s, i) => (

@@ -43,7 +43,7 @@ const FAQS = [
   { q: "Can I switch plans anytime?",             a: "Yes. You can upgrade or downgrade at any time from your Settings → Payments page. Upgrades take effect immediately; downgrades apply at the end of your billing cycle." },
   { q: "Is there a free trial for paid plans?",   a: "All paid plans start with a 14-day free trial, no credit card required. If you refer another creator, you can earn additional free months on top of the trial." },
   { q: "What's the transaction fee?",             a: "Zero. Lummy charges a flat monthly subscription only. We never take a cut of your revenue — what you earn is yours." },
-  { q: "What payment methods do you accept?",     a: "You can pay for your Lummy plan via card (Paystack), bank transfer, or Opay. We support NGN, GHS, KES, and ZAR billing." },
+  { q: "What payment methods do you accept?",     a: "Plan billing and payment methods vary by country and payment provider. We are building for multi-currency creator businesses across global markets." },
   { q: "What happens when I exceed my product limit on Starter?", a: "You'll be prompted to upgrade to Growth. Your existing products stay live — you just won't be able to add new ones until you upgrade or remove some." },
   { q: "Is there a discount for annual billing?", a: "Yes — paying annually saves you 2 months (equivalent to ~17% off). Annual billing is available from the Settings page." },
 ]
@@ -95,7 +95,7 @@ export default function PricingPage() {
     const monthly = parseInt(plan.price.replace(/[^0-9]/g, ""))
     if (!annual) return { main: plan.price, sub: "/ month" }
     const annualMonthly = Math.floor(monthly * 10 / 12)
-    return { main: `₦${annualMonthly.toLocaleString()}`, sub: "/ month, billed annually" }
+    return { main: `$${annualMonthly.toLocaleString()}`, sub: "/ month, billed annually" }
   }
 
   return (
@@ -212,7 +212,7 @@ export default function PricingPage() {
                         exit={{ opacity: 0, height: 0 }}
                         className="text-[10px] text-brand-green mt-1 overflow-hidden"
                       >
-                        Save ₦{(parseInt(plan.price.replace(/[^0-9]/g, "")) * 2).toLocaleString()} vs monthly
+                        Save two months vs monthly
                       </motion.p>
                     )}
                   </AnimatePresence>
@@ -325,7 +325,7 @@ export default function PricingPage() {
             Start selling in minutes
           </h2>
           <p className="text-white/70 text-sm sm:text-base max-w-md mx-auto mb-6">
-            Join 10,000+ African creators already running their commerce on Lummy. No tech skills needed.
+            Join creators building storefronts, selling products, and growing online with Lummy. No tech skills needed.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/signup">
@@ -334,9 +334,9 @@ export default function PricingPage() {
                 Create your free store
               </Button>
             </Link>
-            <Link href="/sade.styles">
+            <Link href="/signup">
               <Button size="lg" variant="outline" className="gap-2 border-white/30 text-white hover:bg-white/10 px-6">
-                See a live example
+                Start setup
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>

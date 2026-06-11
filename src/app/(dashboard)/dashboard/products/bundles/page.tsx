@@ -27,6 +27,9 @@ import {
 import { cn } from "@/lib/utils"
 import { mockProducts, DashboardProduct } from "@/data/mock/dashboard"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney } from "@/lib/globalization"
+
+let DISPLAY_CURRENCY = "NGN"
 
 const BUNDLES_KEY = "lummy_product_bundles"
 
@@ -108,7 +111,7 @@ function calcBundlePrice(productIds: string[], discountType: "percent" | "fixed"
 }
 
 function formatPrice(n: number) {
-  return "₦" + n.toLocaleString("en-NG")
+  return formatMoney(n, DISPLAY_CURRENCY)
 }
 
 // ── Product Picker Modal ──────────────────────────────────────────────────────
@@ -347,7 +350,7 @@ function BundleForm({ initial, onSave, onClose }: BundleFormProps) {
                         discountType === type ? "bg-brand-purple text-white" : "text-muted-foreground hover:bg-accent"
                       )}
                     >
-                      {type === "percent" ? "%" : "₦"}
+                      {type === "percent" ? "%" : "$"}
                     </button>
                   ))}
                 </div>
@@ -361,7 +364,7 @@ function BundleForm({ initial, onSave, onClose }: BundleFormProps) {
                     className="flex-1 text-sm bg-transparent outline-none"
                     placeholder={discountType === "percent" ? "10" : "2000"}
                   />
-                  <span className="text-xs text-muted-foreground">{discountType === "percent" ? "% off" : "₦ off"}</span>
+                  <span className="text-xs text-muted-foreground">{discountType === "percent" ? "% off" : " off"}</span>
                 </div>
               </div>
             </div>
@@ -573,8 +576,14 @@ export default function BundlesPage() {
   const [filter, setFilter] = React.useState<"all" | "active" | "disabled">("all")
   const [deleteConfirmId, setDeleteConfirmId] = React.useState<string | null>(null)
 
-  // Load from localStorage after mount
   React.useEffect(() => { setBundles(loadBundles()) }, [])
+
+  React.useEffect(() => {
+    fetch("/api/account/config")
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.storefront?.currency_code) DISPLAY_CURRENCY = data.storefront.currency_code })
+      .catch(() => {})
+  }, [])
 
   const persist = (next: Bundle[]) => {
     setBundles(next)

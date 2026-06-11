@@ -11,7 +11,10 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 }
 
 export async function RecentOrders({ limit = 6 }: { limit?: number }) {
-  const payments = await getDashboardPayments(limit)
+  const payments = await getDashboardPayments(limit).catch((error) => {
+    console.error("[RecentOrders]", error)
+    return []
+  })
 
   return (
     <div className="rounded-2xl border border-border bg-card overflow-hidden">
@@ -47,7 +50,7 @@ export async function RecentOrders({ limit = 6 }: { limit?: number }) {
                   <p className="text-xs font-semibold font-mono">{payment.order_id.slice(0, 8).toUpperCase()}</p>
                   <p className="text-[10px] text-muted-foreground mt-0.5">{new Date(payment.created_at).toLocaleString()}</p>
                 </TableCell>
-                <TableCell className="text-xs">{payment.orders.customer_email}</TableCell>
+                <TableCell className="text-xs">{(Array.isArray(payment.orders) ? payment.orders[0] : payment.orders)?.customer_email}</TableCell>
                 <TableCell className="text-xs capitalize">{payment.provider}</TableCell>
                 <TableCell><p className="text-sm font-bold">{payment.currency} {Number(payment.amount).toLocaleString()}</p></TableCell>
                 <TableCell><span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold", status.className)}>{status.label}</span></TableCell>

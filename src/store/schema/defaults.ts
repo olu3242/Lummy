@@ -20,7 +20,7 @@ export const SECTION_DEFAULTS: Record<SectionType, SectionDefaults> = {
     enabled: true,
     settings: {
       enabled: true,
-      text: "🎉 Free delivery on orders above ₦15,000!",
+      text: "🎉 Free delivery on qualifying orders!",
       ctaLabel: "Shop Now",
       ctaUrl: "",
       style: "purple",
@@ -120,8 +120,8 @@ export const SECTION_DEFAULTS: Record<SectionType, SectionDefaults> = {
     settings: {
       title: "Frequently Asked Questions",
       items: [
-        { q: "How long does delivery take?", a: "Delivery typically takes 1-3 business days within Lagos and 3-5 days for other states." },
-        { q: "What payment methods do you accept?", a: "We accept bank transfers, Paystack, and WhatsApp payments." },
+        { q: "How long does delivery take?", a: "Delivery timing depends on the seller, product, and destination. Check the product details or contact the creator before ordering." },
+        { q: "What payment methods do you accept?", a: "Payment options vary by creator, country, and payment provider." },
         { q: "Can I return or exchange an item?", a: "Yes! Returns are accepted within 7 days of delivery for unused items in original packaging." },
       ],
     },
@@ -153,7 +153,7 @@ export const DEFAULT_SCHEMA: StoreSchema = {
   sections: DEFAULT_SECTIONS,
   announcement: {
     enabled: true,
-    text: "🎉 Free delivery on orders above ₦15,000!",
+    text: "🎉 Free delivery on qualifying orders!",
     ctaLabel: "Shop Now",
     ctaUrl: "",
     style: "purple",
@@ -165,7 +165,7 @@ export const DEFAULT_SCHEMA: StoreSchema = {
   },
   hours: {
     enabled: false,
-    timezone: "Africa/Lagos",
+    timezone: "UTC",
     schedule: [
       { day: "Monday", open: "09:00", close: "18:00", closed: false },
       { day: "Tuesday", open: "09:00", close: "18:00", closed: false },

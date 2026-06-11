@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { randomUUID } from 'crypto'
 import { Sparkles, ArrowRight, Plus, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { OnboardingChecklist } from '@/components/dashboard/onboarding-checklist'
@@ -11,47 +12,132 @@ import { resolveTopActions } from '@/lib/dashboard-overview'
 import { createClient } from '@/lib/supabase/server'
 import { logApiEvent } from '@/lib/ops-observability'
 
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
-  const correlationId = crypto.randomUUID()
-  const supabase = await createClient()
-  const { data: auth } = await supabase.auth.getUser()
+  const correlationId = randomUUID()
+  const supabase = createClient()
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError) {
+    logApiEvent('error', 'dashboard.auth_query_failed', { correlationId, message: authError.message })
+  }
   if (!auth.user) redirect('/login')
 
-  const { data: profile, error: profileError } = await supabase
+  const { data: profileRaw, error: profileError } = await supabase
     .from('profiles')
     .select('full_name,onboarding_completed,organization_id')
     .eq('id', auth.user.id)
     .maybeSingle()
+  const profile = profileRaw as { full_name: string | null; onboarding_completed: boolean; organization_id: string | null } | null
 
   if (profileError) {
-    logApiEvent('error', 'dashboard.profile_query_failed', { correlationId, message: profileError.message, userId: auth.user.id })
-    redirect('/onboarding?error=profile-load')
+    // Log but do NOT redirect — a transient DB/RLS error should not loop the user to onboarding.
+    logApiEvent('error', 'dashboard.profile_query_failed', {
+      correlationId,
+      code: profileError.code,
+      message: profileError.message,
+      details: profileError.details,
+      hint: profileError.hint,
+      userId: auth.user.id,
+    })
+    // Fall through and render the dashboard with empty state rather than creating a redirect loop.
   }
 
-  if (!profile?.onboarding_completed || !profile.organization_id) {
+  // Only redirect when we have positive confirmation the user hasn't finished onboarding.
+  // Never redirect on null/undefined profile — that could be a transient query failure.
+  if (profile && profile.onboarding_completed === false) {
+    redirect('/onboarding')
+  }
+  // No profile row at all — new signup without a trigger; send to onboarding to set up
+  if (!profile && !profileError) {
     redirect('/onboarding')
   }
 
   const membership = await supabase
     .from('organization_members')
     .select('organization_id')
-    .eq('organization_id', profile.organization_id)
     .eq('user_id', auth.user.id)
+    .order('created_at', { ascending: true })
+    .limit(1)
     .maybeSingle()
 
-  if (membership.error) {
-    logApiEvent('error', 'dashboard.membership_query_failed', { correlationId, message: membership.error.message, userId: auth.user.id })
-    redirect('/onboarding?error=membership-load')
+  if (membership?.error) {
+    // Membership query failed — log and continue rather than redirecting to onboarding
+    logApiEvent('error', 'dashboard.membership_query_failed', {
+      correlationId,
+      code: membership.error.code,
+      message: membership.error.message,
+      details: membership.error.details,
+      hint: membership.error.hint,
+      userId: auth.user.id,
+    })
   }
-  if (!membership.data) redirect('/onboarding')
 
-  const firstName = (profile.full_name || auth.user.email || 'Creator').split(' ')[0]
-  const storefront = await supabase
+  const membershipOrgId = membership.data?.organization_id ?? null
+  const organizationId = membershipOrgId ?? profile?.organization_id ?? null
+
+  // Self-heal: onboarding says complete, but no organization context is readable.
+  if (!membership.error && !membership.data && !organizationId && profile?.onboarding_completed) {
+    redirect('/onboarding?reason=no-org')
+  }
+
+  const firstName = (profile?.full_name || auth.user.email || 'Creator').split(' ')[0]
+  const organization = organizationId ? await supabase
+    .from('organizations')
+    .select('id,name,owner_id')
+    .eq('id', organizationId)
+    .maybeSingle() : null
+  if (organization?.error) {
+    logApiEvent('warn', 'dashboard.organization_query_failed', {
+      correlationId,
+      code: organization.error.code,
+      message: organization.error.message,
+      details: organization.error.details,
+      hint: organization.error.hint,
+      orgId: organizationId,
+    })
+  }
+
+  const storefront = organizationId ? await supabase
     .from('storefronts')
     .select('handle')
-    .eq('organization_id', profile.organization_id)
-    .maybeSingle()
-  const resolvedTopActions = resolveTopActions(topActions, storefront.data?.handle ?? 'dashboard')
+    .eq('organization_id', organizationId)
+    .maybeSingle() : null
+  if (storefront?.error) {
+    logApiEvent('warn', 'dashboard.storefront_query_failed', {
+      correlationId,
+      code: storefront.error.code,
+      message: storefront.error.message,
+      details: storefront.error.details,
+      hint: storefront.error.hint,
+      orgId: organizationId,
+    })
+  }
+  logApiEvent('info', 'dashboard.bootstrap', {
+    correlationId,
+    userId: auth.user.id,
+    profile: {
+      found: Boolean(profile),
+      error: profileError ? { code: profileError.code, message: profileError.message } : null,
+      onboardingCompleted: profile?.onboarding_completed ?? null,
+      organizationId: profile?.organization_id ?? null,
+    },
+    membership: {
+      found: Boolean(membership.data),
+      error: membership.error ? { code: membership.error.code, message: membership.error.message } : null,
+      organizationId: membershipOrgId,
+    },
+    organization: {
+      found: Boolean(organization && 'data' in organization && organization.data),
+      error: organization?.error ? { code: organization.error.code, message: organization.error.message } : null,
+    },
+    storefront: {
+      found: Boolean(storefront && 'data' in storefront && storefront.data),
+      error: storefront?.error ? { code: storefront.error.code, message: storefront.error.message } : null,
+      handle: storefront?.data?.handle ?? null,
+    },
+  })
+  const resolvedTopActions = resolveTopActions(topActions, storefront?.data?.handle ?? 'dashboard')
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-[1400px] mx-auto">

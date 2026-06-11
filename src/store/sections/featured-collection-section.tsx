@@ -6,6 +6,7 @@ import { MessageCircle } from "lucide-react"
 import type { SectionProps, FeaturedCollectionSettings } from "../schema/types"
 import { buildWhatsAppUrl } from "@/data/mock/storefront"
 import { getButtonRadius, getCardRadius, getCardShadow, accentWithAlpha } from "../themes/utils"
+import { formatMoney } from "@/lib/globalization"
 
 export function FeaturedCollectionSection({ section, theme, creator }: SectionProps) {
   const s = section.settings as unknown as FeaturedCollectionSettings
@@ -32,7 +33,8 @@ export function FeaturedCollectionSection({ section, theme, creator }: SectionPr
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {products.map(product => {
-          const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, `₦${product.price.toLocaleString()}`, firstName)
+          const formattedPrice = formatMoney(product.price, product.currency)
+          const whatsappUrl = buildWhatsAppUrl(creator.whatsapp, product.name, formattedPrice, firstName)
           const outOfStock = product.stock === 0
 
           return (
@@ -65,7 +67,7 @@ export function FeaturedCollectionSection({ section, theme, creator }: SectionPr
               </Link>
               <div className="p-3">
                 <p className="text-xs font-semibold line-clamp-2 mb-1">{product.name}</p>
-                <p className="font-bold text-sm mb-2" style={{ color: theme.accent }}>₦{product.price.toLocaleString()}</p>
+                <p className="font-bold text-sm mb-2" style={{ color: theme.accent }}>{formattedPrice}</p>
                 {!outOfStock && (
                   <a
                     href={whatsappUrl}

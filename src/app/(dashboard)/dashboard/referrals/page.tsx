@@ -11,25 +11,26 @@ import {
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { formatMoney, formatCompactMoney } from "@/lib/globalization"
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const REFERRAL_CODE = "SADE2024"
-const REFERRAL_URL = `https://lummy.co/join?ref=${REFERRAL_CODE}`
+// Referral code is derived from the authenticated user's handle at runtime
+const FALLBACK_CODE = "—"
 
 // ── Mock Data ─────────────────────────────────────────────────────────────────
 
 const monthlyEarnings = [
   { month: "Aug", amount: 0 },
-  { month: "Sep", amount: 5000 },
-  { month: "Oct", amount: 10000 },
-  { month: "Nov", amount: 14000 },
-  { month: "Dec", amount: 9000 },
-  { month: "Jan", amount: 16000 },
-  { month: "Feb", amount: 9000 },
+  { month: "Sep", amount: 0 },
+  { month: "Oct", amount: 0 },
+  { month: "Nov", amount: 0 },
+  { month: "Dec", amount: 0 },
+  { month: "Jan", amount: 0 },
+  { month: "Feb", amount: 0 },
 ]
 
-const TOTAL_EARNINGS = monthlyEarnings.reduce((s, m) => s + m.amount, 0)
+const TOTAL_EARNINGS = 0
 
 interface ReferredCreator {
   id: string
@@ -44,24 +45,14 @@ interface ReferredCreator {
   avatarColor: string
 }
 
-const mockReferrals: ReferredCreator[] = [
-  { id: "r1", name: "Temi Adeyemi",    initials: "TA", storeName: "Temi's Closet",    joinedAt: "Nov 2024", plan: "growth", revenue: 145000, commission: 7250,  status: "active",  avatarColor: "#6C4EF3" },
-  { id: "r2", name: "Ngozi Okeke",     initials: "NO", storeName: "Ngozi Fabrics",    joinedAt: "Nov 2024", plan: "pro",    revenue: 289000, commission: 14450, status: "active",  avatarColor: "#10B981" },
-  { id: "r3", name: "Chiamaka Eze",    initials: "CE", storeName: "Chichi Beauty",    joinedAt: "Oct 2024", plan: "growth", revenue: 98000,  commission: 4900,  status: "active",  avatarColor: "#F97316" },
-  { id: "r4", name: "Amara Osei",      initials: "AO", storeName: "Amara Jewels",     joinedAt: "Oct 2024", plan: "pro",    revenue: 312000, commission: 15600, status: "active",  avatarColor: "#F43F5E" },
-  { id: "r5", name: "Blessing Nwoke",  initials: "BN", storeName: "Bless Skincare",   joinedAt: "Dec 2024", plan: "free",   revenue: 0,      commission: 0,     status: "pending", avatarColor: "#8B5CF6" },
-  { id: "r6", name: "Funmi Lawal",     initials: "FL", storeName: "Funmi's Kitchen",  joinedAt: "Dec 2024", plan: "growth", revenue: 54000,  commission: 2700,  status: "active",  avatarColor: "#F59E0B" },
-  { id: "r7", name: "Kemi Okonkwo",    initials: "KO", storeName: "Kemi Crafts",      joinedAt: "Sep 2024", plan: "growth", revenue: 76000,  commission: 3800,  status: "active",  avatarColor: "#3B82F6" },
-  { id: "r8", name: "Adaeze Williams", initials: "AW", storeName: "Ada Thrift World", joinedAt: "Dec 2024", plan: "free",   revenue: 0,      commission: 0,     status: "pending", avatarColor: "#EC4899" },
-  { id: "r9", name: "Zara Ibrahim",    initials: "ZI", storeName: "Zara Couture",     joinedAt: "Aug 2024", plan: "pro",    revenue: 428000, commission: 21400, status: "active",  avatarColor: "#10B981" },
-]
+const mockReferrals: ReferredCreator[] = []
 
 const milestones = [
-  { count: 3,  reward: "₦5,000 bonus",       reached: true  },
+  { count: 3,  reward: "$5 bonus",            reached: true  },
   { count: 5,  reward: "1 month free Growth", reached: true  },
-  { count: 10, reward: "₦25,000 bonus",       reached: true  },
+  { count: 10, reward: "$25 bonus",           reached: true  },
   { count: 15, reward: "1 month free Pro",    reached: false },
-  { count: 25, reward: "₦100,000 bonus",      reached: false },
+  { count: 25, reward: "$100 bonus",          reached: false },
 ]
 
 const planConfig = {
@@ -110,7 +101,7 @@ function EarningsChart({ data }: { data: { month: string; amount: number }[] }) 
                   fontSize={8}
                   fontWeight={isLast ? "700" : "400"}
                 >
-                  {d.amount >= 1000 ? `₦${d.amount / 1000}k` : `₦${d.amount}`}
+                  {formatCompactMoney(d.amount)}
                 </text>
               )}
             </g>
@@ -125,10 +116,11 @@ function EarningsChart({ data }: { data: { month: string; amount: number }[] }) 
 
 function QRCodeDisplay({ url }: { url: string }) {
   // Simplified visual QR placeholder — actual QR lib would be used in production
+  const seed = Array.from(url).reduce((sum, char) => sum + char.charCodeAt(0), 0)
   const cells = Array.from({ length: 7 }, (_, r) =>
     Array.from({ length: 7 }, (_, c) => {
       const isCorner = (r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)
-      return isCorner || Math.random() > 0.5
+      return isCorner || ((seed + r * 7 + c * 11) % 3 === 0)
     })
   )
 
@@ -146,7 +138,7 @@ function QRCodeDisplay({ url }: { url: string }) {
 
 // ── Invite Modal ──────────────────────────────────────────────────────────────
 
-function InviteModal({ onClose }: { onClose: () => void }) {
+function InviteModal({ onClose, referralCode }: { onClose: () => void; referralCode: string }) {
   const [email, setEmail] = React.useState("")
   const [sent, setSent] = React.useState(false)
 
@@ -219,7 +211,7 @@ function InviteModal({ onClose }: { onClose: () => void }) {
               </div>
 
               <div className="rounded-xl bg-brand-purple/5 border border-brand-purple/15 p-3 text-xs text-muted-foreground">
-                <p>They&apos;ll receive a personalised email with your referral code <strong className="text-brand-purple font-mono">{REFERRAL_CODE}</strong> and a link to join Lummy for free.</p>
+                <p>They&apos;ll receive a personalised email with your referral code <strong className="text-brand-purple font-mono">{referralCode}</strong> and a link to join Lummy for free.</p>
               </div>
 
               <Button className="w-full h-11 gap-2" onClick={handleSend}>
@@ -242,6 +234,29 @@ export default function ReferralsPage() {
   const [showQR, setShowQR] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<"referrals" | "earnings">("referrals")
   const [sortBy, setSortBy] = React.useState<"revenue" | "commission" | "joined">("commission")
+  const [REFERRAL_CODE, setReferralCode] = React.useState(FALLBACK_CODE)
+  const [REFERRAL_URL, setReferralUrl] = React.useState("https://lummy.co/join")
+
+  React.useEffect(() => {
+    import("@/lib/supabase/client").then(({ createClient }) => {
+      const supabase = createClient()
+      supabase.auth.getUser().then(({ data: { user } }) => {
+        if (!user) return
+        supabase
+          .from("storefronts")
+          .select("handle")
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+          .then(({ data }) => {
+            if (data?.handle) {
+              setReferralCode(data.handle.toUpperCase())
+              setReferralUrl(`https://lummy.co/join?ref=${data.handle}`)
+            }
+          })
+      })
+    })
+  }, [])
 
   const copyCode = () => {
     navigator.clipboard.writeText(REFERRAL_CODE)
@@ -281,7 +296,7 @@ export default function ReferralsPage() {
   const stats = [
     { label: "Total referrals",  value: String(mockReferrals.length), icon: Users,      color: "text-brand-purple", bg: "bg-brand-purple/10", change: "+3 this month" },
     { label: "Active creators",  value: String(activeReferrals.length), icon: BadgeCheck, color: "text-brand-green",  bg: "bg-brand-green/10",  change: `${Math.round(activeReferrals.length / mockReferrals.length * 100)}% conversion` },
-    { label: "Your earnings",    value: `₦${totalCommission.toLocaleString()}`, icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10", change: "+₦9k this month" },
+    { label: "Your earnings",    value: formatMoney(totalCommission), icon: Gift, color: "text-amber-500", bg: "bg-amber-500/10", change: "+$9 this month" },
     { label: "Milestone",        value: "3×",  icon: Zap,        color: "text-brand-coral",  bg: "bg-brand-coral/10", change: "3 milestones reached" },
   ]
 
@@ -318,7 +333,7 @@ export default function ReferralsPage() {
           {[
             { step: "1", label: "Share your link",         desc: "Send your unique referral link to other creators" },
             { step: "2", label: "They join Lummy",         desc: "When they sign up and go live, you both win" },
-            { step: "3", label: "Earn cash & free months", desc: "Get ₦5k–₦100k bonuses based on referral milestones" },
+            { step: "3", label: "Earn cash & free months", desc: "Get $5–$100 bonuses based on referral milestones" },
           ].map((item) => (
             <div key={item.step} className="flex gap-3">
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-purple text-white text-xs font-bold flex-shrink-0">
@@ -494,7 +509,7 @@ export default function ReferralsPage() {
               <p className="text-xs text-muted-foreground mt-0.5">Commission earned per month</p>
             </div>
             <div className="text-right">
-              <p className="font-bold text-lg text-brand-purple">₦{totalCommission.toLocaleString()}</p>
+              <p className="font-bold text-lg text-brand-purple">{formatMoney(totalCommission)}</p>
               <p className="text-[10px] text-muted-foreground">All time</p>
             </div>
           </div>
@@ -503,11 +518,11 @@ export default function ReferralsPage() {
           {/* Mini stats row */}
           <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-border">
             <div className="text-center">
-              <p className="font-bold text-sm">₦{monthlyEarnings.at(-1)!.amount.toLocaleString()}</p>
+              <p className="font-bold text-sm">{formatMoney(monthlyEarnings.at(-1)!.amount)}</p>
               <p className="text-[10px] text-muted-foreground">This month</p>
             </div>
             <div className="text-center border-x border-border">
-              <p className="font-bold text-sm">₦{totalNetworkRevenue.toLocaleString()}</p>
+              <p className="font-bold text-sm">{formatMoney(totalNetworkRevenue)}</p>
               <p className="text-[10px] text-muted-foreground">Network revenue</p>
             </div>
             <div className="text-center">
@@ -659,7 +674,7 @@ export default function ReferralsPage() {
                     </div>
                     <p className="text-xs text-muted-foreground hidden sm:block self-center">{creator.joinedAt}</p>
                     <p className="text-sm font-semibold hidden sm:block self-center">
-                      {creator.revenue > 0 ? `₦${creator.revenue.toLocaleString()}` : "—"}
+                      {creator.revenue > 0 ? formatMoney(creator.revenue) : "—"}
                     </p>
                     <div className="hidden sm:flex items-center self-center">
                       <span className={cn(
@@ -712,17 +727,17 @@ export default function ReferralsPage() {
                     </span>
                   </div>
                   <p className="text-sm font-semibold hidden sm:block self-center text-muted-foreground">
-                    ₦{creator.revenue.toLocaleString()}
+                    {formatMoney(creator.revenue)}
                   </p>
                   <p className="text-sm font-bold hidden sm:block self-center text-brand-green">
-                    +₦{creator.commission.toLocaleString()}
+                    +{formatMoney(creator.commission)}
                   </p>
                 </motion.div>
               ))}
             </div>
             <div className="px-5 py-3 border-t border-border bg-muted/20 flex items-center justify-between">
               <p className="text-xs text-muted-foreground">5% commission on active creator revenue</p>
-              <p className="text-sm font-bold text-brand-green">Total: ₦{totalCommission.toLocaleString()}</p>
+              <p className="text-sm font-bold text-brand-green">Total: {formatMoney(totalCommission)}</p>
             </div>
           </>
         )}
@@ -742,10 +757,10 @@ export default function ReferralsPage() {
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold">Total earnings from referrals</p>
-              <p className="text-2xl font-bold text-amber-500 mt-0.5">₦{totalCommission.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-amber-500 mt-0.5">{formatMoney(totalCommission)}</p>
               <p className="text-xs text-muted-foreground mt-2">
-                Next payout: <strong>₦9,000</strong> on June 1st ·
-                <span className="text-brand-purple font-medium"> +₦25,000 bonus</span> once you reach 15 referrals
+                Next payout: <strong>$9.00</strong> on June 1st ·
+                <span className="text-brand-purple font-medium"> +$25.00 bonus</span> once you reach 15 referrals
               </p>
             </div>
             <Button size="sm" variant="outline" className="h-9 text-xs flex-shrink-0 gap-1.5">
@@ -784,7 +799,7 @@ export default function ReferralsPage() {
 
       {/* Invite modal */}
       <AnimatePresence>
-        {showInvite && <InviteModal onClose={() => setShowInvite(false)} />}
+        {showInvite && <InviteModal onClose={() => setShowInvite(false)} referralCode={REFERRAL_CODE} />}
       </AnimatePresence>
     </div>
   )

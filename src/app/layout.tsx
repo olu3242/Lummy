@@ -1,6 +1,8 @@
 import type { Metadata } from "next"
 import { Syne, DM_Sans } from "next/font/google"
 import { ThemeProvider } from "@/components/providers/theme-provider"
+import { BRAND } from "@/config/branding"
+import { getRuntimeAppUrl } from "@/lib/runtime-config"
 import "./globals.css"
 
 const syne = Syne({
@@ -18,13 +20,20 @@ const dmSans = DM_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Lummy — Turn Followers Into Customers",
+  metadataBase: new URL(getRuntimeAppUrl()),
+  title: `${BRAND.name} — ${BRAND.tagline}`,
   description:
-    "The creator commerce OS for Africa. Build your storefront, sell via WhatsApp, and grow with AI. Post. Chat. Get Paid.",
+    "The creator commerce platform for modern creators. Build your storefront, sell across channels, and grow with trusted commerce tools.",
+  icons: {
+    icon: BRAND.icon,
+    apple: "/apple-icon.png",
+    shortcut: "/favicon.ico",
+    other: [{ rel: "manifest", url: "/manifest.webmanifest" }],
+  },
+  manifest: "/manifest.webmanifest",
   keywords: [
     "creator commerce",
-    "Africa",
-    "Nigeria",
+    "global commerce",
     "WhatsApp commerce",
     "creator economy",
     "online store",
@@ -32,16 +41,18 @@ export const metadata: Metadata = {
     "Paystack",
   ],
   openGraph: {
-    title: "Lummy — Turn Followers Into Customers",
-    description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: "The creator commerce platform for modern creators. Launch, sell, and grow online.",
+    images: [{ url: BRAND.logo, width: 800, height: 800, alt: BRAND.name }],
     type: "website",
-    locale: "en_NG",
-    siteName: "Lummy",
+    locale: "en_US",
+    siteName: BRAND.name,
   },
   twitter: {
     card: "summary_large_image",
-    title: "Lummy — Turn Followers Into Customers",
-    description: "The creator commerce OS for Africa. Post. Chat. Get Paid.",
+    title: `${BRAND.name} — ${BRAND.tagline}`,
+    description: "The creator commerce platform for modern creators. Launch, sell, and grow online.",
+    images: [BRAND.logo],
     creator: "@lummyhq",
   },
   robots: {

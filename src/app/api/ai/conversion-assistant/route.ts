@@ -3,21 +3,20 @@ import { createClient } from '@/lib/supabase/server';
 import { createPendingOrder, upsertConversionAttribution } from '@/repositories/order-repository';
 import { createPaystackCheckoutSession } from '@/lib/payments/paystack/provider';
 import { createStripeCheckoutSession } from '@/lib/payments/stripe/provider';
+import { getRuntimeAppUrl } from '@/lib/runtime-config';
 import { detectIntent, generateSuggestedReply } from '@/lib/ai-conversion';
 import { getCorrelationId, logApiEvent, errorResponse } from '@/lib/ops-observability';
 import { emitConversionEvent } from '@/lib/ai-conversion-events';
 
-function buildRedirect(path: string) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
-  if (!appUrl) throw new Error('Missing NEXT_PUBLIC_APP_URL');
-  return `${appUrl}${path}`;
+function buildRedirect(req: Request, path: string) {
+  return `${getRuntimeAppUrl(req.url)}${path}`;
 }
 
 export async function POST(req: Request) {
   const correlationId = getCorrelationId(req);
   try {
     const body = await req.json();
-    const supabase = await createClient();
+    const supabase = createClient();
     const storefront = await supabase
       .from('storefronts')
       .select('id,organization_id,handle')
@@ -31,15 +30,28 @@ export async function POST(req: Request) {
     const storefrontId = storefront.data.id;
     const orgId = storefront.data.organization_id;
 
+    const customerIdentifier = body.customerIdentifier || body.customerEmail || 'unknown';
+    const messageExcerpt = String(body.message || '').slice(0, 240);
+    const sourceChannel = body.sourceChannel || 'storefront';
+
+    // Dedup: reuse existing interaction for same customer+message within 5 minutes
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const existing = await supabase.from('customer_interactions').select('*').eq('org_id', orgId).eq('customer_identifier', customerIdentifier).eq('source_channel', sourceChannel).eq('message_excerpt', messageExcerpt).gte('created_at', fiveMinAgo).maybeSingle();
+    if (existing.data) {
+      const { intent: ei, confidence: ec } = detectIntent(body.message || '');
+      const reply = generateSuggestedReply({ intent: ei, productTitle: body.productTitle, handle: storefront.data.handle });
+      return NextResponse.json({ interactionId: existing.data.id, intent: ei, confidence: ec, suggestedReply: reply, correlationId, duplicate: true }, { headers: { 'x-correlation-id': correlationId } });
+    }
+
     const interaction = await supabase
       .from('customer_interactions')
       .insert({
         org_id: orgId,
         storefront_id: storefrontId,
-        customer_identifier: body.customerIdentifier || body.customerEmail || 'unknown',
-        source_channel: body.sourceChannel || 'storefront',
+        customer_identifier: customerIdentifier,
+        source_channel: sourceChannel,
         interaction_type: 'inquiry',
-        message_excerpt: String(body.message || '').slice(0, 240),
+        message_excerpt: messageExcerpt,
         associated_product_id: body.productId ?? null,
         conversion_status: 'new',
       })
@@ -54,7 +66,8 @@ export async function POST(req: Request) {
     await supabase
       .from('customer_interactions')
       .update({ ai_intent: intent, ai_confidence: confidence, conversion_status: 'intent_detected' })
-      .eq('id', interaction.data.id);
+      .eq('id', interaction.data.id)
+      .eq('org_id', orgId);
     await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'intent_detected', aiAction: 'detectIntent', correlationId, payload: { intent, confidence } });
 
     let checkoutUrl: string | undefined;
@@ -79,14 +92,15 @@ export async function POST(req: Request) {
       };
 
       const session = provider === 'stripe'
-        ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) })
-        : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(`/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(`/track/${created.order.id}?status=cancelled`) });
+        ? await createStripeCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(req, `/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(req, `/track/${created.order.id}?status=cancelled`) })
+        : await createPaystackCheckoutSession({ amount: Number(created.order.amount), currency: created.order.currency, customerEmail: created.order.customer_email, metadata, successUrl: buildRedirect(req, `/track/${created.order.id}?status=success`), cancelUrl: buildRedirect(req, `/track/${created.order.id}?status=cancelled`) });
 
       await supabase.from('payments').update({ provider_reference: session.providerReference }).eq('id', created.payment.id);
       await supabase
         .from('customer_interactions')
         .update({ associated_checkout_id: created.order.id, conversion_status: 'checkout_generated' })
-        .eq('id', interaction.data.id);
+        .eq('id', interaction.data.id)
+        .eq('org_id', orgId);
       await emitConversionEvent({ orgId, interactionId: interaction.data.id, eventType: 'checkout_created', aiAction: 'createCheckoutFromInquiry', correlationId, payload: { orderId: created.order.id, paymentId: created.payment.id, provider } });
       await upsertConversionAttribution({ orgId, storefrontId, interactionId: interaction.data.id, checkoutId: created.order.id, orderId: created.order.id, customerIdentifier: body.customerIdentifier || body.customerEmail || 'unknown', sourcePlatform: body.sourcePlatform || body.sourceChannel || 'Direct', sourceCampaign: body.sourceCampaign, sourceContentReference: body.sourceContentReference, referralCode: body.referralCode, conversionType: 'checkout', conversionStatus: 'checkout_generated' });
 

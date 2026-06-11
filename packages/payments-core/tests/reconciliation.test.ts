@@ -20,6 +20,6 @@ test('reconciliation runner applies reconciled status', async () => {
   const res = await runReconciliation(db, 'test_run_1')
   expect(res).toBeTruthy()
   // verify transaction log was updated to reconciled
-  const updated = db.rows.find(r => r.provider_reference === 'ref_tx1')
+  const updated = db.rows.find((r: Record<string, any>) => r.provider_reference === 'ref_tx1')
   expect(updated.status).toBe('reconciled')
 })

@@ -62,7 +62,7 @@ function fillPlaceholders(message: string): string {
 
 const INITIAL_TEMPLATES: Template[] = [
   { id: "t1", category: "orders", name: "Order Confirmed", uses: 247,
-    message: "Hi {name}! 🎉 Thank you so much for your order!\n\n*Order details:*\n📦 {product}\n💰 ₦{amount}\n📋 Order ID: {orderId}\n\nWe're preparing your order with love and care. You'll hear from us once it ships! 💜\n\n— Sade's Boutique" },
+    message: "Hi {name}! 🎉 Thank you so much for your order!\n\n*Order details:*\n📦 {product}\n💰 {amount}\n📋 Order ID: {orderId}\n\nWe're preparing your order with love and care. You'll hear from us once it ships! 💜\n\n— {storeName}" },
   { id: "t2", category: "orders", name: "Order Processing", uses: 183,
     message: "Hi {name}! 🛍️ Great news — your order is being prepared!\n\n*{product}* is currently being packaged and will be ready for dispatch within 24 hours.\n\nWe'll send you a tracking update once it's with the courier. Thank you for your patience! 💜" },
   { id: "t3", category: "orders", name: "Out of Stock Apology", uses: 89,
@@ -74,13 +74,13 @@ const INITIAL_TEMPLATES: Template[] = [
   { id: "t6", category: "shipping", name: "Order Delivered — Check-in", uses: 198,
     message: "Hi {name}! 🎉 Your order should have arrived by now.\n\nWe hope you're absolutely loving your *{product}*! 💜\n\nIf there's any issue with your order, please reach out immediately and we'll make it right. Your satisfaction is everything to us! 🛍️" },
   { id: "t7", category: "promotions", name: "Flash Sale Alert", uses: 521,
-    message: "🔥 *FLASH SALE — Today Only!*\n\nHi {name}! We have an exclusive offer just for you:\n\n✨ Get *{discount}* off everything in store\n⏰ Offer ends midnight tonight\n🛍️ Shop now: lummy.co/sade.styles\n\nUse code: *{code}*\n\nDon't miss out — limited stock! 💜" },
+    message: "🔥 *FLASH SALE — Today Only!*\n\nHi {name}! We have an exclusive offer just for you:\n\n✨ Get *{discount}* off everything in store\n⏰ Offer ends midnight tonight\n🛍️ Shop now: {storeUrl}\n\nUse code: *{code}*\n\nDon't miss out — limited stock! 💜" },
   { id: "t8", category: "promotions", name: "New Collection Drop", uses: 389,
-    message: "✨ *NEW DROP ALERT!*\n\nHi {name}! Our brand new *{collection}* just landed and it's everything! 🔥\n\nLimited pieces available — first come, first served!\n\n🛍️ Shop: lummy.co/sade.styles\n📲 DM me to reserve yours\n\nTag someone who would love this! 💜" },
+    message: "✨ *NEW DROP ALERT!*\n\nHi {name}! Our brand new *{collection}* just landed and it's everything! 🔥\n\nLimited pieces available — first come, first served!\n\n🛍️ Shop: {storeUrl}\n📲 DM me to reserve yours\n\nTag someone who would love this! 💜" },
   { id: "t9", category: "promotions", name: "VIP Early Access", uses: 156,
-    message: "💜 *VIP EARLY ACCESS*\n\nHi {name}, as one of our most valued customers, you get first access to our new collection before it goes public!\n\nUse link: lummy.co/sade.styles/vip\nPassword: *{password}*\n\nValid for 24 hours only. Thank you for being amazing! 🌟" },
+    message: "💜 *VIP EARLY ACCESS*\n\nHi {name}, as one of our most valued customers, you get first access to our new collection before it goes public!\n\nUse link: {storeUrl}/vip\nPassword: *{password}*\n\nValid for 24 hours only. Thank you for being amazing! 🌟" },
   { id: "t10", category: "promotions", name: "Referral Reward", uses: 93,
-    message: "🎁 *You've earned a reward!*\n\nHi {name}! Thank you for referring *{friend}* to Sade's Boutique.\n\nAs our gift to you:\n💰 ₦{amount} store credit\n🎟️ Bonus code: *{code}*\n\nYour credit will be applied on your next order automatically. You're the best! 💜" },
+    message: "🎁 *You've earned a reward!*\n\nHi {name}! Thank you for referring *{friend}* to {storeName}.\n\nAs our gift to you:\n💰 {amount} store credit\n🎟️ Bonus code: *{code}*\n\nYour credit will be applied on your next order automatically. You're the best! 💜" },
   { id: "t11", category: "support", name: "Size Guide Response", uses: 134,
     message: "Hi {name}! 😊 Happy to help with sizing!\n\nHere's our size guide for *{product}*:\n\n📏 *S* — Bust 32-34\", Waist 26-28\"\n📏 *M* — Bust 34-36\", Waist 28-30\"\n📏 *L* — Bust 36-38\", Waist 30-32\"\n📏 *XL* — Bust 38-40\", Waist 32-34\"\n\nWe recommend sizing up if you prefer a relaxed fit. What size are you usually? 💜" },
   { id: "t12", category: "support", name: "Return Policy", uses: 67,
@@ -88,13 +88,13 @@ const INITIAL_TEMPLATES: Template[] = [
   { id: "t13", category: "support", name: "Custom Order Inquiry", uses: 211,
     message: "Hi {name}! 💜 Thank you for your interest in a custom order!\n\nTo get started, I'll need:\n1️⃣ Your measurements (bust, waist, hips, length)\n2️⃣ Fabric preference (Ankara, lace, cotton, etc.)\n3️⃣ Colour choice\n4️⃣ Event date (so we can plan production time)\n\nCustom orders take *10-14 business days*. Let's create something beautiful! ✨" },
   { id: "t14", category: "followup", name: "Win Back — At Risk", uses: 78,
-    message: "Hi {name}, we miss you! 🥺\n\nIt's been a while since your last order and we'd love to have you back.\n\n🎁 Here's a special welcome-back offer just for you:\n*{discount}% off* your next purchase\n\nCode: *COMEBACK{code}*\nValid for 7 days.\n\nWe have amazing new pieces you'll love! 💜 lummy.co/sade.styles" },
+    message: "Hi {name}, we miss you! 🥺\n\nIt's been a while since your last order and we'd love to have you back.\n\n🎁 Here's a special welcome-back offer just for you:\n*{discount}% off* your next purchase\n\nCode: *COMEBACK{code}*\nValid for 7 days.\n\nWe have amazing new pieces you'll love! 💜 {storeUrl}" },
   { id: "t15", category: "followup", name: "Birthday Message", uses: 143,
-    message: "🎂 *Happy Birthday, {name}!*\n\nWishing you a wonderful day filled with joy and beautiful things! 💜\n\nTo celebrate, here's a *birthday gift from us*:\n🎁 {discount}% off your next order\n\nCode: *BDAY{name}*\nValid until end of your birthday month.\n\nWith love, Sade's Boutique 🌸" },
+    message: "🎂 *Happy Birthday, {name}!*\n\nWishing you a wonderful day filled with joy and beautiful things! 💜\n\nTo celebrate, here's a *birthday gift from us*:\n🎁 {discount}% off your next order\n\nCode: *BDAY{name}*\nValid until end of your birthday month.\n\nWith love, {storeName} 🌸" },
   { id: "t16", category: "followup", name: "Post-Purchase Upsell", uses: 201,
     message: "Hi {name}! 💜 Hope you're loving your *{product}*!\n\nCustomers who bought this also loved:\n✨ {upsell1}\n✨ {upsell2}\n\nWant to complete the look? I can reserve one for you — just say the word! 🛍️" },
   { id: "t17", category: "reviews", name: "Review Request", uses: 289,
-    message: "Hi {name}! 🌟 Hope you're enjoying your *{product}*!\n\nWould you mind taking 30 seconds to leave us a review? Your feedback helps us serve you and others better.\n\n⭐ Leave a review: lummy.co/sade.styles/review\n\nThank you so much! 💜 — Sade" },
+    message: "Hi {name}! 🌟 Hope you're enjoying your *{product}*!\n\nWould you mind taking 30 seconds to leave us a review? Your feedback helps us serve you and others better.\n\n⭐ Leave a review: {storeUrl}/review\n\nThank you so much! 💜 — {storeName}" },
   { id: "t18", category: "reviews", name: "Positive Review Reply", uses: 167,
     message: "Thank you so much, {name}! 🥹💜\n\nYour kind words truly mean everything to us. We put our heart into every piece and it's so rewarding to hear that you love your *{product}*!\n\nWe can't wait to serve you again. You're the best! 🌟" },
 ]
@@ -102,11 +102,11 @@ const INITIAL_TEMPLATES: Template[] = [
 const AI_SUGGESTIONS: Record<string, string> = {
   orders:     "Hi {name}! 🎉 Your order for *{product}* has been confirmed. We're so excited to prepare this for you! Order #{orderId}. We'll keep you updated every step of the way. Thank you for choosing us! 💜",
   shipping:   "Hi {name}! 🚚 Your package is officially on its way! *{product}* has been picked up by our courier and is heading to you. Track with: {tracking}. Expected by {eta}! 💜",
-  promotions: "🔥 Hey {name}! Exciting news — we're running a special offer just for you. {offer}. Shop now at lummy.co/sade.styles and use code *{code}* at checkout. Offer ends soon! 💜",
+  promotions: "🔥 Hey {name}! Exciting news — we're running a special offer just for you. {offer}. Shop now at {storeUrl} and use code *{code}* at checkout. Offer ends soon! 💜",
   support:    "Hi {name}! 😊 Thank you for reaching out — I'm here to help! {answer}. Please don't hesitate to ask if you need anything else. Your satisfaction is our top priority! 💜",
-  followup:   "Hi {name}! 💜 It's been a while since we connected and we'd love to check in. We have exciting new arrivals and a special offer for you: {offer}. Come say hi at lummy.co/sade.styles! 🛍️",
+  followup:   "Hi {name}! 💜 It's been a while since we connected and we'd love to check in. We have exciting new arrivals and a special offer for you: {offer}. Come say hi at {storeUrl}! 🛍️",
   reviews:    "Hi {name}! 🌟 We hope you're absolutely loving your *{product}*! Your opinion matters so much to us. Would you mind sharing a quick review? It only takes a moment and helps us grow! Thank you 💜",
-  custom:     "Hi {name}! 💜 {message}. Thank you for being an amazing customer — we truly appreciate your support! — Sade's Boutique",
+  custom:     "Hi {name}! 💜 {message}. Thank you for being an amazing customer — we truly appreciate your support! — {storeName}",
 }
 
 // ─── Template Card ────────────────────────────────────────────────────────────
