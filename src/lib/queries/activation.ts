@@ -30,24 +30,47 @@ export async function getActivationChecklist(userId: string): Promise<Activation
 
     if (!profile) return null
 
-    const creatorId = (profile as { id: string; handle: string | null; bio: string | null; whatsapp_number: string | null; is_published: boolean; avatar_url: string | null; onboarding_completed: boolean }).id
+    const p0 = profile as { id: string; handle: string | null; bio: string | null; whatsapp_number: string | null; is_published: boolean; avatar_url: string | null; onboarding_completed: boolean }
 
-    const { count: productCount } = await supabase
-      .from("products")
-      .select("id", { count: "exact", head: true })
-      .eq("creator_id", creatorId)
-      .eq("is_published", true)
+    // Resolve organization_id so we can query the migration-040 products/orders schema.
+    // Fallback: if profiles.organization_id missing, product/order counts default to 0.
+    const { data: profileRow } = await supabase
+      .from("profiles")
+      .select("organization_id")
+      .eq("id", userId)
+      .maybeSingle()
+    const orgId = (profileRow as { organization_id: string | null } | null)?.organization_id ?? null
 
-    const { count: orderCount } = await supabase
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("creator_id", creatorId)
-      .eq("payment_status", "paid")
+    let productCount = 0
+    let orderCount = 0
 
-    const p = profile as {
-      handle: string | null; bio: string | null; whatsapp_number: string | null;
-      is_published: boolean; avatar_url: string | null; onboarding_completed: boolean
+    if (orgId) {
+      const { count: pc } = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("status", "active")
+      productCount = pc ?? 0
+
+      const { count: oc } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("organization_id", orgId)
+        .eq("status", "paid")
+      orderCount = oc ?? 0
     }
+
+    // Legacy fallback — also check the old creator_id-scoped products
+    // (in case products were created before migration-040 was deployed)
+    if (productCount === 0 && p0.id) {
+      const { count: legacyPc } = await supabase
+        .from("products")
+        .select("id", { count: "exact", head: true })
+        .eq("creator_id", p0.id)
+      productCount = legacyPc ?? 0
+    }
+
+    const p = p0
 
     const steps: ActivationStep[] = [
       {
@@ -106,27 +129,39 @@ export async function getActivationChecklist(userId: string): Promise<Activation
 
 export async function publishStorefront(userId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = createClient()
-  const { error } = await supabase
+
+  // Update creator_profiles (legacy published flag)
+  await supabase
     .from("creator_profiles")
-    .update({
-      is_published: true,
-      storefront_published_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update({ is_published: true, storefront_published_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("user_id", userId)
 
-  if (error) return { ok: false, error: error.message }
+  // Update storefronts.is_active — this is what the public RLS policy actually checks
+  const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", userId).maybeSingle()
+  if (profile?.organization_id) {
+    const { error } = await supabase.from("storefronts").update({ is_active: true }).eq("organization_id", profile.organization_id)
+    if (error) return { ok: false, error: error.message }
+  }
+
   return { ok: true }
 }
 
 export async function unpublishStorefront(userId: string): Promise<{ ok: boolean; error?: string }> {
   const supabase = createClient()
-  const { error } = await supabase
+
+  // Update creator_profiles (legacy published flag)
+  await supabase
     .from("creator_profiles")
     .update({ is_published: false, updated_at: new Date().toISOString() })
     .eq("user_id", userId)
 
-  if (error) return { ok: false, error: error.message }
+  // Update storefronts.is_active — this is what the public RLS policy actually checks
+  const { data: profile } = await supabase.from("profiles").select("organization_id").eq("id", userId).maybeSingle()
+  if (profile?.organization_id) {
+    const { error } = await supabase.from("storefronts").update({ is_active: false }).eq("organization_id", profile.organization_id)
+    if (error) return { ok: false, error: error.message }
+  }
+
   return { ok: true }
 }
 

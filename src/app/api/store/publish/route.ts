@@ -33,13 +33,33 @@ export async function POST() {
     return NextResponse.json({ error: "WhatsApp number is required before publishing" }, { status: 422 })
   }
 
-  const { count: productCount } = await supabase
-    .from("products")
-    .select("id", { count: "exact", head: true })
-    .eq("creator_id", p.id)
-    .eq("is_published", true)
+  // Resolve organization_id so we can query the migration-040 products schema
+  const { data: profileRow } = await supabase
+    .from("profiles")
+    .select("organization_id")
+    .eq("id", user.id)
+    .maybeSingle()
+  const orgId = (profileRow as { organization_id: string | null } | null)?.organization_id
 
-  if ((productCount ?? 0) === 0) {
+  let productCount = 0
+  if (orgId) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("organization_id", orgId)
+      .eq("status", "active")
+    productCount = count ?? 0
+  }
+  // Legacy fallback for products created before migration-040
+  if (productCount === 0 && p.id) {
+    const { count } = await supabase
+      .from("products")
+      .select("id", { count: "exact", head: true })
+      .eq("creator_id", p.id)
+    productCount = count ?? 0
+  }
+
+  if (productCount === 0) {
     return NextResponse.json({ error: "Add at least one product before publishing" }, { status: 422 })
   }
 
