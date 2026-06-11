@@ -109,15 +109,38 @@ export async function updateStorefrontForCurrentUser(input: {
   return storefront.data;
 }
 
+function isMissingColumnError(error: unknown) {
+  const err = error as { code?: string; message?: string };
+  return err?.code === '42703' || err?.code === 'PGRST204' || /column .* does not exist|Could not find .* column/i.test(err?.message ?? '');
+}
+
 export async function getPublishedStorefrontByHandle(handle: string) {
   const supabase = createClient();
   const cleanHandle = normalizeHandle(handle);
-  const storefront = await supabase
+  let storefront = await supabase
     .from('storefronts')
     .select('handle,bio,hero_image,social_links,is_active,organization_id,store_schema,theme,organizations(name,owner_id)')
     .eq('handle', cleanHandle)
     .eq('is_active', true)
     .maybeSingle();
+
+  // store_schema/theme only exist on databases bootstrapped via migration 040+.
+  // Migration 029 created storefronts without store_schema, and 040 is
+  // `create table if not exists` (a no-op there) — retry without those columns
+  // so a legacy schema renders the storefront instead of 500ing every visitor.
+  if (storefront.error && isMissingColumnError(storefront.error)) {
+    console.error('[storefront.legacy_schema_fallback]', {
+      handle: cleanHandle,
+      code: storefront.error.code,
+      message: storefront.error.message,
+    });
+    storefront = await supabase
+      .from('storefronts')
+      .select('handle,bio,hero_image,social_links,is_active,organization_id,organizations(name,owner_id)')
+      .eq('handle', cleanHandle)
+      .eq('is_active', true)
+      .maybeSingle();
+  }
 
   if (storefront.error) throw storefront.error;
   return storefront.data;

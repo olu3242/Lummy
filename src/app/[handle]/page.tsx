@@ -19,7 +19,15 @@ type PublishedProduct = {
 }
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
-  const storefront = await getPublishedStorefrontByHandle(params.handle)
+  // Metadata must never crash the page render — degrade to a generic title on any error.
+  const storefront = await getPublishedStorefrontByHandle(params.handle).catch((error) => {
+    console.error('[storefront.metadata_query_failed]', {
+      handle: params.handle,
+      code: (error as { code?: string })?.code,
+      message: (error as { message?: string })?.message,
+    })
+    return null
+  })
   if (!storefront) {
     return { title: `Store not found — ${BRAND.name}` }
   }
