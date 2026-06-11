@@ -35,6 +35,11 @@ function isMissingColumnError(error: unknown) {
   return err?.code === '42703' || err?.code === 'PGRST204' || /column .* does not exist|Could not find .* column/i.test(err?.message ?? '');
 }
 
+function isMissingTableError(error: unknown) {
+  const err = error as { code?: string; message?: string };
+  return err?.code === '42P01' || err?.code === 'PGRST205' || /relation .* does not exist|Could not find the table/i.test(err?.message ?? '');
+}
+
 export async function saveOnboardingStep(input: { full_name?: string; phone?: string; country?: string; currency?: string; handle?: string; organizationId?: string }) {
   await saveOnboardingProfile({ ...input, onboarding_step: 'profile' });
   if (input.organizationId && input.handle) await upsertStorefront(input.organizationId, { handle: input.handle });
@@ -138,17 +143,31 @@ export async function completeOnboarding(input: {
     }
   }
 
-  const profileUpdate = await supabase.from('profiles').upsert(
-    { id: auth.user.id, email: auth.user.email!, onboarding_completed: true, onboarding_step: 'completed', organization_id: organization.id },
-    { onConflict: 'id' },
-  );
+  const profilePayload: Record<string, unknown> = {
+    id: auth.user.id,
+    email: auth.user.email!,
+    onboarding_completed: true,
+    onboarding_step: 'completed',
+    organization_id: organization.id,
+    default_storefront_id: storefront.data?.id ?? null,
+  };
+  let profileUpdate = await supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' });
+  if (profileUpdate.error && isMissingColumnError(profileUpdate.error)) {
+    // Legacy schema without default_storefront_id — retry without it
+    logOnboardingError('profile.default_storefront_legacy_schema', profileUpdate.error, { correlationId, organizationId: organization.id });
+    delete profilePayload.default_storefront_id;
+    profileUpdate = await supabase.from('profiles').upsert(profilePayload, { onConflict: 'id' });
+  }
   if (profileUpdate.error) {
     logOnboardingError('profile.complete_failed', profileUpdate.error, { correlationId, organizationId: organization.id });
     throw profileUpdate.error;
   }
+  logOnboarding('profile.completed', { correlationId, organizationId: organization.id, storefrontId: storefront.data?.id });
 
   // Upsert creator_profiles so getCreatorByHandle() can resolve WhatsApp + store_schema.
-  // is_published = true makes the creator discoverable on public storefront.
+  // NON-FATAL: production runs the organizations/storefronts schema and does not have
+  // this legacy table — a missing table or any other error here must never block
+  // onboarding completion.
   const cleanHandle = input.handle.toLowerCase().trim().replace(/[^a-z0-9._-]/g, '');
   const creatorProfile = await supabase.from('creator_profiles').upsert(
     {
@@ -162,29 +181,36 @@ export async function completeOnboarding(input: {
     { onConflict: 'user_id' },
   );
   if (creatorProfile.error) {
-    logOnboardingError('creator_profile.upsert_failed', creatorProfile.error, { correlationId, organizationId: organization.id, handle: cleanHandle });
-    throw creatorProfile.error;
+    if (isMissingTableError(creatorProfile.error)) {
+      logOnboarding('creator_profile.table_absent_skipped', { correlationId, organizationId: organization.id });
+    } else {
+      logOnboardingError('creator_profile.upsert_failed_nonfatal', creatorProfile.error, { correlationId, organizationId: organization.id, handle: cleanHandle });
+    }
   }
 
   // Write canonical onboarding_states record for future continuity bootstrap.
   // Uses upsert so re-running completeOnboarding is idempotent.
-  const onboardingState = await supabase.from('onboarding_states').upsert(
-    {
-      user_id: auth.user.id,
-      organization_id: organization.id,
-      current_step: 'completed',
-      completed: true,
-      metadata: {
-        completed_at: new Date().toISOString(),
-        store_handle: cleanHandle,
-        locale: input.locale ?? 'en-US',
-        timezone: input.timezone ?? 'UTC',
-        country: input.country ?? 'US',
-        currency: input.currency ?? 'USD',
-      },
+  const statePayload: Record<string, unknown> = {
+    user_id: auth.user.id,
+    organization_id: organization.id,
+    current_step: 'completed',
+    completed: true,
+    metadata: {
+      completed_at: new Date().toISOString(),
+      store_handle: cleanHandle,
+      locale: input.locale ?? 'en-US',
+      timezone: input.timezone ?? 'UTC',
+      country: input.country ?? 'US',
+      currency: input.currency ?? 'USD',
     },
-    { onConflict: 'user_id' },
-  );
+  };
+  let onboardingState = await supabase.from('onboarding_states').upsert(statePayload, { onConflict: 'user_id' });
+  if (onboardingState.error && isMissingColumnError(onboardingState.error)) {
+    // Legacy schema without metadata column — retry without it
+    logOnboardingError('onboarding_state.metadata_legacy_schema', onboardingState.error, { correlationId, organizationId: organization.id });
+    delete statePayload.metadata;
+    onboardingState = await supabase.from('onboarding_states').upsert(statePayload, { onConflict: 'user_id' });
+  }
   if (onboardingState.error) {
     logOnboardingError('onboarding_state.complete_failed', onboardingState.error, { correlationId, organizationId: organization.id });
     throw onboardingState.error;

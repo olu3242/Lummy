@@ -54,19 +54,27 @@ export async function saveOnboardingProfile(input: {
 export async function ensureOrganizationForUser(input: { userId: string; orgName: string; country?: string; currency?: string }) {
   const supabase = createClient();
 
+  // Two-step lookup (not an embedded organizations(*) join): embedded joins evaluate the
+  // nested resource under its own RLS, which returned null during bootstrap and caused
+  // retries to fall through to INSERT and hit UNIQUE(owner_id).
   const existingMembership = await supabase
     .from('organization_members')
-    .select('organization_id, role, organizations(*)')
+    .select('organization_id')
     .eq('user_id', input.userId)
     .eq('role', 'owner')
     .limit(1)
     .maybeSingle();
 
   if (existingMembership.error) throw existingMembership.error;
-  if (existingMembership.data?.organizations) {
-    const orgs = existingMembership.data.organizations;
-    const org = Array.isArray(orgs) ? orgs[0] : orgs;
-    return org as unknown as { id: string; name: string; slug: string };
+
+  if (existingMembership.data?.organization_id) {
+    const orgRow = await supabase
+      .from('organizations')
+      .select('*')
+      .eq('id', existingMembership.data.organization_id)
+      .maybeSingle();
+    if (orgRow.error) throw orgRow.error;
+    if (orgRow.data) return orgRow.data as unknown as { id: string; name: string; slug: string };
   }
 
   const base = toSlug(input.orgName) || `org-${input.userId.slice(0, 6)}`;
@@ -98,7 +106,28 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
     .select('*')
     .single();
 
-  if (createdOrg.error) throw createdOrg.error;
+  if (createdOrg.error) {
+    // 23505 = unique violation. A partial previous attempt already created this user's org
+    // (UNIQUE(owner_id)) or the slug collided. Recover the existing org by owner lookup
+    // instead of failing the whole onboarding.
+    if (createdOrg.error.code === '23505') {
+      const ownerOrg = await supabase
+        .from('organizations')
+        .select('*')
+        .eq('owner_id', input.userId)
+        .maybeSingle();
+      if (ownerOrg.data) {
+        // Ensure the owner membership exists too (the previous attempt may have failed
+        // between org INSERT and membership INSERT).
+        await supabase.from('organization_members').upsert(
+          { organization_id: (ownerOrg.data as { id: string }).id, user_id: input.userId, role: 'owner' },
+          { onConflict: 'organization_id,user_id' },
+        );
+        return ownerOrg.data as unknown as { id: string; name: string; slug: string };
+      }
+    }
+    throw createdOrg.error;
+  }
 
   const membership = await supabase.from('organization_members').insert({
     organization_id: createdOrg.data.id,
