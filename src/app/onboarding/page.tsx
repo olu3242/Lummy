@@ -976,7 +976,7 @@ function OnboardingFlow() {
         orgName: data.storeName || "Creator Workspace",
         handle: data.handle,
         productTitle: data.addProduct ? data.productName : undefined,
-        productPrice: data.addProduct && data.productPrice ? Number(data.productPrice) : undefined,
+        productPrice: data.addProduct && data.productPrice ? Math.round(Number(data.productPrice) * 100) : undefined,
         productDescription: data.addProduct ? data.productDesc : undefined,
       })
       try { localStorage.removeItem(DRAFT_KEY) } catch { /* ignore */ }

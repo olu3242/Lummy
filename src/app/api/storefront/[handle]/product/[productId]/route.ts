@@ -47,7 +47,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   // Resolve organization name + creator WhatsApp via organizations.owner_id → creator_profiles
   const { data: org } = await supabase
     .from("organizations")
-    .select("name, owner_id")
+    .select("name, owner_id, currency_code")
     .eq("id", storefront.organization_id)
     .maybeSingle()
 
@@ -72,8 +72,9 @@ export async function GET(_req: NextRequest, { params }: Params) {
     .order("created_at", { ascending: false })
     .limit(4)
 
-  type ProductRow = { id: string; title: string; description: string | null; price: number; currency: string; image_url: string | null }
+  type ProductRow = { id: string; title: string; description: string | null; price: number; currency: string | null; image_url: string | null }
   const p = product as ProductRow
+  const fallbackCurrency = (org as { currency_code?: string | null } | null)?.currency_code ?? "USD"
 
   return NextResponse.json({
     data: {
@@ -81,7 +82,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
       name:             p.title,
       description:      p.description ?? null,
       price:            Number(p.price),
-      currency:         p.currency ?? "USD",
+      currency:         p.currency ?? fallbackCurrency,
       image_url:        p.image_url ?? null,
       creator_id:       creatorId,
       creator_whatsapp: creatorWhatsapp,
@@ -91,7 +92,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
         id: item.id,
         name: item.title,
         price: Number(item.price),
-        currency: item.currency ?? "USD",
+        currency: item.currency ?? fallbackCurrency,
         image_url: item.image_url ?? null,
       })),
     },

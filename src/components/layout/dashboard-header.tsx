@@ -42,8 +42,11 @@ function UserAvatarMenu() {
 
   const handleSignOut = async () => {
     setMenuOpen(false)
-    await fetch("/api/auth/signout", { method: "POST" })
-    router.push("/login")
+    const supabase = createClient()
+    await supabase.auth.signOut().catch(() => null)
+    await fetch("/api/auth/signout", { method: "POST", redirect: "follow" }).catch(() => null)
+    router.replace("/login")
+    router.refresh()
   }
 
   const initials = user?.name?.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase() ?? "?"

@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server"
 import { z } from "zod"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import { buildWhatsAppLink } from "@/lib/whatsapp/share"
+import { formatMinorMoney } from "@/lib/globalization"
 
 export const dynamic = "force-dynamic"
 
@@ -55,6 +56,12 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   if (!storefront) return NextResponse.json({ error: "Storefront not configured" }, { status: 400 })
 
+  const { data: organization } = await admin
+    .from("organizations")
+    .select("currency_code,locale")
+    .eq("id", storefront.organization_id)
+    .maybeSingle()
+
   // Fetch product — must be active and belong to this creator's org
   const { data: product } = await admin
     .from("products")
@@ -65,16 +72,16 @@ export async function POST(request: NextRequest) {
     .maybeSingle()
   if (!product) return NextResponse.json({ error: "Product not found or inactive" }, { status: 404 })
 
-  const row = product as { id: string; title: string; price: number; currency: string }
+  const row = product as { id: string; title: string; price: number; currency: string | null }
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://lummy.co"
   const productUrl = `${appUrl}/${creator.handle}?product=${productId}`
 
   // Format price for display (prices stored in smallest currency unit)
-  const displayPrice = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: row.currency || "USD",
-    maximumFractionDigits: 0,
-  }).format(Number(row.price) / 100)
+  const displayPrice = formatMinorMoney(
+    Number(row.price),
+    row.currency ?? organization?.currency_code ?? "USD",
+    organization?.locale ?? "en-US",
+  )
 
   const waMessage = `Hi! 👋 Here's your order link for *${row.title}* (${displayPrice}):\n\n${productUrl}\n\nTap to complete your order 🛍`
   const waLink = buildWhatsAppLink(senderPhone, waMessage)

@@ -38,6 +38,7 @@ async function fetchOrder(orderId: string): Promise<TrackingOrder | null> {
         name: order.notes ?? "Your order",
         image: "",
         price: Number(order.amount) / 100,
+        currency: order.currency ?? "USD",
         qty: 1,
       },
       seller: {

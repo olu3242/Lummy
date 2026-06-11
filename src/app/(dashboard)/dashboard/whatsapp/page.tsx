@@ -12,6 +12,7 @@ import { formatMoney } from "@/lib/globalization"
 import type { InboxMessage, InboxFilter } from "@/lib/whatsapp/inbox"
 import { detectIntent, generateSuggestedReply } from "@/lib/ai-conversion"
 import { buildWhatsAppLink, buildStorefrontShareMessage } from "@/lib/whatsapp/share"
+import { formatMinorMoney } from "@/lib/globalization"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -221,7 +222,7 @@ function QuickReplyPanel({
               Select product to send
             </p>
             {products.slice(0, 6).map(p => {
-              const displayPrice = formatMoney(p.price / 100, p.currency || "USD")
+              const displayPrice = formatMinorMoney(p.price, p.currency || "USD")
               return (
                 <button
                   key={p.id}

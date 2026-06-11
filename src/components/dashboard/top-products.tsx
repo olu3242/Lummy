@@ -29,21 +29,25 @@ async function getTopProducts(): Promise<TopProduct[]> {
 
   const products = await supabase
     .from("products")
-    .select("id,title,image_url,status,order_items(quantity,price_at_time,orders(status,organization_id))")
+    .select("id,title,image_url,status")
     .eq("organization_id", membership.data.organization_id)
     .eq("status", "active")
     .limit(20)
-  if (products.error) throw products.error
+  if (products.error) {
+    console.error("[dashboard.bootstrap]", {
+      query: "TopProducts.products",
+      code: products.error.code,
+      message: products.error.message,
+      details: products.error.details,
+      hint: products.error.hint,
+    })
+    return []
+  }
 
   return (products.data ?? [])
     .map((product) => {
-      const items = Array.isArray(product.order_items) ? product.order_items : []
-      const paidItems = items.filter((item) => {
-        const order = Array.isArray(item.orders) ? item.orders[0] : item.orders
-        return order?.status === "paid"
-      })
-      const revenue = paidItems.reduce((sum, item) => sum + Number(item.price_at_time || 0) * Number(item.quantity || 1), 0)
-      const sales = paidItems.reduce((sum, item) => sum + Number(item.quantity || 1), 0)
+      const revenue = 0
+      const sales = 0
       return { id: product.id, title: product.title, image_url: product.image_url, revenue, sales }
     })
     .sort((a, b) => b.revenue - a.revenue)
