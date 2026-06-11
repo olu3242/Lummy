@@ -101,6 +101,21 @@ function stepToKey(step: number) {
   return STEP_KEYS[Math.min(Math.max(step, 1), TOTAL_STEPS) - 1]
 }
 
+// Single source of truth for per-step completion. The top stepper and the
+// launch checklist MUST both derive from these predicates — steps 3 (product)
+// and 4 (bank) are skippable, so "step visited" is not the same as "step done"
+// and the two surfaces must never tell different stories.
+const STEP_COMPLETION: Record<number, (data: WizardData) => boolean> = {
+  1: (d) => !!d.creatorType,
+  2: (d) => !!d.storeName && !!d.handle && !!d.whatsapp,
+  3: (d) => d.addProduct && !!d.productName && !!d.productPrice,
+  4: (d) => !!d.bankName && !!d.accountNumber,
+}
+
+function isStepComplete(step: number, data: WizardData) {
+  return STEP_COMPLETION[step]?.(data) ?? false
+}
+
 function keyToStep(step?: string | null) {
   const index = STEP_KEYS.findIndex((key) => key === step)
   if (index >= 0) return index + 1
@@ -673,9 +688,9 @@ function StepPreview({ data, hasShared }: { data: WizardData; hasShared: boolean
         className="mt-6 space-y-2 text-left max-w-xs mx-auto"
       >
         {[
-          { done: true, label: "Store created" },
+          { done: isStepComplete(2, data), label: "Store created" },
           { done: !!data.whatsapp, label: "WhatsApp connected" },
-          { done: data.addProduct && !!data.productName, label: "First product added" },
+          { done: isStepComplete(3, data), label: "First product added" },
           { done: hasShared, label: "Share your store link" },
           { done: false, label: "Get your first order" },
         ].map((item) => (
@@ -1035,29 +1050,43 @@ function OnboardingFlow() {
       {/* Progress bar */}
       <div className="px-6 mb-8 flex-shrink-0">
         <div className="flex items-center gap-2 mb-3">
-          {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-            <div key={i} className="flex-1 flex flex-col items-center gap-1">
-              <div
-                className={cn(
-                  "h-1.5 w-full rounded-full transition-all duration-500",
-                  i + 1 <= step ? "bg-brand-purple" : "bg-white/10"
-                )}
-              />
-            </div>
-          ))}
+          {Array.from({ length: TOTAL_STEPS }).map((_, i) => {
+            const stepNo = i + 1
+            const isCurrent = stepNo === step
+            const visited = stepNo < step
+            const complete = visited && isStepComplete(stepNo, data)
+            const skipped = visited && !complete
+            return (
+              <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                <div
+                  title={skipped ? `${stepLabels[i]} — skipped` : undefined}
+                  className={cn(
+                    "h-1.5 w-full rounded-full transition-all duration-500",
+                    isCurrent || complete ? "bg-brand-purple" : skipped ? "bg-brand-purple/25" : "bg-white/10"
+                  )}
+                />
+              </div>
+            )
+          })}
         </div>
         <div className="flex justify-between">
-          {stepLabels.map((label, i) => (
-            <span
-              key={label}
-              className={cn(
-                "text-[10px] font-medium transition-colors",
-                i + 1 === step ? "text-brand-purple" : i + 1 < step ? "text-white/40" : "text-white/20"
-              )}
-            >
-              {label}
-            </span>
-          ))}
+          {stepLabels.map((label, i) => {
+            const stepNo = i + 1
+            const visited = stepNo < step
+            const skipped = visited && !isStepComplete(stepNo, data)
+            return (
+              <span
+                key={label}
+                className={cn(
+                  "text-[10px] font-medium transition-colors",
+                  stepNo === step ? "text-brand-purple" : skipped ? "text-white/25" : visited ? "text-white/40" : "text-white/20"
+                )}
+              >
+                {label}
+                {skipped && <span className="text-white/20"> (skipped)</span>}
+              </span>
+            )
+          })}
         </div>
       </div>
 
