@@ -72,6 +72,14 @@ export async function updateStorefrontForCurrentUser(input: {
     .single();
 
   if (storefront.error) throw storefront.error;
+
+  if (patch.handle) {
+    const creatorProfileSync = await supabase.from('creator_profiles').update({ handle: patch.handle }).eq('user_id', auth.user.id);
+    if (creatorProfileSync.error) {
+      console.warn(JSON.stringify({ event: 'storefront.creator_profile_handle_sync_warn', userId: auth.user.id, error: creatorProfileSync.error.message }));
+    }
+  }
+
   return storefront.data;
 }
 

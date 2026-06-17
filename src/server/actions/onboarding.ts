@@ -43,7 +43,10 @@ export async function completeOnboarding(input: {
   if (storefront.error) throw storefront.error;
   log('storefront_upserted', { storefrontId: storefront.data?.id, handle: input.handle });
 
-  await supabase.from('storefronts').update({ is_active: true }).eq('organization_id', organization.id);
+  const activation = await supabase.from('storefronts').update({ is_active: true }).eq('organization_id', organization.id);
+  if (activation.error) {
+    console.warn(JSON.stringify({ ts: new Date().toISOString(), event: 'onboarding.storefront_activation_warn', userId, correlationId, error: activation.error.message }));
+  }
 
   if (input.productTitle && input.productPrice && input.productPrice > 0) {
     const { data: existing } = await supabase

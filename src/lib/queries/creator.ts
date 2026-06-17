@@ -3,8 +3,8 @@ import type { CreatorProfileRow } from "@/lib/supabase/types"
 
 export type CreatorPublicProfile = Pick<
   CreatorProfileRow,
-  | "id" | "handle" | "business_name" | "bio" | "avatar_url" | "cover_url"
-  | "whatsapp_number" | "instagram_handle" | "tiktok_handle" | "twitter_handle"
+  | "id" | "handle" | "business_name" | "bio" | "avatar_url" | "banner_url"
+  | "whatsapp_number" | "instagram_url" | "tiktok_url" | "twitter_url"
   | "location" | "total_sales" | "total_revenue" | "store_schema"
 >
 
@@ -13,8 +13,8 @@ export async function getCreatorByHandle(handle: string): Promise<CreatorPublicP
   const { data, error } = await supabase
     .from("creator_profiles")
     .select(`
-      id, handle, business_name, bio, avatar_url, cover_url,
-      whatsapp_number, instagram_handle, tiktok_handle, twitter_handle,
+      id, handle, business_name, bio, avatar_url, banner_url,
+      whatsapp_number, instagram_url, tiktok_url, twitter_url,
       location, total_sales, total_revenue, store_schema
     `)
     .eq("handle", handle)

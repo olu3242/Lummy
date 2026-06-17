@@ -90,11 +90,11 @@ export type CreatorProfileRow = {
   business_name: string | null;
   bio: string | null;
   avatar_url: string | null;
-  cover_url: string | null;
+  banner_url: string | null;
   whatsapp_number: string | null;
-  instagram_handle: string | null;
-  tiktok_handle: string | null;
-  twitter_handle: string | null;
+  instagram_url: string | null;
+  tiktok_url: string | null;
+  twitter_url: string | null;
   location: string | null;
   total_sales: number;
   total_revenue: number;

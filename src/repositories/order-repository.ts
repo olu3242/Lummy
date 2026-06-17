@@ -69,9 +69,20 @@ export async function getDashboardPayments(limit = 20) {
   return rows.data;
 }
 
+const emptyPaymentSummary = { totalRevenue: 0, pendingRevenue: 0, totalOrders: 0, paidOrders: 0, pendingPayments: 0, failedPayments: 0, conversionRate: 0, sources: [] as Array<{ name: string; value: number; color: string }>, recentRevenue: [] as Array<{ label: string; revenue: number; orders: number }> };
+
 export async function getDashboardPaymentSummary() {
+  try {
+    return await getDashboardPaymentSummaryUnsafe();
+  } catch (error) {
+    console.error('[getDashboardPaymentSummary]', error);
+    return emptyPaymentSummary;
+  }
+}
+
+async function getDashboardPaymentSummaryUnsafe() {
   const { supabase, organizationId } = await getCurrentOrgId();
-  if (!organizationId) return { totalRevenue: 0, pendingRevenue: 0, totalOrders: 0, paidOrders: 0, pendingPayments: 0, failedPayments: 0, conversionRate: 0, sources: [] as Array<{ name: string; value: number; color: string }>, recentRevenue: [] as Array<{ label: string; revenue: number; orders: number }> };
+  if (!organizationId) return emptyPaymentSummary;
 
   const payments = await supabase.from('payments').select('status,amount,provider,created_at').eq('organization_id', organizationId);
   if (payments.error) throw payments.error;
@@ -105,9 +116,20 @@ export async function getDashboardPaymentSummary() {
   return { totalRevenue, pendingRevenue, totalOrders, paidOrders, pendingPayments, failedPayments, conversionRate, sources, recentRevenue };
 }
 
+const emptyAiConversionSummary = { activeInquiries: 0, pricingRequests: 0, checkoutGenerated: 0, abandoned: 0, recovered: 0, checkoutReady: 0, aiInsights: [] as string[] };
+
 export async function getAiConversionSummary() {
+  try {
+    return await getAiConversionSummaryUnsafe();
+  } catch (error) {
+    console.error('[getAiConversionSummary]', error);
+    return emptyAiConversionSummary;
+  }
+}
+
+async function getAiConversionSummaryUnsafe() {
   const { supabase, organizationId } = await getCurrentOrgId();
-  if (!organizationId) return { activeInquiries: 0, pricingRequests: 0, checkoutGenerated: 0, abandoned: 0, recovered: 0, checkoutReady: 0, aiInsights: [] as string[] };
+  if (!organizationId) return emptyAiConversionSummary;
 
   const interactions = await supabase
     .from('customer_interactions')
@@ -248,9 +270,20 @@ export async function syncCustomerMemoryForOrder(input: { orgId: string; orderId
   return updated.data;
 }
 
+const emptyCustomerMemorySummary = { repeatCustomers: 0, highValueCustomers: 0, inactiveCustomers: 0, abandonedBuyers: 0, recentBuyers: 0, opportunities: [] as string[] };
+
 export async function getCustomerMemorySummary() {
+  try {
+    return await getCustomerMemorySummaryUnsafe();
+  } catch (error) {
+    console.error('[getCustomerMemorySummary]', error);
+    return emptyCustomerMemorySummary;
+  }
+}
+
+async function getCustomerMemorySummaryUnsafe() {
   const { supabase, organizationId } = await getCurrentOrgId();
-  if (!organizationId) return { repeatCustomers: 0, highValueCustomers: 0, inactiveCustomers: 0, abandonedBuyers: 0, recentBuyers: 0, opportunities: [] as string[] };
+  if (!organizationId) return emptyCustomerMemorySummary;
   const profiles = await supabase.from('customer_profiles').select('id,lifecycle_stage,total_orders,ai_summary').eq('org_id', organizationId);
   if (profiles.error) throw profiles.error;
   const rows = profiles.data ?? [];
@@ -265,9 +298,20 @@ export async function getCustomerMemorySummary() {
 }
 
 
+const emptyDashboardOpsSummary = { staleInquiries: 0, unpaidOrders: 0, webhookIssues: 0, recoveryPending: 0 };
+
 export async function getDashboardOpsSummary() {
+  try {
+    return await getDashboardOpsSummaryUnsafe();
+  } catch (error) {
+    console.error('[getDashboardOpsSummary]', error);
+    return emptyDashboardOpsSummary;
+  }
+}
+
+async function getDashboardOpsSummaryUnsafe() {
   const { supabase, organizationId } = await getCurrentOrgId();
-  if (!organizationId) return { staleInquiries: 0, unpaidOrders: 0, webhookIssues: 0, recoveryPending: 0 };
+  if (!organizationId) return emptyDashboardOpsSummary;
   const stale = await supabase.from('customer_interactions').select('id,created_at').eq('org_id', organizationId).eq('source_channel', 'whatsapp').in('conversion_status', ['new','intent_detected']);
   if (stale.error) throw stale.error;
   const unpaid = await supabase.from('orders').select('id,status').eq('organization_id', organizationId).neq('status','paid');
@@ -333,19 +377,28 @@ export async function upsertConversionAttribution(input: {
 }
 
 
+const emptyGrowthIntelligenceSummary = {
+  topProduct: null as null | { id: string; title: string; revenue: number; orders: number },
+  lowPerformingProducts: [] as Array<{ id: string; title: string; orders: number }>,
+  repeatPurchaseProducts: [] as Array<{ id: string; title: string; repeatOrders: number }>,
+  highValueSegment: 'none',
+  reorderOpportunities: [] as string[],
+  upsellOpportunities: [] as string[],
+  growthInsights: [] as string[],
+};
+
 export async function getGrowthIntelligenceSummary() {
-  const { supabase, organizationId } = await getCurrentOrgId();
-  if (!organizationId) {
-    return {
-      topProduct: null as null | { id: string; title: string; revenue: number; orders: number },
-      lowPerformingProducts: [] as Array<{ id: string; title: string; orders: number }>,
-      repeatPurchaseProducts: [] as Array<{ id: string; title: string; repeatOrders: number }>,
-      highValueSegment: 'none',
-      reorderOpportunities: [] as string[],
-      upsellOpportunities: [] as string[],
-      growthInsights: [] as string[],
-    };
+  try {
+    return await getGrowthIntelligenceSummaryUnsafe();
+  } catch (error) {
+    console.error('[getGrowthIntelligenceSummary]', error);
+    return emptyGrowthIntelligenceSummary;
   }
+}
+
+async function getGrowthIntelligenceSummaryUnsafe() {
+  const { supabase, organizationId } = await getCurrentOrgId();
+  if (!organizationId) return emptyGrowthIntelligenceSummary;
 
   const orders = await supabase
     .from('orders')
