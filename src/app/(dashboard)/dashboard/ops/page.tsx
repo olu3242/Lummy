@@ -77,7 +77,7 @@ interface ContinuityData {
   overallScore: number
   ready: boolean
   totalIssues: number
-  payments: { score: number; paystackConfigured: boolean; last24h: { total: number; paid: number; failed: number; stalePending: number; successRate: number }; webhookCoverage: number; deadWebhooks: number; issues: string[]; recommendations: string[] } | null
+  payments: { score: number; paystackConfigured: boolean; last24h: { total: number; paid: number; failed: number; stalePending: number; successRate: number }; webhookCoverage: number; reconciliationAnomalies: number; issues: string[]; recommendations: string[] } | null
   whatsapp: { score: number; whatsappConfigured: boolean; last7d: { totalClicks: number; attributedClicks: number; attributionRate: number; uniqueCreators: number }; conversionGapCreators: number; issues: string[]; recommendations: string[] } | null
   cron: { score: number; cronSecretConfigured: boolean; jobs: Array<{ jobName: string; lastRunAt: string | null; lastStatus: string | null; hoursSinceRun: number | null; stale: boolean; failureStreak: number }>; staleJobs: number; failingJobs: number; issues: string[] } | null
   notifications: { score: number; last24h: { total: number; unread: number; unreadRate: number }; staleUnread: number; recentDeliveryGap: boolean; issues: string[] } | null
@@ -1329,7 +1329,7 @@ export default function OpsPage() {
         {/* Subsystem score grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {[
-            { label: "Payments", score: continuity?.payments?.score, detail: continuity?.payments ? `${continuity.payments.last24h.successRate}% success rate` : undefined, warn: (continuity?.payments?.deadWebhooks ?? 0) > 0 || (continuity?.payments?.last24h.stalePending ?? 0) > 0 },
+            { label: "Payments", score: continuity?.payments?.score, detail: continuity?.payments ? `${continuity.payments.last24h.successRate}% success rate` : undefined, warn: (continuity?.payments?.reconciliationAnomalies ?? 0) > 0 || (continuity?.payments?.last24h.stalePending ?? 0) > 0 },
             { label: "WhatsApp", score: continuity?.whatsapp?.score, detail: continuity?.whatsapp ? `${continuity.whatsapp.last7d.attributionRate}% attribution` : undefined, warn: (continuity?.whatsapp?.issues.length ?? 0) > 0 },
             { label: "Cron Jobs", score: continuity?.cron?.score, detail: continuity?.cron ? `${continuity.cron.staleJobs} stale, ${continuity.cron.failingJobs} failing` : undefined, warn: (continuity?.cron?.staleJobs ?? 0) > 0 },
             { label: "Notifications", score: continuity?.notifications?.score, detail: continuity?.notifications ? `${continuity.notifications.last24h.total} sent 24h` : undefined, warn: continuity?.notifications?.recentDeliveryGap },

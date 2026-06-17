@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server"
-import { getPaymentHealthSummary, detectDuplicateTransactions } from "./audit"
+import { getPaymentHealthSummary, detectDuplicateTransactions, runPaymentReconciliation } from "./audit"
 
 export interface PaymentContinuityReport {
   generatedAt: string
@@ -13,10 +13,9 @@ export interface PaymentContinuityReport {
     successRate: number
     flaggedNoIdempotency: number
   }
-  webhookCoverage: number // % of paid transactions linked to webhook events
+  webhookCoverage: number // % of succeeded payments linked to a recorded webhook event
   duplicateRefs: number   // refs appearing >1 in last 7d
-  deadWebhooks: number
-  failedWebhooks: number
+  reconciliationAnomalies: number // orders/payments out of sync (see reconciliation_alerts)
   issues: string[]
   recommendations: string[]
 }
@@ -28,57 +27,50 @@ export async function runPaymentContinuityAudit(): Promise<PaymentContinuityRepo
 
   const paystackConfigured = (process.env.PAYSTACK_SECRET_KEY ?? "").length > 0
 
-  const [health, duplicates, webhookStats] = await Promise.allSettled([
+  const [health, duplicates, anomalies] = await Promise.allSettled([
     getPaymentHealthSummary(),
     detectDuplicateTransactions(),
-    supabase
-      .from("webhook_events")
-      .select("status", { count: "exact" })
-      .in("status", ["failed", "dead"])
-      .eq("source", "paystack"),
+    runPaymentReconciliation(),
   ])
 
   const h = health.status === "fulfilled" ? health.value : null
   const dups = duplicates.status === "fulfilled" ? duplicates.value : []
+  const anomalyList = anomalies.status === "fulfilled" ? anomalies.value : []
 
-  // Webhook coverage: paid transactions with webhook_event_id
-  const { count: paidWithWebhook } = await supabase
-    .from("transactions")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "paid")
-    .not("webhook_event_id", "is", null)
-
+  // Webhook coverage: succeeded payments with a provider_event_id that has a
+  // matching idempotency record in provider_webhook_events (the table the
+  // real webhook handler writes to — see src/app/api/payments/webhook/route.ts).
   const { count: paidTotal } = await supabase
-    .from("transactions")
+    .from("payments")
     .select("id", { count: "exact", head: true })
-    .eq("status", "paid")
+    .eq("status", "succeeded")
+
+  const { data: succeededEventIds } = await supabase
+    .from("payments")
+    .select("provider_event_id")
+    .eq("status", "succeeded")
+    .not("provider_event_id", "is", null)
+
+  const eventIds = (succeededEventIds ?? []).map((r) => r.provider_event_id as string)
+  const { count: linkedCount } = eventIds.length > 0
+    ? await supabase.from("provider_webhook_events").select("id", { count: "exact", head: true }).in("idempotency_key", eventIds)
+    : { count: 0 }
 
   const webhookCoverage = paidTotal && paidTotal > 0
-    ? Math.round(((paidWithWebhook ?? 0) / paidTotal) * 100)
+    ? Math.round(((linkedCount ?? 0) / paidTotal) * 100)
     : 100
 
-  // Dead / failed webhook count
-  const { count: deadWebhooks } = await supabase
-    .from("webhook_events")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "dead")
-
-  const { count: failedWebhooks } = await supabase
-    .from("webhook_events")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "failed")
-
   if (!paystackConfigured) issues.push("PAYSTACK_SECRET_KEY not configured")
-  if (h && h.stalePending > 0) issues.push(`${h.stalePending} transactions stuck in pending >30min`)
+  if (h && h.stalePending > 0) issues.push(`${h.stalePending} payments stuck in pending >30min`)
   if (dups.length > 0) issues.push(`${dups.length} duplicate payment references detected in 7d`)
-  if ((deadWebhooks ?? 0) > 0) issues.push(`${deadWebhooks} dead-lettered Paystack webhooks`)
-  if (webhookCoverage < 90) recommendations.push(`Webhook coverage at ${webhookCoverage}% — verify PAYSTACK_SECRET_KEY and webhook URL`)
+  if (anomalyList.length > 0) issues.push(`${anomalyList.length} order/payment reconciliation anomalies detected`)
+  if (webhookCoverage < 90) recommendations.push(`Webhook coverage at ${webhookCoverage}% — verify PAYSTACK_SECRET_KEY/STRIPE_WEBHOOK_SECRET and webhook URL`)
   if (h && h.successRate < 80) recommendations.push(`Payment success rate ${h.successRate}% — review failure reasons`)
-  if (h && h.flaggedCount > 0) recommendations.push(`${h.flaggedCount} transactions missing idempotency keys — upgrade webhook handler`)
+  if (h && h.flaggedCount > 0) recommendations.push(`${h.flaggedCount} payments missing a provider event id — upgrade webhook handler`)
 
   const score = Math.max(0, 100
     - (issues.length * 15)
-    - ((deadWebhooks ?? 0) > 0 ? 10 : 0)
+    - (anomalyList.length > 0 ? 15 : 0)
     - (webhookCoverage < 90 ? 10 : 0)
   )
 
@@ -96,8 +88,7 @@ export async function runPaymentContinuityAudit(): Promise<PaymentContinuityRepo
     },
     webhookCoverage,
     duplicateRefs: dups.length,
-    deadWebhooks: deadWebhooks ?? 0,
-    failedWebhooks: failedWebhooks ?? 0,
+    reconciliationAnomalies: anomalyList.length,
     issues,
     recommendations,
   }

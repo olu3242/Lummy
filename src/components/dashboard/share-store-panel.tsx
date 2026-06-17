@@ -4,34 +4,47 @@ import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Share2, Copy, CheckCheck, MessageCircle, X,
-  Instagram, ExternalLink, QrCode, Link2,
+  Instagram, ExternalLink, Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-
-const STORE_HANDLE = "sade.styles"
-const STORE_URL = `lummy.co/${STORE_HANDLE}`
-const FULL_URL = `https://${STORE_URL}`
-const WA_TEXT = encodeURIComponent(
-  `Hey! 👋 Check out my store on Lummy — I sell fashion, accessories & more.\n\nShop here 👉 ${FULL_URL}\n\nDM me to order! 💜`
-)
+import { getShareableStorefront, recordStorefrontShare } from "@/server/actions/storefront-share"
 
 export function ShareStorePanel() {
   const [open, setOpen] = React.useState(false)
   const [copied, setCopied] = React.useState(false)
   const [copiedHandle, setCopiedHandle] = React.useState(false)
+  const [store, setStore] = React.useState<{ handle: string; storeName: string; storeUrl: string; whatsAppShareLink: string } | null>(null)
+  const [loadError, setLoadError] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!open || store || loadError) return
+    getShareableStorefront()
+      .then(setStore)
+      .catch(() => setLoadError(true))
+  }, [open, store, loadError])
+
+  const storeUrl = store?.storeUrl ?? ""
+  const storeUrlDisplay = storeUrl.replace(/^https?:\/\//, "")
 
   const copyLink = () => {
-    navigator.clipboard.writeText(FULL_URL)
+    if (!storeUrl) return
+    navigator.clipboard.writeText(storeUrl)
     setCopied(true)
     toast({ title: "Store link copied!", variant: "success" })
+    void recordStorefrontShare("copy_link").catch(() => {})
     setTimeout(() => setCopied(false), 2500)
   }
 
   const copyHandle = () => {
-    navigator.clipboard.writeText(STORE_URL)
+    if (!storeUrlDisplay) return
+    navigator.clipboard.writeText(storeUrlDisplay)
     setCopiedHandle(true)
     setTimeout(() => setCopiedHandle(false), 2500)
+  }
+
+  const handleWhatsAppShare = () => {
+    void recordStorefrontShare("whatsapp").catch(() => {})
   }
 
   React.useEffect(() => {
@@ -87,31 +100,15 @@ export function ShareStorePanel() {
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Link2 className="h-3.5 w-3.5 text-brand-purple flex-shrink-0" />
-                      <span className="text-sm font-semibold truncate">{STORE_URL}</span>
+                      <span className="text-sm font-semibold truncate">{loadError ? "Unable to load store link" : storeUrlDisplay || "Loading…"}</span>
                     </div>
-                    <button onClick={copyHandle}
+                    <button onClick={copyHandle} disabled={!storeUrlDisplay}
                       className={cn(
-                        "flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0",
+                        "flex items-center gap-1 h-7 px-2.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0 disabled:opacity-50",
                         copiedHandle ? "bg-brand-green/10 text-brand-green" : "bg-brand-purple text-white hover:bg-brand-purple/90"
                       )}>
                       {copiedHandle ? <CheckCheck className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                       {copiedHandle ? "Copied!" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-
-                {/* QR placeholder */}
-                <div className="flex items-center gap-4 p-3.5 rounded-2xl border border-border bg-muted/30">
-                  <div className="w-14 h-14 rounded-xl border-2 border-dashed border-border flex items-center justify-center flex-shrink-0">
-                    <QrCode className="h-7 w-7 text-muted-foreground/40" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-semibold">Store QR code</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
-                      Customers scan to open your store instantly — no link needed.
-                    </p>
-                    <button className="mt-1.5 text-[11px] font-semibold text-brand-purple hover:underline">
-                      Download QR →
                     </button>
                   </div>
                 </div>
@@ -121,9 +118,9 @@ export function ShareStorePanel() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2.5">Share on</p>
                   <div className="grid grid-cols-1 gap-2">
                     {/* Copy full link */}
-                    <button onClick={copyLink}
+                    <button onClick={copyLink} disabled={!storeUrl}
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-xl border text-left transition-all",
+                        "flex items-center gap-3 p-3 rounded-xl border text-left transition-all disabled:opacity-50",
                         copied ? "border-brand-green/30 bg-brand-green/5" : "border-border hover:border-brand-purple/20 hover:bg-accent/50"
                       )}>
                       {copied
@@ -131,13 +128,17 @@ export function ShareStorePanel() {
                         : <ExternalLink className="h-4 w-4 text-muted-foreground flex-shrink-0" />}
                       <div>
                         <p className="text-xs font-semibold">{copied ? "Copied to clipboard!" : "Copy full link"}</p>
-                        <p className="text-[10px] text-muted-foreground">https://{STORE_URL}</p>
+                        <p className="text-[10px] text-muted-foreground">{storeUrl || "Loading…"}</p>
                       </div>
                     </button>
 
                     {/* WhatsApp */}
-                    <a href={`https://wa.me/?text=${WA_TEXT}`} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-3 p-3 rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 hover:bg-[#25D366]/10 transition-colors">
+                    <a href={store?.whatsAppShareLink ?? "#"} target="_blank" rel="noopener noreferrer" onClick={handleWhatsAppShare}
+                      aria-disabled={!store}
+                      className={cn(
+                        "flex items-center gap-3 p-3 rounded-xl border border-[#25D366]/20 bg-[#25D366]/5 hover:bg-[#25D366]/10 transition-colors",
+                        !store && "pointer-events-none opacity-50"
+                      )}>
                       <MessageCircle className="h-4 w-4 text-[#25D366] fill-[#25D366]/20 flex-shrink-0" />
                       <div>
                         <p className="text-xs font-semibold text-[#25D366]">Share on WhatsApp</p>

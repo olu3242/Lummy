@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { getPublishedStorefrontByHandle } from '@/repositories/storefront-repository'
 import { getPublishedProductsByHandle } from '@/repositories/product-repository'
 import { getCreatorByHandle } from '@/lib/queries/creator'
+import { recordStorefrontClick } from '@/server/actions/storefront-share'
 import { StorefrontClient } from './storefront-client'
 
 export async function generateMetadata({ params }: { params: { handle: string } }): Promise<Metadata> {
@@ -23,13 +24,18 @@ export async function generateMetadata({ params }: { params: { handle: string } 
   }
 }
 
-export default async function StorefrontPage({ params }: { params: { handle: string } }) {
+export default async function StorefrontPage({ params, searchParams }: { params: { handle: string }; searchParams: { ref?: string; src?: string; campaign?: string } }) {
   const [storefront, products, creatorProfile] = await Promise.all([
     getPublishedStorefrontByHandle(params.handle),
     getPublishedProductsByHandle(params.handle).catch(() => []),
     getCreatorByHandle(params.handle),
   ])
   if (!storefront) notFound()
+
+  if (searchParams.ref) {
+    // Fire-and-forget: never block the storefront render on attribution tracking.
+    void recordStorefrontClick(params.handle, searchParams.src, searchParams.campaign).catch(() => {})
+  }
 
   const storeName = (storefront.organizations as { name?: string } | null)?.name ?? `${params.handle} Store`
   return (
