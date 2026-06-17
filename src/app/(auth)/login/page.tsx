@@ -35,6 +35,11 @@ export default function LoginPage() {
       if (authError) {
         setError("Incorrect email or password. Please try again.")
         setShakeKey(k => k + 1)
+        void fetch("/api/security/auth-failure", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventType: "failed_login", email, reason: authError.message }),
+        })
         return
       }
       // Read ?next= param for post-login redirect — validate to prevent open redirect

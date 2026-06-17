@@ -28,10 +28,19 @@ export async function generateSalesAgentReply(input: {
 
   const creatorProfile = await supabase
     .from("creator_profiles")
-    .select("user_id, business_name, handle")
+    .select("user_id, business_name, handle, whatsapp_phone_number_id, whatsapp_business_account_id")
     .eq("id", input.creatorId)
     .maybeSingle()
   if (creatorProfile.error || !creatorProfile.data) return null
+
+  // Outbound WhatsApp is gated until the creator provisions their Cloud API
+  // number in Dashboard → Settings → WhatsApp — sending from an unconfigured
+  // creator would either fail against Meta's API or send from the wrong
+  // sender entirely.
+  if (!creatorProfile.data.whatsapp_phone_number_id || !creatorProfile.data.whatsapp_business_account_id) {
+    console.warn("[sales-agent] WhatsApp not provisioned for creator — skipping outbound reply", { creatorId: input.creatorId })
+    return null
+  }
 
   const profile = await supabase
     .from("profiles")

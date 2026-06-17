@@ -123,6 +123,11 @@ export default function SignupPage() {
     if (error) {
       setIsLoading(false)
       setErrorMessage(error.message)
+      void fetch("/api/security/auth-failure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventType: "failed_signup", email, reason: error.message }),
+      })
       return
     }
     setStep("done")

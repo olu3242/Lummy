@@ -17,16 +17,19 @@ import {
   Zap,
   Trash2,
   AlertTriangle,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 
-type SettingsSection = "profile" | "store" | "notifications" | "payments" | "security"
+type SettingsSection = "profile" | "store" | "whatsapp" | "notifications" | "payments" | "security"
 
 const navItems: { id: SettingsSection; label: string; icon: React.ElementType; description: string }[] = [
   { id: "profile", label: "Profile", icon: User, description: "Personal info, avatar" },
   { id: "store", label: "Store", icon: Store, description: "Store details, handle" },
+  { id: "whatsapp", label: "WhatsApp", icon: MessageCircle, description: "Connect your business number" },
   { id: "notifications", label: "Notifications", icon: Bell, description: "Alerts & reminders" },
   { id: "payments", label: "Payments", icon: CreditCard, description: "Bank account, payouts" },
   { id: "security", label: "Security", icon: Shield, description: "Password, 2FA" },
@@ -248,6 +251,131 @@ function StoreSection() {
       </div>
 
       <SaveBar onSave={save} saved={saved} />
+    </div>
+  )
+}
+
+function WhatsAppSection() {
+  const [form, setForm] = React.useState({ whatsappPhoneNumberId: "", whatsappBusinessAccountId: "" })
+  const [loading, setLoading] = React.useState(true)
+  const [saving, setSaving] = React.useState(false)
+  const [saved, setSaved] = React.useState(false)
+  const [configured, setConfigured] = React.useState(false)
+  const [errors, setErrors] = React.useState<{ whatsappPhoneNumberId?: string; whatsappBusinessAccountId?: string }>({})
+
+  React.useEffect(() => {
+    fetch("/api/settings/whatsapp", { cache: "no-store" })
+      .then(res => res.json())
+      .then(data => {
+        setForm({
+          whatsappPhoneNumberId: data.whatsappPhoneNumberId ?? "",
+          whatsappBusinessAccountId: data.whatsappBusinessAccountId ?? "",
+        })
+        setConfigured(Boolean(data.configured))
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
+  const validate = () => {
+    const next: typeof errors = {}
+    const idPattern = /^\d{6,20}$/
+    if (!idPattern.test(form.whatsappPhoneNumberId)) {
+      next.whatsappPhoneNumberId = "Enter the numeric Phone Number ID from Meta App Dashboard"
+    }
+    if (!idPattern.test(form.whatsappBusinessAccountId)) {
+      next.whatsappBusinessAccountId = "Enter the numeric WhatsApp Business Account ID"
+    }
+    setErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  const save = async () => {
+    if (!validate()) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/settings/whatsapp", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      const payload = await res.json()
+      if (!res.ok) throw new Error(payload.error || "Failed to save WhatsApp settings")
+      setConfigured(true)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+      toast({ title: "WhatsApp connected", description: "Your store can now send and receive WhatsApp messages.", variant: "success" })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to save WhatsApp settings"
+      toast({ title: "WhatsApp save failed", description: message, variant: "error" })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <div>
+        <h2 className="font-display font-bold text-lg">WhatsApp</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Connect your Meta WhatsApp Business number to send and receive store messages</p>
+      </div>
+
+      <div className={cn(
+        "rounded-2xl border p-4 flex items-start gap-3",
+        configured ? "border-brand-green/30 bg-brand-green/5" : "border-brand-coral/30 bg-brand-coral/5"
+      )}>
+        {configured ? <CheckCircle2 className="h-4 w-4 text-brand-green flex-shrink-0 mt-0.5" /> : <AlertTriangle className="h-4 w-4 text-brand-coral flex-shrink-0 mt-0.5" />}
+        <div>
+          <p className="text-sm font-semibold">{configured ? "WhatsApp is connected" : "WhatsApp is not connected"}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {configured
+              ? "Customers messaging your number will get automatic AI sales replies."
+              : "Outbound WhatsApp replies are disabled until you connect a Phone Number ID and Business Account ID below."}
+          </p>
+        </div>
+      </div>
+
+      <a
+        href="https://developers.facebook.com/docs/whatsapp/cloud-api/get-started"
+        target="_blank" rel="noreferrer"
+        className="inline-flex items-center gap-1.5 text-xs text-brand-purple font-semibold hover:underline"
+      >
+        Where do I find these IDs? <ExternalLink className="h-3 w-3" />
+      </a>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">Phone Number ID</label>
+        <input
+          value={form.whatsappPhoneNumberId}
+          onChange={e => setForm(f => ({ ...f, whatsappPhoneNumberId: e.target.value.trim() }))}
+          placeholder="e.g. 109876543212345"
+          disabled={loading}
+          className={cn(
+            "w-full h-10 px-3 rounded-xl border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-purple/30",
+            errors.whatsappPhoneNumberId ? "border-brand-coral" : "border-border"
+          )}
+        />
+        {errors.whatsappPhoneNumberId && <p className="text-[10px] text-brand-coral mt-1">{errors.whatsappPhoneNumberId}</p>}
+        <p className="text-[10px] text-muted-foreground mt-1">Meta App Dashboard → WhatsApp → API Setup → Phone number ID</p>
+      </div>
+
+      <div>
+        <label className="block text-xs font-semibold mb-1.5">WhatsApp Business Account ID</label>
+        <input
+          value={form.whatsappBusinessAccountId}
+          onChange={e => setForm(f => ({ ...f, whatsappBusinessAccountId: e.target.value.trim() }))}
+          placeholder="e.g. 123456789012345"
+          disabled={loading}
+          className={cn(
+            "w-full h-10 px-3 rounded-xl border bg-background text-sm font-mono focus:outline-none focus:ring-2 focus:ring-brand-purple/30",
+            errors.whatsappBusinessAccountId ? "border-brand-coral" : "border-border"
+          )}
+        />
+        {errors.whatsappBusinessAccountId && <p className="text-[10px] text-brand-coral mt-1">{errors.whatsappBusinessAccountId}</p>}
+        <p className="text-[10px] text-muted-foreground mt-1">Meta App Dashboard → WhatsApp → API Setup → WhatsApp Business Account ID</p>
+      </div>
+
+      <SaveBar onSave={save} saved={saved && !saving} />
     </div>
   )
 }
@@ -585,6 +713,7 @@ function SecuritySection() {
 const sectionComponents: Record<SettingsSection, React.FC> = {
   profile: ProfileSection,
   store: StoreSection,
+  whatsapp: WhatsAppSection,
   notifications: NotificationsSection,
   payments: PaymentsSection,
   security: SecuritySection,

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
+import { recordSecurityEvent } from "@/lib/security/events"
 
 export const dynamic = "force-dynamic"
 
@@ -22,6 +23,13 @@ export async function GET() {
 
   const admin = createAdminClient()
   if (!(await isAdmin(admin, user.id, user.email ?? undefined))) {
+    void recordSecurityEvent({
+      eventType: "tenant_access_denied",
+      severity: "high",
+      userId: user.id,
+      endpoint: "/api/ops/security",
+      details: { email: user.email ?? null },
+    })
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -67,6 +75,13 @@ export async function PATCH(req: Request) {
 
   const admin = createAdminClient()
   if (!(await isAdmin(admin, user.id, user.email ?? undefined))) {
+    void recordSecurityEvent({
+      eventType: "tenant_access_denied",
+      severity: "high",
+      userId: user.id,
+      endpoint: "/api/ops/security",
+      details: { email: user.email ?? null },
+    })
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

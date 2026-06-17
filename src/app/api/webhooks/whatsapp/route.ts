@@ -17,6 +17,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/server"
 import { generateSalesAgentReply } from "@/lib/whatsapp/sales-agent"
 import { sendTextMessage, markMessageRead } from "@/lib/whatsapp/send"
+import { recordSecurityEvent } from "@/lib/security/events"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,6 +108,12 @@ export async function POST(request: NextRequest) {
   if (appSecret) {
     if (!verifySignature(rawBody, signature, appSecret)) {
       console.warn("[whatsapp/webhook] invalid signature")
+      void recordSecurityEvent({
+        eventType: "webhook_verification_failure",
+        severity: "critical",
+        endpoint: "/api/webhooks/whatsapp",
+        details: { hasSignatureHeader: Boolean(signature) },
+      })
       return new NextResponse("Unauthorized", { status: 401 })
     }
   }

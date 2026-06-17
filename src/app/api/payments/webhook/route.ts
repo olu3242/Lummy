@@ -6,6 +6,7 @@ import { verifyPaystackSignature } from '@/lib/payments/paystack/provider';
 import { validatePaymentRuntimeEnv } from '@/lib/runtime-config';
 import { errorResponse, getCorrelationId, logApiEvent } from '@/lib/ops-observability';
 import { notifyCreator, sendCustomerReceipt, notifyCreatorEmail, emitEvent } from '@/lib/automation/sdk';
+import { recordSecurityEvent } from '@/lib/security/events';
 
 type ParsedWebhook = {
   eventId: string;
@@ -82,6 +83,12 @@ export async function POST(req: Request) {
   const valid = verifyStripeSignature(rawBody, stripeSig) || verifyPaystackSignature(rawBody, paystackSig);
   if (!valid) {
     logApiEvent('warn', 'payments.webhook_invalid_signature', { correlationId });
+    void recordSecurityEvent({
+      eventType: 'payment_signature_failure',
+      severity: 'critical',
+      endpoint: '/api/payments/webhook',
+      details: { correlationId, hasStripeSig: Boolean(stripeSig), hasPaystackSig: Boolean(paystackSig) },
+    });
     return errorResponse(401, 'INVALID_WEBHOOK_SIGNATURE', 'Invalid webhook signature', correlationId);
   }
 
