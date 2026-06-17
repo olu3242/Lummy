@@ -15,6 +15,8 @@
 import crypto from "crypto"
 import { type NextRequest, NextResponse } from "next/server"
 import { createAdminClient } from "@/lib/supabase/server"
+import { generateSalesAgentReply } from "@/lib/whatsapp/sales-agent"
+import { sendTextMessage, markMessageRead } from "@/lib/whatsapp/send"
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -208,6 +210,44 @@ export async function POST(request: NextRequest) {
           console.log("[whatsapp/webhook] message persisted", {
             creatorId, from: message.from, type: message.type,
           })
+
+          // ── Sales agent reply ────────────────────────────────────────────
+          if (messageBody) {
+            void markMessageRead(message.id)
+            try {
+              const agentReply = await generateSalesAgentReply({
+                creatorId,
+                customerPhone: message.from,
+                message: messageBody,
+              })
+              if (agentReply) {
+                const sendResult = await sendTextMessage({
+                  to: message.from,
+                  body: agentReply.body,
+                  phoneNumberId: phoneNumberId ?? undefined,
+                  previewUrl: Boolean(agentReply.productLink),
+                })
+                await supabase.from("whatsapp_events").insert({
+                  creator_id: creatorId,
+                  event_type: "agent_reply",
+                  platform: "whatsapp",
+                  metadata: {
+                    in_reply_to: message.id,
+                    to: message.from,
+                    message_body: agentReply.body.slice(0, 500),
+                    detected_intent: agentReply.intent,
+                    product_link: agentReply.productLink,
+                    send_success: sendResult.success,
+                    send_error: sendResult.error ?? null,
+                  },
+                })
+              } else {
+                console.warn("[whatsapp/webhook] sales agent skipped — creator has no linked organization", { creatorId })
+              }
+            } catch (err) {
+              console.error("[whatsapp/webhook] sales agent reply failed", { creatorId, error: String(err) })
+            }
+          }
         }
 
         // ── Status updates (sent, delivered, read) ─────────────────────────

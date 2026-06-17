@@ -13,8 +13,8 @@ import { isEnabled } from "@/lib/flags/feature-flags"
 const META_API_VERSION = "v21.0"
 const META_API_BASE = "https://graph.facebook.com"
 
-function getPhoneNumberId(): string {
-  const id = process.env.WHATSAPP_PHONE_NUMBER_ID
+function getPhoneNumberId(override?: string): string {
+  const id = override || process.env.WHATSAPP_PHONE_NUMBER_ID
   if (!id) throw new Error("WHATSAPP_PHONE_NUMBER_ID not configured")
   return id
 }
@@ -25,8 +25,11 @@ function getToken(): string {
   return token
 }
 
-function apiUrl(): string {
-  return `${META_API_BASE}/${META_API_VERSION}/${getPhoneNumberId()}/messages`
+// Creators can be issued their own Cloud API phone_number_id under Lummy's
+// WhatsApp Business Account (tech-provider model); the system token still
+// works across every number in the same WABA, so only the URL target changes.
+function apiUrl(phoneNumberId?: string): string {
+  return `${META_API_BASE}/${META_API_VERSION}/${getPhoneNumberId(phoneNumberId)}/messages`
 }
 
 // ── Types ──────────────────────────────────────────────────────
@@ -35,6 +38,7 @@ export interface TextMessagePayload {
   to: string          // E.164 format: +234XXXXXXXXXX
   body: string        // Max 4096 chars
   previewUrl?: boolean
+  phoneNumberId?: string  // send from a creator's own number instead of the platform default
 }
 
 export interface TemplateMessagePayload {
@@ -72,11 +76,11 @@ export interface WhatsAppTemplateComponent {
 
 // ── Core send function ─────────────────────────────────────────
 
-async function postToMeta(body: Record<string, unknown>): Promise<WhatsAppSendResult> {
+async function postToMeta(body: Record<string, unknown>, phoneNumberId?: string): Promise<WhatsAppSendResult> {
   const to = (body.to as string) ?? "unknown"
 
   try {
-    const res = await fetch(apiUrl(), {
+    const res = await fetch(apiUrl(phoneNumberId), {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${getToken()}`,
@@ -123,7 +127,7 @@ export async function sendTextMessage(payload: TextMessagePayload): Promise<What
       body: payload.body,
       preview_url: payload.previewUrl ?? false,
     },
-  })
+  }, payload.phoneNumberId)
 }
 
 /** Send an approved template message */

@@ -179,6 +179,32 @@ interface EnterpriseData {
   humanQueue: HumanQueueItem[]
 }
 
+interface SecurityEvent {
+  id: string
+  event_type: string
+  severity: string
+  organization_id: string | null
+  endpoint: string | null
+  created_at: string
+}
+
+interface ReconciliationAlert {
+  id: string
+  organization_id: string
+  order_id: string
+  anomaly_type: string
+  amount: number
+  detail: string
+  created_at: string
+}
+
+interface SecurityData {
+  securityEvents: SecurityEvent[]
+  severityCounts: Record<string, number>
+  reconciliationAlerts: ReconciliationAlert[]
+  amountAtRisk: number
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatusDot({ ok, className }: { ok: boolean; className?: string }) {
@@ -272,6 +298,7 @@ export default function OpsPage() {
   const [continuity, setContinuity] = React.useState<ContinuityData | null>(null)
   const [waComms, setWaComms] = React.useState<WhatsAppCommsData | null>(null)
   const [enterprise, setEnterprise] = React.useState<EnterpriseData | null>(null)
+  const [security, setSecurity] = React.useState<SecurityData | null>(null)
   const [lastRefresh, setLastRefresh] = React.useState<Date>(new Date())
 
   const fetchHealth = React.useCallback(async () => {
@@ -418,6 +445,31 @@ export default function OpsPage() {
     } catch {}
   }, [])
 
+  const fetchSecurity = React.useCallback(async () => {
+    try {
+      const res = await fetch("/api/ops/security", { cache: "no-store" })
+      if (res.ok) setSecurity(await res.json() as SecurityData)
+    } catch {}
+  }, [])
+
+  const resolveAlert = React.useCallback(async (type: "security_event" | "reconciliation_alert", id: string) => {
+    try {
+      const res = await fetch("/api/ops/security", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, id }),
+      })
+      if (res.ok) {
+        toast({ title: "Resolved", variant: "success" })
+        void fetchSecurity()
+      } else {
+        toast({ title: "Failed to resolve", variant: "error" })
+      }
+    } catch {
+      toast({ title: "Failed to resolve", variant: "error" })
+    }
+  }, [fetchSecurity])
+
   const toggleFlag = React.useCallback(async (key: string, enabled: boolean) => {
     try {
       await fetch("/api/flags", {
@@ -436,17 +488,17 @@ export default function OpsPage() {
     setLastRefresh(new Date())
     await Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(), fetchSecurity(),
     ])
     toast({ title: "Refreshed", variant: "success" })
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise, fetchSecurity])
 
   React.useEffect(() => {
     void Promise.all([
       fetchHealth(), fetchWebhooks(), fetchGrowth(), fetchLaunch(),
-      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(),
+      fetchFlags(), fetchTickets(), fetchPaymentHealth(), fetchOnboarding(), fetchAutomation(), fetchEcosystem(), fetchOutcomes(), fetchStability(), fetchContinuity(), fetchWaComms(), fetchEnterprise(), fetchSecurity(),
     ])
-  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise])
+  }, [fetchHealth, fetchWebhooks, fetchGrowth, fetchLaunch, fetchFlags, fetchTickets, fetchPaymentHealth, fetchOnboarding, fetchAutomation, fetchEcosystem, fetchOutcomes, fetchStability, fetchContinuity, fetchWaComms, fetchEnterprise, fetchSecurity])
 
   const runJob = React.useCallback(async (jobName: string) => {
     if (runningJob) return
@@ -1627,6 +1679,73 @@ export default function OpsPage() {
                   <span className="text-xs text-amber-300/70">{item.title}</span>
                 </div>
                 <span className="text-[10px] text-amber-300/30">{item.event_type}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Security Events ── */}
+      {security && security.securityEvents.length > 0 && (
+        <div className="rounded-2xl border border-red-500/15 bg-red-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Shield className="h-4 w-4 text-red-400" />
+            <h3 className="text-sm font-medium text-red-300">Unresolved Security Events ({security.securityEvents.length})</h3>
+            <div className="ml-auto flex gap-2">
+              {Object.entries(security.severityCounts).map(([sev, count]) => (
+                <span key={sev} className={cn(
+                  "text-[10px] px-1.5 py-0.5 rounded",
+                  sev === "critical" ? "bg-red-500/20 text-red-400" :
+                  sev === "high"     ? "bg-orange-500/20 text-orange-400" : "bg-amber-500/10 text-amber-400"
+                )}>{sev}: {count}</span>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1">
+            {security.securityEvents.map(ev => (
+              <div key={ev.id} className="flex items-center justify-between py-1.5 border-b border-red-500/10 last:border-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-300 font-mono">{ev.event_type}</span>
+                  {ev.endpoint && <span className="text-[10px] text-red-300/40">{ev.endpoint}</span>}
+                </div>
+                <button
+                  onClick={() => resolveAlert("security_event", ev.id)}
+                  className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                >
+                  Resolve
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Reconciliation Alerts ── */}
+      {security && security.reconciliationAlerts.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertTriangle className="h-4 w-4 text-amber-400" />
+            <h3 className="text-sm font-medium text-amber-300">Reconciliation Alerts ({security.reconciliationAlerts.length})</h3>
+            <span className="ml-auto text-xs text-amber-300/60 font-mono">
+              ₦{security.amountAtRisk.toLocaleString()} at risk
+            </span>
+          </div>
+          <div className="space-y-1">
+            {security.reconciliationAlerts.map(a => (
+              <div key={a.id} className="flex items-center justify-between py-1.5 border-b border-amber-500/10 last:border-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-xs text-amber-300 font-mono">{a.anomaly_type}</span>
+                  <span className="text-[10px] text-amber-300/40 truncate">{a.detail}</span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className="text-xs text-amber-300/70 font-mono">₦{Number(a.amount).toLocaleString()}</span>
+                  <button
+                    onClick={() => resolveAlert("reconciliation_alert", a.id)}
+                    className="text-[10px] px-2 py-0.5 rounded bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+                  >
+                    Resolve
+                  </button>
+                </div>
               </div>
             ))}
           </div>
