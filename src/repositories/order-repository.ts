@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 
 
 
@@ -25,7 +25,7 @@ type CreateOrderInput = {
 };
 
 export async function createPendingOrder(input: CreateOrderInput) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const product = await supabase.from('products').select('id,title,price,currency,organization_id,status').eq('id', input.productId).eq('organization_id', input.organizationId).maybeSingle();
   if (product.error) throw product.error;
   if (!product.data || product.data.status !== 'active') throw new Error('Product unavailable');
@@ -43,7 +43,7 @@ export async function createPendingOrder(input: CreateOrderInput) {
 }
 
 export async function markPaymentCompleted(params: { orderId: string; paymentId: string; providerReference: string; providerEventId: string; }) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const paymentUpdate = await supabase.from('payments').update({ status: 'succeeded', provider_reference: params.providerReference, provider_event_id: params.providerEventId, paid_at: new Date().toISOString() }).eq('id', params.paymentId).eq('order_id', params.orderId).neq('status', 'succeeded').select('*').maybeSingle();
   if (paymentUpdate.error) throw paymentUpdate.error;
 
@@ -206,7 +206,7 @@ function resolveLifecycle(input: { totalOrders: number; totalRevenue: number; la
 
 
 async function resolveOrganizationStorefrontId(orgId: string) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const storefront = await supabase
     .from('storefronts')
     .select('id')
@@ -219,7 +219,7 @@ async function resolveOrganizationStorefrontId(orgId: string) {
 }
 
 export async function upsertCustomerMemoryFromInteraction(input: { orgId: string; storefrontId?: string; customerIdentifier: string; email?: string; phone?: string; preferredChannel?: string; interactionId: string; correlationId?: string; }) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const now = new Date().toISOString();
   const existing = await supabase.from('customer_profiles').select('*').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();
   if (existing.error) throw existing.error;
@@ -234,7 +234,7 @@ export async function upsertCustomerMemoryFromInteraction(input: { orgId: string
 }
 
 export async function syncCustomerMemoryForOrder(input: { orgId: string; orderId: string; paymentId?: string; correlationId?: string; }) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   const order = await supabase.from('orders').select('id,organization_id,customer_email,status,amount,created_at').eq('id', input.orderId).eq('organization_id', input.orgId).maybeSingle();
   if (order.error || !order.data) throw order.error || new Error('Order not found');
 
@@ -337,7 +337,7 @@ export async function upsertConversionAttribution(input: {
   conversionStatus: string;
   revenueAmount?: number;
 }) {
-  const supabase = createClient();
+  const supabase = createAdminClient();
   let customerId: string | null = null;
   if (input.customerIdentifier) {
     const profile = await supabase.from('customer_profiles').select('id').eq('org_id', input.orgId).eq('customer_identifier', input.customerIdentifier).maybeSingle();

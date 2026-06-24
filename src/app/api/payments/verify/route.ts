@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/server"
 import { markPaymentCompleted } from "@/repositories/order-repository"
 
 const PAYSTACK_API = "https://api.paystack.co"
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function verifyAndRedirect(reference: string): Promise<NextResponse> {
-  const supabase = createClient()
+  const supabase = createAdminClient()
 
   // 1. Verify with Paystack
   const res = await fetch(`${PAYSTACK_API}/transaction/verify/${encodeURIComponent(reference)}`, {

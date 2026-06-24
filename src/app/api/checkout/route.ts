@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/server';
 import { createPendingOrder } from '@/repositories/order-repository';
 import { createPaystackCheckoutSession } from '@/lib/payments/paystack/provider';
 import { createStripeCheckoutSession } from '@/lib/payments/stripe/provider';
@@ -20,7 +20,7 @@ export async function POST(req: Request) {
     validatePublicRuntimeEnv();
     validatePaymentRuntimeEnv();
     const body = await req.json();
-    const supabase = createClient();
+    const supabase = createAdminClient();
 
     const storefront = await supabase.from('storefronts').select('organization_id,is_active,handle').eq('handle', body.handle).maybeSingle();
     if (storefront.error || !storefront.data?.is_active) {

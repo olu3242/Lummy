@@ -99,7 +99,7 @@ export async function POST(req: Request) {
       return errorResponse(400, 'MISSING_WEBHOOK_METADATA', 'Missing metadata linkage', correlationId);
     }
 
-    const supabase = createClient();
+    const supabase = createAdminClient();
     const webhookInsert = await supabase.from('provider_webhook_events').insert({
       tenant_id: parsed.metadata.organizationId,
       idempotency_key: parsed.eventId,
