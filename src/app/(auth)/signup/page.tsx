@@ -33,7 +33,9 @@ function getStrength(pw: string): 0 | 1 | 2 | 3 | 4 {
   if (pw.length >= 8) score++
   if (/[0-9]/.test(pw)) score++
   if (/[^a-zA-Z0-9]/.test(pw)) score++
-  return Math.min(score, 4) as 0 | 1 | 2 | 3 | 4
+  // Non-empty passwords always score at least 1 ("Weak") — strengthConfig[0]
+  // is null, so a 0 score with text present would crash the render.
+  return Math.min(Math.max(score, 1), 4) as 0 | 1 | 2 | 3 | 4
 }
 
 const strengthConfig = [
@@ -47,7 +49,8 @@ const strengthConfig = [
 function PasswordStrength({ password }: { password: string }) {
   const s = getStrength(password)
   if (!password) return null
-  const cfg = strengthConfig[s]!
+  const cfg = strengthConfig[s]
+  if (!cfg) return null
   return (
     <div className="space-y-1.5 mt-2">
       <div className="flex gap-1">
