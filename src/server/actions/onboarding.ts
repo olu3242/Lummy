@@ -56,7 +56,8 @@ export async function completeOnboarding(input: {
       .eq('title', input.productTitle)
       .maybeSingle();
     if (!existing) {
-      const product = await createProduct(organization.id, { title: input.productTitle, price: input.productPrice, description: input.productDescription });
+      // Wizard collects price in naira; products.price is stored in kobo (minor units).
+      const product = await createProduct(organization.id, { title: input.productTitle, price: Math.round(input.productPrice * 100), description: input.productDescription });
       if (product.error) throw product.error;
       log('product_created', { productId: (product.data as { id?: string } | null)?.id });
     }

@@ -1,30 +1,35 @@
 import { createClient } from '@/lib/supabase/server';
+import { createProduct as createProductService, type ProductInput } from '@/services/product-service';
+
+// Thin compatibility wrappers — all product writes live in the canonical
+// Product Service (src/services/product-service.ts). Do not add write logic here.
 
 export async function createProduct(organizationId: string, input: { title: string; price: number; description?: string; image_url?: string; status?: string }) {
-  const supabase = createClient();
-  return supabase
-    .from('products')
-    .insert({ organization_id: organizationId, title: input.title, price: input.price, description: input.description ?? null, image_url: input.image_url ?? null, status: input.status ?? 'active' })
-    .select('*')
-    .single();
+  try {
+    const data = await createProductService(
+      {
+        title: input.title,
+        price: input.price,
+        description: input.description ?? null,
+        image_url: input.image_url ?? null,
+        status: (input.status as ProductInput['status']) ?? 'active',
+      },
+      { organizationId },
+    );
+    return { data, error: null as null };
+  } catch (error) {
+    return { data: null, error: error instanceof Error ? error : new Error('Product creation failed') };
+  }
 }
 
-export async function createProductForCurrentUser(input: { title: string; price: number; description?: string; image_url?: string }) {
-  const supabase = createClient();
-  const { data: auth } = await supabase.auth.getUser();
-  if (!auth.user) throw new Error('Unauthorized');
-
-  const profile = await supabase.from('profiles').select('organization_id').eq('id', auth.user.id).maybeSingle();
-  if (profile.error) throw profile.error;
-  if (!profile.data?.organization_id) throw new Error('No organization context');
-
-  const membership = await supabase.from('organization_members').select('role').eq('organization_id', profile.data.organization_id).eq('user_id', auth.user.id).maybeSingle();
-  if (membership.error) throw membership.error;
-  if (!membership.data) throw new Error('Forbidden');
-
-  const created = await createProduct(profile.data.organization_id, input);
-  if (created.error) throw created.error;
-  return created.data;
+export async function createProductForCurrentUser(input: { title: string; price: number; description?: string; image_url?: string; status?: string }) {
+  return createProductService({
+    title: input.title,
+    price: input.price,
+    description: input.description ?? null,
+    image_url: input.image_url ?? null,
+    status: (input.status as ProductInput['status']) ?? 'active',
+  });
 }
 
 export async function getPublishedProductsByHandle(handle: string) {

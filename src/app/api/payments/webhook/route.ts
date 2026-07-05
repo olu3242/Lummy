@@ -129,7 +129,9 @@ export async function POST(req: Request) {
 
       // ── P0: Notifications on payment ──────────────────────────────────────
       const paymentRecord = await supabase.from('payments').select('amount,currency').eq('id', parsed.metadata.paymentId).maybeSingle()
-      const amountNgn = Number(paymentRow.data?.amount || 0)
+      // payments.amount is stored in minor units (kobo); display in major units
+      const amountMinor = Number(paymentRow.data?.amount || 0)
+      const amountNgn = amountMinor / 100
       const paymentCurrency = (paymentRecord.data as { currency?: string } | null)?.currency || 'NGN'
       const amountFormatted = new Intl.NumberFormat(paymentCurrency === 'NGN' ? 'en-NG' : 'en-US', { style: 'currency', currency: paymentCurrency, maximumFractionDigits: 0 }).format(amountNgn)
       const sdkCtx = { tenantId: parsed.metadata.organizationId, correlationId }
@@ -206,7 +208,7 @@ export async function POST(req: Request) {
       void emitEvent('payment_received', sdkCtx, {
         orderId:        parsed.metadata.orderId,
         paymentId:      parsed.metadata.paymentId,
-        amountMinorUnit: amountNgn * 100,
+        amountMinorUnit: amountMinor,
         amountFormatted,
         correlationId,
       }, `payment_received:${parsed.metadata.paymentId}`)

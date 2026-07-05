@@ -89,12 +89,13 @@ async function getDashboardPaymentSummaryUnsafe() {
   const orders = await supabase.from('orders').select('id,status,created_at').eq('organization_id', organizationId);
   if (orders.error) throw orders.error;
 
-  const totalRevenue = (payments.data ?? []).filter((p) => p.status === 'succeeded').reduce((a, p) => a + Number(p.amount), 0);
+  // payments.amount is stored in minor units (kobo) — aggregate in major units for display
+  const totalRevenue = (payments.data ?? []).filter((p) => p.status === 'succeeded').reduce((a, p) => a + Number(p.amount), 0) / 100;
   const totalOrders = (orders.data ?? []).length;
   const paidOrders = (orders.data ?? []).filter((o) => o.status === 'paid').length;
   const failedPayments = (payments.data ?? []).filter((p) => p.status === 'failed').length;
   const pendingPayments = (payments.data ?? []).filter((p) => p.status === 'pending').length;
-  const pendingRevenue = (payments.data ?? []).filter((p) => p.status === 'pending').reduce((a, p) => a + Number(p.amount), 0);
+  const pendingRevenue = (payments.data ?? []).filter((p) => p.status === 'pending').reduce((a, p) => a + Number(p.amount), 0) / 100;
   const conversionRate = totalOrders > 0 ? Number(((paidOrders / totalOrders) * 100).toFixed(1)) : 0;
 
   const providerCounts = new Map<string, number>();
@@ -107,7 +108,7 @@ async function getDashboardPaymentSummaryUnsafe() {
   for (const p of payments.data ?? []) {
     const day = new Date(p.created_at).toISOString().slice(0, 10);
     const row = byDay.get(day) ?? { revenue: 0, orders: 0 };
-    if (p.status === 'succeeded') row.revenue += Number(p.amount);
+    if (p.status === 'succeeded') row.revenue += Number(p.amount) / 100;
     row.orders += 1;
     byDay.set(day, row);
   }
@@ -255,7 +256,8 @@ export async function syncCustomerMemoryForOrder(input: { orgId: string; orderId
 
   const totalOrders = (orders.data ?? []).length;
   const paidOrders = (orders.data ?? []).filter((o) => o.status === 'paid').length;
-  const totalRevenue = (orders.data ?? []).filter((o) => o.status === 'paid').reduce((a, o) => a + Number(o.amount), 0);
+  // orders.amount is stored in minor units (kobo) — lifecycle thresholds and summaries use naira
+  const totalRevenue = (orders.data ?? []).filter((o) => o.status === 'paid').reduce((a, o) => a + Number(o.amount), 0) / 100;
   const averageOrderValue = paidOrders > 0 ? totalRevenue / paidOrders : 0;
   const checkoutGenerated = (interactions.data ?? []).filter((i) => i.conversion_status === 'checkout_generated').length;
   const abandoned = Math.max(0, checkoutGenerated - paidOrders);

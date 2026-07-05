@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { updateProductSchema } from "@/lib/validations/product"
+import { updateProduct, archiveProduct, deleteProduct } from "@/services/product-service"
 
 type Params = { params: { id: string } }
 
@@ -26,47 +26,31 @@ export async function GET(_request: NextRequest, { params }: Params) {
   return NextResponse.json({ data })
 }
 
-// PATCH /api/products/:id
+// PATCH /api/products/:id — delegates to the canonical Product Service
 export async function PATCH(request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const organizationId = await getOrganizationId(supabase)
-  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const body = await request.json()
-  const parsed = updateProductSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 })
+  try {
+    const body = await request.json() as Record<string, unknown>
+    // Backwards compat with the old field name
+    if ('name' in body && !('title' in body)) { body.title = body.name; delete body.name }
+    const data = await updateProduct(params.id, body)
+    return NextResponse.json({ data })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Update failed"
+    const status = message === "Unauthorized" ? 401 : message === "Product not found" ? 404 : 400
+    return NextResponse.json({ error: message }, { status })
   }
-
-  // Map title if name was sent (backwards compat with old field name)
-  const patch = { ...parsed.data } as Record<string, unknown>
-  if ('name' in patch && !('title' in patch)) { patch.title = patch.name; delete patch.name }
-
-  const { data, error } = await supabase
-    .from("products")
-    .update({ ...patch, updated_at: new Date().toISOString() })
-    .eq("id", params.id)
-    .eq("organization_id", organizationId)
-    .select()
-    .single()
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  if (!data)  return NextResponse.json({ error: "Not found" }, { status: 404 })
-  return NextResponse.json({ data })
 }
 
-// DELETE /api/products/:id — soft delete via status=draft
-export async function DELETE(_request: NextRequest, { params }: Params) {
-  const supabase = createClient()
-  const organizationId = await getOrganizationId(supabase)
-  if (!organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { error } = await supabase
-    .from("products")
-    .update({ status: "draft", updated_at: new Date().toISOString() })
-    .eq("id", params.id)
-    .eq("organization_id", organizationId)
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ ok: true })
+// DELETE /api/products/:id — archives by default; ?hard=true deletes permanently
+export async function DELETE(request: NextRequest, { params }: Params) {
+  try {
+    const hard = new URL(request.url).searchParams.get("hard") === "true"
+    if (hard) await deleteProduct(params.id)
+    else await archiveProduct(params.id)
+    return NextResponse.json({ ok: true, hard })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Delete failed"
+    const status = message === "Unauthorized" ? 401 : message === "Product not found" ? 404 : 400
+    return NextResponse.json({ error: message }, { status })
+  }
 }

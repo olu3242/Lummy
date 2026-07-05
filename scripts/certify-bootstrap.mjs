@@ -119,6 +119,33 @@ async function certifyFreshUser(runIdx) {
     if (pubProducts.error || (pubProducts.data ?? []).length === 0) fail('public products read (RLS: products public read)', pubProducts.error ?? '0 products visible');
     else ok('public products read', `${pubProducts.data.length} product(s)`);
 
+    // 12. Product management columns (migration 061): sku/slug/category/stock/updated_at
+    const enriched = await user.from('products').insert({
+      organization_id: orgId, title: 'Cert Import Product', price: 150000, status: 'draft',
+      sku: `CERT-${rand().toUpperCase()}`, slug: `cert-import-${rand()}`, category: 'Clothing', stock_quantity: 5,
+    }).select('id,sku,slug').single();
+    if (enriched.error) fail('product with sku/slug/category (migration 061 applied?)', enriched.error);
+    else ok('product with sku/slug/category', enriched.data.id);
+
+    // 13. Archive lifecycle: archived products must be hidden from the public storefront
+    if (enriched.data?.id) {
+      const archived = await user.from('products').update({ status: 'archived', updated_at: new Date().toISOString() }).eq('id', enriched.data.id).eq('organization_id', orgId);
+      if (archived.error) fail('archive product (status + updated_at)', archived.error);
+      else {
+        const pubArchived = await anon.from('products').select('id').eq('id', enriched.data.id).eq('status', 'archived');
+        if ((pubArchived.data ?? []).length > 0) fail('archived product hidden from public', 'archived product publicly visible');
+        else ok('archived product hidden from public');
+      }
+    }
+
+    // 14. Import job history table (migration 061) under RLS
+    const job = await user.from('product_import_jobs').insert({
+      organization_id: orgId, user_id: userId, file_name: 'cert.csv', file_type: 'csv',
+      total_rows: 1, imported_rows: 1, failed_rows: 0, status: 'completed', error_report: [],
+    }).select('id').single();
+    if (job.error) fail('product_import_jobs insert (migration 061 applied?)', job.error);
+    else ok('product_import_jobs insert', job.data.id);
+
     await user.auth.signOut();
   } catch (e) {
     fail('unexpected exception', e);

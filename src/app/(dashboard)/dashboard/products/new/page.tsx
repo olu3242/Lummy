@@ -508,7 +508,8 @@ export default function NewProductPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.name,
-          price: Number(form.price) || 0,
+          // products.price is stored in kobo (minor units); the form collects naira
+          price: Math.round((Number(form.price) || 0) * 100),
           description: form.description || undefined,
           image_url: form.imageUrl || undefined,
           status: form.status === "draft" ? "draft" : "active",

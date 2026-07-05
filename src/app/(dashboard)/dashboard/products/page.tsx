@@ -7,7 +7,7 @@ import {
   Plus, Search, Filter, MessageCircle,
   Eye, ShoppingBag, TrendingUp, Edit, Trash2, ImagePlus,
   ToggleLeft, ToggleRight, X, CheckSquare, Square,
-  Sparkles, Loader2, Copy, Download, LayoutGrid, List,
+  Sparkles, Loader2, Copy, Download, Upload, LayoutGrid, List,
   ChevronDown, AlertTriangle, ArrowUpDown, Tag,
 } from "lucide-react"
 import Link from "next/link"
@@ -27,9 +27,10 @@ const statusConfig = {
   active:   { label: "Active",   className: "bg-brand-green/10 text-brand-green border-brand-green/20" },
   draft:    { label: "Draft",    className: "bg-muted text-muted-foreground border-border" },
   sold_out: { label: "Sold Out", className: "bg-amber-500/10 text-amber-500 border-amber-500/20" },
+  archived: { label: "Archived", className: "bg-muted text-muted-foreground/60 border-border" },
 }
 
-const STATUS_FILTERS = ["All", "Active", "Draft", "Sold Out"]
+const STATUS_FILTERS = ["All", "Active", "Draft", "Archived", "Sold Out"]
 const CATEGORIES = ["Clothing", "Jewellery", "Accessories", "Beauty", "Footwear", "Food", "Art", "Digital", "Services", "Other"]
 const SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "One Size"]
 const COLOR_OPTIONS = [
@@ -602,7 +603,7 @@ export default function ProductsPage() {
             id: p.id,
             name: p.title,
             description: p.description ?? "",
-            price: Number(p.price), // stored in naira (numeric 12,2) — same unit as checkout/storefront
+            price: Math.round(Number(p.price) / 100), // stored in kobo (minor units) → display naira
             stock: null,
             category: "Other",
             status: (p.status ?? "active") as DashboardProduct["status"],
@@ -637,11 +638,13 @@ export default function ProductsPage() {
   const filtered = sortProducts(
     products.filter((p) => {
       const matchSearch = p.name.toLowerCase().includes(search.toLowerCase())
+      const status = p.status as string
       const matchFilter =
-        activeFilter === "All" ||
-        (activeFilter === "Active" && p.status === "active") ||
-        (activeFilter === "Draft" && p.status === "draft") ||
-        (activeFilter === "Sold Out" && p.status === "sold_out")
+        (activeFilter === "All" && status !== "archived") ||
+        (activeFilter === "Active" && status === "active") ||
+        (activeFilter === "Draft" && status === "draft") ||
+        (activeFilter === "Archived" && status === "archived") ||
+        (activeFilter === "Sold Out" && status === "sold_out")
       const matchCategory = !activeCategory || p.category === activeCategory
       return matchSearch && matchFilter && matchCategory
     }),
@@ -663,43 +666,48 @@ export default function ProductsPage() {
 
   const clearSelection = () => setSelected(new Set())
 
-  const bulkDelete = () => {
+  const bulkDelete = async () => {
     const count = selected.size
-    setProducts((prev) => prev.filter((p) => !selected.has(p.id)))
+    const ids = Array.from(selected)
+    const results = await Promise.allSettled(ids.map(id => fetch(`/api/products/${id}`, { method: "DELETE" })))
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled" && (results[i] as PromiseFulfilledResult<Response>).value.ok))
+    setProducts((prev) => prev.map((p) => okIds.has(p.id) ? { ...p, status: "archived" as DashboardProduct["status"] } : p))
     clearSelection()
-    toast({ title: `${count} product${count > 1 ? "s" : ""} deleted`, variant: "default" })
+    toast({ title: `${okIds.size} of ${count} product${count > 1 ? "s" : ""} archived`, variant: "default" })
   }
 
-  const bulkSetStatus = (status: "active" | "draft") => {
+  const bulkSetStatus = async (status: "active" | "draft") => {
     const count = selected.size
-    setProducts((prev) => prev.map((p) => selected.has(p.id) ? { ...p, status } : p))
+    const ids = Array.from(selected)
+    const results = await Promise.allSettled(ids.map(id => fetch(`/api/products/${id}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }),
+    })))
+    const okIds = new Set(ids.filter((_, i) => results[i].status === "fulfilled" && (results[i] as PromiseFulfilledResult<Response>).value.ok))
+    setProducts((prev) => prev.map((p) => okIds.has(p.id) ? { ...p, status } : p))
     clearSelection()
-    toast({ title: `${count} product${count > 1 ? "s" : ""} set to ${status}`, variant: "success" })
+    toast({ title: `${okIds.size} of ${count} product${count > 1 ? "s" : ""} set to ${status}`, variant: "success" })
   }
 
   const openAdd = () => { setEditingProduct(null); setDrawerOpen(true) }
   const openEdit = (p: DashboardProduct) => { setEditingProduct(p); setDrawerOpen(true) }
 
-  const duplicateProduct = (p: DashboardProduct) => {
+  const duplicateProduct = async (p: DashboardProduct) => {
+    const res = await fetch(`/api/products/${p.id}/duplicate`, { method: "POST" })
+    if (!res.ok) { toast({ title: "Duplicate failed", variant: "error" }); return }
+    const { data } = await res.json() as { data: { id: string; title: string; price: number; status: string; image_url?: string; created_at: string } }
     const copy: DashboardProduct = {
-      ...p, id: `${p.id}-copy-${Date.now()}`, name: `Copy of ${p.name}`,
+      ...p, id: data.id, name: data.title, price: Math.round(Number(data.price) / 100),
       status: "draft", sales: 0, views: 0, revenue: 0,
+      createdAt: data.created_at?.split("T")[0] ?? "",
     }
     setProducts(prev => [copy, ...prev])
     toast({ title: "Product duplicated", description: `"${copy.name}" added as a draft.`, variant: "success" })
   }
 
   const exportCSV = () => {
-    const header = ["Name", "Category", "Price (₦)", "Stock", "Status", "Sales", "Revenue (₦)"]
-    const rows = products.map(p => [
-      `"${p.name}"`, p.category, p.price, p.stock ?? "unlimited", p.status, p.sales, p.revenue,
-    ].join(","))
-    const csv = [header.join(","), ...rows].join("\n")
-    const blob = new Blob([csv], { type: "text/csv" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a"); a.href = url; a.download = "lummy-products.csv"; a.click()
-    URL.revokeObjectURL(url)
-    toast({ title: "Products exported" })
+    // Server-generated export from the canonical Product Service
+    window.location.href = "/api/products/export"
+    toast({ title: "Export started" })
   }
 
   return (
@@ -716,6 +724,10 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link href="/dashboard/products/import"
+            className="flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background text-xs font-semibold hover:bg-accent transition-colors">
+            <Upload className="h-3.5 w-3.5" /> Bulk Import
+          </Link>
           <button onClick={exportCSV}
             className="flex items-center gap-1.5 h-8 px-3 rounded-xl border border-border bg-background text-xs font-semibold hover:bg-accent transition-colors">
             <Download className="h-3.5 w-3.5" /> Export CSV
