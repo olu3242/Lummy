@@ -76,7 +76,7 @@ const RESERVED_HANDLES = ["sade", "shop", "store", "lummy", "admin"]
 export default function SignupPage() {
   const [showPassword, setShowPassword] = React.useState(false)
   const [isLoading, setIsLoading] = React.useState(false)
-  const [step, setStep] = React.useState<"details" | "done">("details")
+  const [step, setStep] = React.useState<"details" | "done" | "confirm-email">("details")
   const [password, setPassword] = React.useState("")
   const [email, setEmail] = React.useState("")
   const [fullName, setFullName] = React.useState("")
@@ -109,7 +109,7 @@ export default function SignupPage() {
     if (handleStatus === "taken") return
     setIsLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -128,6 +128,14 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ eventType: "failed_signup", email, reason: error.message }),
       })
+      return
+    }
+    // With email confirmation enabled, signUp returns a user but NO session.
+    // Redirecting to /onboarding would bounce through middleware to /login with
+    // no explanation — show the "confirm your email" state instead.
+    if (!data.session) {
+      setIsLoading(false)
+      setStep("confirm-email")
       return
     }
     setStep("done")
@@ -177,7 +185,23 @@ export default function SignupPage() {
       <div className="flex-1 lg:max-w-md xl:max-w-lg flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-sm">
           <AnimatePresence mode="wait">
-            {step === "done" ? (
+            {step === "confirm-email" ? (
+              <motion.div key="confirm-email" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                className="text-center">
+                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                  transition={{ type: "spring", damping: 12, stiffness: 200, delay: 0.1 }}
+                  className="inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-brand-purple/15 border-2 border-brand-purple/30 mb-5">
+                  <Mail className="h-10 w-10 text-brand-purple" />
+                </motion.div>
+                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+                  <h2 className="font-display text-2xl font-bold text-white mb-2">Check your email</h2>
+                  <p className="text-sm text-white/50">
+                    We sent a confirmation link to <span className="text-white/80 font-semibold">{email}</span>.
+                    Click it to activate your account and continue setting up your store.
+                  </p>
+                </motion.div>
+              </motion.div>
+            ) : step === "done" ? (
               <motion.div key="done" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
                 className="text-center">
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}

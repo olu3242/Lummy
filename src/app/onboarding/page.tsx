@@ -621,41 +621,31 @@ export default function OnboardingPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const profileUpdate: Record<string, unknown> = {
-      business_name: data.storeName,
-      handle: data.handle,
+    // Upsert (not update): the creator_profiles row does not exist yet at this
+    // point in the wizard — completeOnboarding() creates it at final submission.
+    // An update would match 0 rows and silently drop niche/location/creator_type.
+    const cleanHandle = data.handle.toLowerCase().trim().replace(/[^a-z0-9._-]/g, "")
+    if (!cleanHandle) return
+
+    const profileUpsert: Record<string, unknown> = {
+      user_id: user.id,
+      business_name: data.storeName || "Creator",
+      handle: cleanHandle,
       whatsapp_number: data.whatsapp,
       niche: data.niche,
       location: data.location,
-      creator_type: data.creatorType || "product_seller",
-      onboarding_completed: true,
+      // Wizard ids → creator_type enum values (digital_creator/service_provider
+      // don't exist in the enum; the DB has digital_seller/service_creator).
+      creator_type: ({ digital_creator: "digital_seller", service_provider: "service_creator" } as Record<string, string>)[data.creatorType] ?? (data.creatorType || "product_seller"),
       updated_at: new Date().toISOString(),
     }
-    if (data.bankName) profileUpdate["metadata"] = { bank_name: data.bankName, account_number: data.accountNumber, account_name: data.accountName }
+    if (data.bankName) profileUpsert["metadata"] = { bank_name: data.bankName, account_number: data.accountNumber, account_name: data.accountName }
 
-    await supabase.from("creator_profiles").update(profileUpdate).eq("user_id", user.id)
+    const result = await supabase.from("creator_profiles").upsert(profileUpsert, { onConflict: "user_id" })
+    if (result.error) console.error("[onboarding persist] creator_profiles upsert", result.error.message)
 
-    if (data.addProduct && data.productName && data.productPrice) {
-      const { data: profile } = await supabase
-        .from("creator_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .single()
-
-      if (profile?.id) {
-        const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
-        void Promise.resolve(supabase.from("products").insert({
-          creator_id: profile.id,
-          name: data.productName,
-          description: data.productDesc || null,
-          price: priceKobo,
-          currency: "NGN",
-          type: "physical",
-          category: data.productCategory || "Other",
-          is_published: true,
-        })).catch(console.error)
-      }
-    }
+    // Product creation intentionally lives in completeOnboarding() only — it
+    // targets the org-scoped products schema with the correct price unit.
   }
 
   const next = async () => {
