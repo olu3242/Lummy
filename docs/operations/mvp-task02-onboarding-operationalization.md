@@ -43,7 +43,36 @@ Implemented in `completeOnboarding` flow:
 
 1. `src/repositories/onboarding-repository.ts`
 2. `src/server/actions/onboarding.ts`
-3. `src/app/onboarding/page.tsx`
+3. `src/app/// src/app/(onboarding)/onboarding/page.tsx
+
+export default async function OnboardingPage() {
+  const supabase = createClient(); // Server client
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect('/login');
+
+  // 1. Force the database to return a plain, serialized object
+  // Avoid passing raw Prisma/Supabase query results directly
+  const { data: store, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  // 2. Defensive rendering
+  if (error || !store) {
+     return <OnboardingPlaceholder />; // Graceful fallback
+  }
+
+  // 3. Explicitly serialize the data
+  const safeStore = {
+     name: store.name ?? 'New Store',
+     whatsappConnected: !!store.whatsapp_connected,
+     createdAt: new Date(store.created_at).toISOString() // Force string
+  };
+
+  return <OnboardingSummary store={safeStore} />;
+}`
 
 ## 7) API/backend gaps (remaining)
 

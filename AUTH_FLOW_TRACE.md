@@ -25,7 +25,36 @@ Canonical Supabase project observed from `.env.local`: `llbuddtdsdbljnsvzide`.
 | `src/app/api/auth/callback/route.ts` | `GET` | Direct `createServerClient` from `@supabase/ssr` with request-cookie adapter | Exchanges PKCE `code` for session via `exchangeCodeForSession`; captures pending Set-Cookie values and attaches them to final redirect. | Auth context should be preserved after callback. Calls `ensureCreatorRuntimeContext(supabase, user)`. |
 | `src/app/api/account/bootstrap/route.ts` | `POST` | Server `createClient()` | Reads authenticated user from request cookies via `auth.getUser()`. | Calls `ensureCreatorRuntimeContext(supabase, auth.user)`. |
 | `src/middleware.ts` | `middleware` | `updateSession(request)` | Refreshes session cookies and protects `/dashboard`, `/onboarding`, `/ops`, `/developers`. | `/api/auth/*` is passthrough so callback is not intercepted. |
-| `src/app/onboarding/page.tsx` | initial hydration effect | Browser `createClient()` | Browser reads `auth.getUser()`, then `profiles` and `onboarding_states`. | If unauthenticated, redirects to `/login?next=/onboarding`. |
+| `src/app/// src/app/(onboarding)/onboarding/page.tsx
+
+export default async function OnboardingPage() {
+  const supabase = createClient(); // Server client
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) redirect('/login');
+
+  // 1. Force the database to return a plain, serialized object
+  // Avoid passing raw Prisma/Supabase query results directly
+  const { data: store, error } = await supabase
+    .from('stores')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  // 2. Defensive rendering
+  if (error || !store) {
+     return <OnboardingPlaceholder />; // Graceful fallback
+  }
+
+  // 3. Explicitly serialize the data
+  const safeStore = {
+     name: store.name ?? 'New Store',
+     whatsappConnected: !!store.whatsapp_connected,
+     createdAt: new Date(store.created_at).toISOString() // Force string
+  };
+
+  return <OnboardingSummary store={safeStore} />;
+}` | initial hydration effect | Browser `createClient()` | Browser reads `auth.getUser()`, then `profiles` and `onboarding_states`. | If unauthenticated, redirects to `/login?next=/onboarding`. |
 | `src/app/(dashboard)/dashboard/page.tsx` | `DashboardPage` | Server `createClient()` | Server reads `auth.getUser()` from cookies. | Redirects unauthenticated users to `/login`; redirects incomplete profile/no profile to onboarding. |
 
 ## Auth Context Preservation Assessment

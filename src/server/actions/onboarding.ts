@@ -4,7 +4,7 @@ import { saveOnboardingProfile, ensureOrganizationForUser } from '@/repositories
 import { upsertStorefront } from '@/repositories/storefront-repository';
 import { createProduct } from '@/repositories/product-repository';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
-import { sendStorefrontLiveEmail, sendCreatorWelcomeEmail } from '@/lib/notifications/email';
+import { sendCommunication } from '@/lib/communications/communication-service';
 
 type OnboardingLogContext = Record<string, unknown>;
 
@@ -261,22 +261,22 @@ export async function completeOnboarding(input: {
     storefrontUrl: `/${cleanHandle}`,
   });
 
-  // Fire-and-forget: storefront-live + welcome emails (non-blocking)
+  // Fire-and-forget: communication evidence is persisted by Communication OS.
   const creatorEmail = auth.user.email;
   if (creatorEmail) {
-    void sendStorefrontLiveEmail({
-      to: creatorEmail,
-      creatorName: input.fullName,
-      storeName: input.orgName,
-      storeHandle: cleanHandle,
-    }).catch(() => { /* non-critical — never block onboarding completion */ });
-
-    void sendCreatorWelcomeEmail({
-      to: creatorEmail,
-      creatorName: input.fullName,
-      storeHandle: cleanHandle,
-      storeName: input.orgName,
-    }).catch(() => {});
+    void sendCommunication({
+      event: 'onboarding.completed',
+      recipient: creatorEmail,
+      templateId: 'onboarding.completed',
+      organizationId: organization.id,
+      correlationId,
+      variables: {
+        practice_name: input.orgName,
+        portal_link: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://lummy.co'}/dashboard`,
+      },
+    }).catch((error) => {
+      logOnboardingError('communication.onboarding_completed.failed', error, { correlationId, organizationId: organization.id });
+    });
   }
 
   return { organizationId: organization.id, handle: cleanHandle };

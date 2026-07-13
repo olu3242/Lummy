@@ -11,7 +11,8 @@ import { logger } from "@/lib/observability/logger"
 import { createAdminClient } from "@/lib/supabase/server"
 import { dispatchAutomation } from "./triggers"
 import { sendTextMessage, sendOrderConfirmation, sendOrderCheckoutLink } from "@/lib/whatsapp/send"
-import { sendOrderReceipt, sendCreatorOrderNotification, sendCreatorWelcomeEmail } from "@/lib/notifications/email"
+import { sendOrderReceipt, sendCreatorOrderNotification } from "@/lib/notifications/email"
+import { sendCommunication } from "@/lib/communications/communication-service"
 import { callAgent, type AgentName, type GenerationType } from "@/lib/ai/gateway"
 import { checkRateLimit } from "@/lib/security/rate-limit"
 import type { AutomationEventName } from "./events"
@@ -415,11 +416,16 @@ export async function sendCreatorWelcome(opts: {
   ctx: SDKContext
 }): Promise<{ email: SDKResult; whatsapp: SDKResult }> {
   const [emailResult, waResult] = await Promise.allSettled([
-    sendCreatorWelcomeEmail({
-      to:          opts.creatorEmail,
-      creatorName: opts.creatorName,
-      storeHandle: opts.storeHandle,
-      storeName:   opts.storeName,
+    sendCommunication({
+      event: "onboarding.completed",
+      recipient: opts.creatorEmail,
+      templateId: "onboarding.completed",
+      organizationId: opts.ctx.tenantId,
+      correlationId: opts.ctx.correlationId,
+      variables: {
+        practice_name: opts.storeName,
+        portal_link: `${process.env.NEXT_PUBLIC_APP_URL ?? "https://lummy.co"}/dashboard`,
+      },
     }),
     opts.creatorPhone
       ? sendTextMessage({
@@ -429,7 +435,7 @@ export async function sendCreatorWelcome(opts: {
       : Promise.resolve({ success: true, to: "" }),
   ])
 
-  const email: SDKResult = emailResult.status === "fulfilled" && emailResult.value.success
+  const email: SDKResult = emailResult.status === "fulfilled" && emailResult.value.ok
     ? { ok: true }
     : { ok: false, error: emailResult.status === "rejected" ? String(emailResult.reason) : "email failed" }
 

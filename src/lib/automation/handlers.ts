@@ -164,6 +164,15 @@ const HANDLERS: Record<AutomationEventName, (ctx: HandlerContext) => Promise<voi
       "/dashboard/analytics"
     )
   },
+  "report.delivery.failed": async ({ payload, correlationId }) => {
+    logger.error("[handler] report.delivery.failed", {
+      correlationId,
+      reportId: payload.reportId,
+      recipient: payload.recipient,
+      failureReason: payload.failureReason,
+      deliveryId: payload.deliveryId,
+    })
+  },
   low_product_count: async ({ creatorId }) => {
     const userId = await resolveUserId(creatorId)
     if (!userId) return

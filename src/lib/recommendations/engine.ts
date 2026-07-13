@@ -3,7 +3,7 @@ import type { RetentionSignals } from "@/lib/growth/retention"
 import { getCreatorRecommendations } from "@/lib/ai/recommendations"
 import { getCreatorRetentionSignals } from "@/lib/growth/retention"
 import type { ChurnRiskScore } from "@/lib/creator/churn"
-import type { RevenueOpportunity } from "@/lib/revenue/intelligence"
+import type { CreatorRevenueOpportunity } from "@/lib/revenue/intelligence"
 
 const PRIORITY_RANK = { high: 0, medium: 1, low: 2 } as const
 
@@ -68,7 +68,7 @@ export function injectChurnRecommendation(
 
 export function injectOpportunityRecommendations(
   recs: ActionRecommendation[],
-  opps: RevenueOpportunity[],
+  opps: CreatorRevenueOpportunity[],
 ): ActionRecommendation[] {
   const highOpps = opps.filter(o => o.priority === "high").slice(0, 2)
   const oppRecs: ActionRecommendation[] = highOpps.map(opp => ({
@@ -87,7 +87,7 @@ export function injectOpportunityRecommendations(
 
 export async function buildCreatorRecommendationSummary(
   creatorId: string,
-  opts: { churn?: ChurnRiskScore; opportunities?: RevenueOpportunity[] } = {},
+  opts: { churn?: ChurnRiskScore; opportunities?: CreatorRevenueOpportunity[] } = {},
 ): Promise<{ recommendations: RankedRecommendation[]; topAction: RankedRecommendation | null; hasUrgent: boolean }> {
   const signals: RetentionSignals = await getCreatorRetentionSignals(creatorId)
 

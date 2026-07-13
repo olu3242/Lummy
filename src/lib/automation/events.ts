@@ -16,6 +16,7 @@ export type AutomationEventName =
   | "whatsapp_message_received"
   | "store_schema_updated"
   | "weekly_digest_requested"
+  | "report.delivery.failed"
   | "checkout_started"
   | "checkout_abandoned"
   | "lead_scored"

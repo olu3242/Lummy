@@ -1,5 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/server"
 import { generatePricingSuggestion } from "@/lib/ai/commerce"
+import { buildRevenueOpportunity } from "@/lib/alice/revenue-opportunity"
+import type { RevenueOpportunity } from "@/lib/alice/revenue-opportunity"
+
+export type { RevenueOpportunity } from "@/lib/alice/revenue-opportunity"
 
 export interface CreatorRevenueSummary {
   creatorId: string
@@ -71,17 +75,47 @@ export async function getCreatorRevenueSummary(creatorId: string): Promise<Creat
   }
 }
 
-export interface RevenueOpportunity {
+export interface CreatorRevenueOpportunity {
   type: "pricing" | "product_gap" | "cta" | "publish" | "whatsapp"
   title: string
   description: string
   estimatedUplift: string
   priority: "high" | "medium" | "low"
+  aliceOpportunity: RevenueOpportunity
 }
 
-export async function getRevenueOpportunities(creatorId: string): Promise<RevenueOpportunity[]> {
+function toCreatorOpportunity(input: {
+  creatorId: string
+  type: CreatorRevenueOpportunity["type"]
+  title: string
+  description: string
+  estimatedUplift: string
+  priority: CreatorRevenueOpportunity["priority"]
+  estimatedRevenue: number
+  confidence: number
+  urgency: number
+  impact: number
+}): CreatorRevenueOpportunity {
+  return {
+    type: input.type,
+    title: input.title,
+    description: input.description,
+    estimatedUplift: input.estimatedUplift,
+    priority: input.priority,
+    aliceOpportunity: buildRevenueOpportunity({
+      organizationId: input.creatorId,
+      type: input.type === "pricing" ? "treatment_acceptance" : input.type === "whatsapp" ? "lead_conversion" : "provider_utilization",
+      estimatedRevenue: input.estimatedRevenue,
+      confidence: input.confidence,
+      urgency: input.urgency,
+      impact: input.impact,
+    }),
+  }
+}
+
+export async function getRevenueOpportunities(creatorId: string): Promise<CreatorRevenueOpportunity[]> {
   const supabase = createAdminClient()
-  const opps: RevenueOpportunity[] = []
+  const opps: CreatorRevenueOpportunity[] = []
 
   const [profileRes, productRes] = await Promise.allSettled([
     supabase.from("creator_profiles").select("is_published, whatsapp_number, first_sale_at").eq("id", creatorId).maybeSingle(),
@@ -97,15 +131,48 @@ export async function getRevenueOpportunities(creatorId: string): Promise<Revenu
     : []
 
   if (!profile?.is_published) {
-    opps.push({ type: "publish", title: "Publish your store", description: "Unpublished stores cannot be found by buyers.", estimatedUplift: "+100% visibility", priority: "high" })
+    opps.push(toCreatorOpportunity({
+      creatorId,
+      type: "publish",
+      title: "Publish your store",
+      description: "Unpublished stores cannot be found by buyers.",
+      estimatedUplift: "+100% visibility",
+      priority: "high",
+      estimatedRevenue: 500,
+      confidence: 72,
+      urgency: 86,
+      impact: 80,
+    }))
   }
 
   if (!profile?.whatsapp_number) {
-    opps.push({ type: "whatsapp", title: "Add WhatsApp", description: "WhatsApp checkout converts 40% better than link-only stores.", estimatedUplift: "+40% conversions", priority: "high" })
+    opps.push(toCreatorOpportunity({
+      creatorId,
+      type: "whatsapp",
+      title: "Add WhatsApp",
+      description: "WhatsApp checkout converts 40% better than link-only stores.",
+      estimatedUplift: "+40% conversions",
+      priority: "high",
+      estimatedRevenue: 400,
+      confidence: 75,
+      urgency: 78,
+      impact: 76,
+    }))
   }
 
   if (!profile?.first_sale_at && products.length > 0 && profile?.is_published) {
-    opps.push({ type: "cta", title: "Optimize your CTA", description: "\"Order on WhatsApp\" outperforms generic buy buttons by 2×.", estimatedUplift: "2× click-through", priority: "medium" })
+    opps.push(toCreatorOpportunity({
+      creatorId,
+      type: "cta",
+      title: "Optimize your CTA",
+      description: "\"Order on WhatsApp\" outperforms generic buy buttons by 2×.",
+      estimatedUplift: "2× click-through",
+      priority: "medium",
+      estimatedRevenue: 300,
+      confidence: 65,
+      urgency: 58,
+      impact: 68,
+    }))
   }
 
   // Check for underpriced products
@@ -117,26 +184,36 @@ export async function getRevenueOpportunities(creatorId: string): Promise<Revenu
       currency: p.currency ?? "NGN",
     })
     if (suggestion.suggestedPrice > suggestion.currentPrice) {
-      opps.push({
+      opps.push(toCreatorOpportunity({
+        creatorId,
         type: "pricing",
         title: `Raise price on "${p.name}"`,
         description: suggestion.reasoning,
         estimatedUplift: `+${Math.round((suggestion.suggestedPrice - suggestion.currentPrice) / suggestion.currentPrice * 100)}% revenue`,
         priority: suggestion.confidence === "high" ? "high" : "medium",
-      })
+        estimatedRevenue: Math.max(0, suggestion.suggestedPrice - suggestion.currentPrice),
+        confidence: suggestion.confidence === "high" ? 82 : 62,
+        urgency: 52,
+        impact: 72,
+      }))
       break // One pricing opp max
     }
   }
 
   const unpublishedProducts = products.filter(p => !p.is_published)
   if (unpublishedProducts.length > 0) {
-    opps.push({
+    opps.push(toCreatorOpportunity({
+      creatorId,
       type: "product_gap",
       title: `Publish ${unpublishedProducts.length} draft product${unpublishedProducts.length > 1 ? "s" : ""}`,
       description: "Draft products are invisible to buyers. Each published product increases discovery.",
       estimatedUplift: "+draft-to-sale conversions",
       priority: "medium",
-    })
+      estimatedRevenue: unpublishedProducts.length * 250,
+      confidence: 60,
+      urgency: 54,
+      impact: 62,
+    }))
   }
 
   return opps.sort((a, b) => ({ high: 0, medium: 1, low: 2 }[a.priority] - { high: 0, medium: 1, low: 2 }[b.priority])).slice(0, 4)
