@@ -136,9 +136,14 @@ export async function ensureOrganizationForUser(input: { userId: string; orgName
   if (existingMembership.data?.organization_id) {
     const orgRow = await admin
       .from('organizations')
-      .select('*')
+      .update({
+        name: input.orgName,
+        country: input.country ?? 'US',
+        currency: input.currency ?? 'USD',
+      })
       .eq('id', existingMembership.data.organization_id)
-      .maybeSingle();
+      .select('*')
+      .single();
     if (orgRow.error) throw orgRow.error;
     if (orgRow.data) return orgRow.data as unknown as { id: string; name: string; slug: string };
   }

@@ -44,6 +44,28 @@ const strengthConfig = [
   { label: "Strong", color: "bg-brand-green",   text: "text-brand-green" },
 ]
 
+class SignupSectionBoundary extends React.Component<
+  { children: React.ReactNode; fallback: string },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("[signup section]", error)
+  }
+
+  render() {
+    if (this.state.failed) {
+      return <p className="text-xs text-brand-coral">{this.props.fallback}</p>
+    }
+    return this.props.children
+  }
+}
+
 function PasswordStrength({ password }: { password: string }) {
   const s = getStrength(password)
   if (!password) return null
@@ -117,12 +139,18 @@ export default function SignupPage() {
     if (cleaned.length < 3) return
     setHandleStatus("checking")
     handleTimerRef.current = setTimeout(async () => {
-      if (RESERVED_HANDLES.includes(cleaned)) {
-        setHandleStatus("taken")
-        return
+      try {
+        if (RESERVED_HANDLES.includes(cleaned)) {
+          setHandleStatus("taken")
+          return
+        }
+        const { data, error: availabilityError } = await supabase.from("storefronts").select("handle").eq("handle", cleaned).limit(1)
+        if (availabilityError) throw availabilityError
+        setHandleStatus((data?.length ?? 0) > 0 ? "taken" : "available")
+      } catch {
+        setHandleStatus("idle")
+        setErrorMessage("We couldn't check that handle. You can still try creating your store.")
       }
-      const { data } = await supabase.from("storefronts").select("handle").eq("handle", cleaned).limit(1)
-      setHandleStatus((data?.length ?? 0) > 0 ? "taken" : "available")
     }, 650)
   }
 
@@ -131,29 +159,33 @@ export default function SignupPage() {
     setErrorMessage(null)
     if (handleStatus === "taken") return
     setIsLoading(true)
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: fullName, handle },
-        // PKCE callback URL — Supabase appends ?code=... for exchange
-        emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
-      },
-    })
-    if (error) {
+    try {
+      const { data, error: signupError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName, handle },
+          // PKCE callback URL — Supabase appends ?code=... for exchange
+          emailRedirectTo: `${window.location.origin}/api/auth/callback?next=/onboarding`,
+        },
+      })
+      if (signupError) {
+        setErrorMessage(signupError.message)
+        return
+      }
+      // If session exists → auto-confirmed (email confirmation disabled)
+      if (data.session) {
+        setStep("done")
+        window.location.href = "/onboarding"
+        return
+      }
+      // No session → email confirmation required; show holding screen
+      setStep("confirm-email")
+    } catch {
+      setErrorMessage("Signup is temporarily unavailable. Please try again.")
+    } finally {
       setIsLoading(false)
-      setErrorMessage(error.message)
-      return
     }
-    // If session exists → auto-confirmed (email confirmation disabled)
-    if (data.session) {
-      setStep("done")
-      window.location.href = "/onboarding"
-      return
-    }
-    // No session → email confirmation required; show holding screen
-    setIsLoading(false)
-    setStep("confirm-email")
   }
 
   return (
@@ -244,7 +276,8 @@ export default function SignupPage() {
                   </p>
                 </motion.div>
 
-                <motion.form {...fadeUp(0.1)} onSubmit={handleSubmit} className="space-y-4">
+                <SignupSectionBoundary fallback="The signup form couldn't load. Please refresh and try again.">
+                  <motion.form {...fadeUp(0.1)} onSubmit={handleSubmit} className="space-y-4">
                   {/* Error */}
                   {error && (
                     <div className="flex items-center gap-2 p-3 rounded-xl bg-brand-coral/10 border border-brand-coral/20 text-xs text-brand-coral font-medium">
@@ -278,20 +311,22 @@ export default function SignupPage() {
                         {handleStatus === "taken"      && <X className="h-4 w-4 text-brand-coral" />}
                       </div>
                     </div>
-                    <AnimatePresence>
-                      {handleStatus === "available" && (
-                        <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className="text-[11px] text-brand-green flex items-center gap-1">
-                          <Check className="h-3 w-3" /> lummy.co/{handle} is available
-                        </motion.p>
-                      )}
-                      {handleStatus === "taken" && (
-                        <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                          className="text-[11px] text-brand-coral flex items-center gap-1">
-                          <X className="h-3 w-3" /> This handle is taken. Try another.
-                        </motion.p>
-                      )}
-                    </AnimatePresence>
+                    <SignupSectionBoundary fallback="Handle validation is temporarily unavailable.">
+                      <AnimatePresence>
+                        {handleStatus === "available" && (
+                          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                            className="text-[11px] text-brand-green flex items-center gap-1">
+                            <Check className="h-3 w-3" /> lummy.co/{handle} is available
+                          </motion.p>
+                        )}
+                        {handleStatus === "taken" && (
+                          <motion.p initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                            className="text-[11px] text-brand-coral flex items-center gap-1">
+                            <X className="h-3 w-3" /> This handle is taken. Try another.
+                          </motion.p>
+                        )}
+                      </AnimatePresence>
+                    </SignupSectionBoundary>
                   </div>
 
                   {/* Email */}
@@ -316,7 +351,9 @@ export default function SignupPage() {
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
-                    <PasswordStrength password={password} />
+                    <SignupSectionBoundary fallback="Password strength is temporarily unavailable.">
+                      <PasswordStrength password={password} />
+                    </SignupSectionBoundary>
                   </div>
 
                   <Button type="submit" size="lg" className="w-full mt-2"
@@ -325,7 +362,8 @@ export default function SignupPage() {
                       ? <span className="flex items-center gap-2"><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Creating your store…</span>
                       : <span className="flex items-center gap-2">Create Free Store <ArrowRight className="h-4 w-4" /></span>}
                   </Button>
-                </motion.form>
+                  </motion.form>
+                </SignupSectionBoundary>
                 {errorMessage ? <p className="mt-3 text-xs text-brand-coral">{errorMessage}</p> : null}
 
                 {/* Divider */}
@@ -339,13 +377,14 @@ export default function SignupPage() {
                 </motion.div>
 
                 {/* Google OAuth */}
-                <motion.button
-                  {...fadeUp(0.3)}
-                  type="button"
-                  onClick={handleGoogleSignup}
-                  disabled={googleLoading || isLoading}
-                  className="w-full flex items-center justify-center gap-3 h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
+                <SignupSectionBoundary fallback="Social signup is temporarily unavailable. Please use email.">
+                  <motion.button
+                    {...fadeUp(0.3)}
+                    type="button"
+                    onClick={handleGoogleSignup}
+                    disabled={googleLoading || isLoading}
+                    className="w-full flex items-center justify-center gap-3 h-11 rounded-xl border border-white/10 bg-white/5 text-sm text-white/70 hover:bg-white/[0.08] hover:text-white transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
                   {googleLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
                   ) : (
@@ -357,7 +396,8 @@ export default function SignupPage() {
                     </svg>
                   )}
                   {googleLoading ? "Redirecting to Google…" : "Continue with Google"}
-                </motion.button>
+                  </motion.button>
+                </SignupSectionBoundary>
 
                 <motion.p {...fadeUp(0.32)} className="mt-5 text-center text-xs text-white/25">
                   By signing up, you agree to our{" "}

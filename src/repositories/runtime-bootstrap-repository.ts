@@ -1,4 +1,5 @@
 import type { User } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/supabase/server";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -51,18 +52,22 @@ async function uniqueOrgSlug(supabase: SupabaseLike, userId: string, name: strin
   return `${safeBase}-${userId.slice(0, 6)}`;
 }
 
-export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: User) {
+export async function ensureCreatorRuntimeContext(_supabase: SupabaseLike, user: User) {
   const email = user.email ?? `${user.id}@unknown.lummy.local`;
   const fullName = profileName(user);
+  // The caller has already authenticated `user`. Bootstrap writes are derived
+  // exclusively from that verified identity and must not be blocked by drifted
+  // tenant RLS while the creator has no organization membership yet.
+  const runtime = createAdminClient();
 
-  const profile = await supabase
+  const profile = await runtime
     .from("profiles")
     .select("id,email,full_name,avatar_url,organization_id,onboarding_completed,onboarding_step")
     .eq("id", user.id)
     .maybeSingle();
   if (profile.error) throw profile.error;
 
-  const profileUpsert = await supabase.from("profiles").upsert(
+  const profileUpsert = await runtime.from("profiles").upsert(
     {
       id: user.id,
       email,
@@ -78,7 +83,7 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
   let organizationId = profile.data?.organization_id ?? null;
 
   if (organizationId) {
-    const membership = await supabase
+    const membership = await runtime
       .from("organization_members")
       .select("id")
       .eq("organization_id", organizationId)
@@ -86,7 +91,7 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
       .maybeSingle();
     if (membership.error) throw membership.error;
     if (!membership.data?.id) {
-      const createdMembership = await supabase.from("organization_members").insert({
+      const createdMembership = await runtime.from("organization_members").insert({
         organization_id: organizationId,
         user_id: user.id,
         role: "owner",
@@ -94,7 +99,7 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
       if (createdMembership.error) throw createdMembership.error;
     }
   } else {
-    const existingMembership = await supabase
+    const existingMembership = await runtime
       .from("organization_members")
       .select("organization_id")
       .eq("user_id", user.id)
@@ -106,7 +111,7 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
     organizationId = existingMembership.data?.organization_id ?? null;
 
     if (!organizationId) {
-      const ownedOrg = await supabase
+      const ownedOrg = await runtime
         .from("organizations")
         .select("id")
         .eq("owner_id", user.id)
@@ -120,12 +125,12 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
           user.user_metadata?.store_name ??
           user.user_metadata?.business_name ??
           `${fullName}'s Store`;
-        const createdOrg = await supabase
+        const createdOrg = await runtime
           .from("organizations")
           .insert({
             owner_id: user.id,
             name: organizationName,
-            slug: await uniqueOrgSlug(supabase, user.id, organizationName),
+            slug: await uniqueOrgSlug(runtime, user.id, organizationName),
             country: "US",
             currency: "USD",
           })
@@ -136,7 +141,7 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
         organizationId = createdOrg.data.id;
       }
 
-      const createdMembership = await supabase.from("organization_members").insert({
+      const createdMembership = await runtime.from("organization_members").insert({
         organization_id: organizationId,
         user_id: user.id,
         role: "owner",
@@ -145,13 +150,13 @@ export async function ensureCreatorRuntimeContext(supabase: SupabaseLike, user: 
     }
   }
 
-  const profileOrgUpdate = await supabase
+  const profileOrgUpdate = await runtime
     .from("profiles")
     .update({ organization_id: organizationId, onboarding_step: profile.data?.onboarding_step ?? "profile" })
     .eq("id", user.id);
   if (profileOrgUpdate.error) throw profileOrgUpdate.error;
 
-  const onboardingState = await supabase.from("onboarding_states").upsert(
+  const onboardingState = await runtime.from("onboarding_states").upsert(
     {
       user_id: user.id,
       organization_id: organizationId,

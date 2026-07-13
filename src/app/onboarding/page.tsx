@@ -916,25 +916,7 @@ function OnboardingFlow() {
 
     await supabase.from("creator_profiles").update(profileUpdate).eq("user_id", user.id)
 
-    if (data.addProduct && data.productName && data.productPrice) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("organization_id")
-        .eq("id", user.id)
-        .maybeSingle()
-
-      if (profile?.organization_id) {
-        const priceKobo = Math.round(parseFloat(data.productPrice) * 100)
-        void Promise.resolve(supabase.from("products").insert({
-          organization_id: profile.organization_id,
-          title: data.productName,
-          description: data.productDesc || null,
-          price: priceKobo,
-          currency: data.currency,
-          status: "active",
-        })).catch(console.error)
-      }
-    }
+    // Product creation is performed once by completeOnboarding() at final submit.
   }
 
   const next = async () => {

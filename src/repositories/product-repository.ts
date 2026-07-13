@@ -100,7 +100,7 @@ export async function createProductForCurrentUser(input: { title: string; price:
   }
   if (!membership.data) throw new Error('Forbidden');
 
-  const organization = await supabase.from('organizations').select('currency_code').eq('id', profile.data.organization_id).maybeSingle();
+  const organization = await supabase.from('organizations').select('currency').eq('id', profile.data.organization_id).maybeSingle();
   if (organization.error) {
     logProductQueryError('createProductForCurrentUser.organizations', organization.error, { organizationId: profile.data.organization_id });
     throw organization.error;
@@ -108,7 +108,7 @@ export async function createProductForCurrentUser(input: { title: string; price:
 
   const created = await createProduct(profile.data.organization_id, {
     ...input,
-    currency: input.currency ?? organization.data?.currency_code ?? 'USD',
+    currency: input.currency ?? organization.data?.currency ?? 'USD',
   });
   if (created.error) throw created.error;
   return created.data;
@@ -123,7 +123,7 @@ export async function getPublishedProductsByHandle(handle: string) {
   }
   if (!storefront.data?.is_active) return [];
 
-  const organization = await supabase.from('organizations').select('currency_code').eq('id', storefront.data.organization_id).maybeSingle();
+  const organization = await supabase.from('organizations').select('currency').eq('id', storefront.data.organization_id).maybeSingle();
   if (organization.error) {
     logProductQueryError('getPublishedProductsByHandle.organizations', organization.error, { organizationId: storefront.data.organization_id });
     throw organization.error;
@@ -139,7 +139,7 @@ export async function getPublishedProductsByHandle(handle: string) {
     logProductQueryError('getPublishedProductsByHandle.products', products.error, { organizationId: storefront.data.organization_id });
     throw products.error;
   }
-  const fallbackCurrency = organization.data?.currency_code ?? 'USD';
+  const fallbackCurrency = organization.data?.currency ?? 'USD';
   return (products.data ?? []).map(product => ({
     ...product,
     currency: product.currency ?? fallbackCurrency,
